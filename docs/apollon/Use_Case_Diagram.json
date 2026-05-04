@@ -1,0 +1,337 @@
+{
+  "id": "df881841-7e95-4556-b365-89746916902a",
+  "version": "4.0.0",
+  "title": "Use Case Diagram",
+  "type": "UseCaseDiagram",
+  "nodes": [
+    {
+      "id": "fae15bb7-185a-47b8-9f3f-951896e0f7dc",
+      "width": 480,
+      "height": 960,
+      "type": "useCaseSystem",
+      "position": {
+        "x": 140,
+        "y": -270
+      },
+      "data": {
+        "name": "CareDesk System"
+      },
+      "measured": {
+        "width": 480,
+        "height": 960
+      }
+    },
+    {
+      "id": "6f61fbb0-e167-40ca-83d5-c7bf2599f24c",
+      "width": 180,
+      "height": 100,
+      "type": "useCase",
+      "position": {
+        "x": 50,
+        "y": 490
+      },
+      "parentId": "fae15bb7-185a-47b8-9f3f-951896e0f7dc",
+      "data": {
+        "name": "Book Appointment"
+      },
+      "measured": {
+        "width": 180,
+        "height": 100
+      }
+    },
+    {
+      "id": "34760d84-520a-4276-be12-5579201e1e02",
+      "width": 100,
+      "height": 150,
+      "type": "useCaseActor",
+      "position": {
+        "x": -90,
+        "y": -200
+      },
+      "data": {
+        "name": "Doctor"
+      },
+      "measured": {
+        "width": 100,
+        "height": 150
+      }
+    },
+    {
+      "id": "daa6f543-f6ac-4cc3-ad78-a799b7904154",
+      "width": 100,
+      "height": 150,
+      "type": "useCaseActor",
+      "position": {
+        "x": -90,
+        "y": 260
+      },
+      "data": {
+        "name": "Patient"
+      },
+      "measured": {
+        "width": 100,
+        "height": 150
+      }
+    },
+    {
+      "id": "a7e237b2-645c-42c3-951f-c52ae26f2978",
+      "width": 100,
+      "height": 150,
+      "type": "useCaseActor",
+      "position": {
+        "x": 760,
+        "y": 260
+      },
+      "data": {
+        "name": "Administrator"
+      },
+      "measured": {
+        "width": 100,
+        "height": 150
+      }
+    },
+    {
+      "id": "5cf42c63-b82e-4979-a519-c97977cc48c6",
+      "width": 180,
+      "height": 100,
+      "type": "useCase",
+      "position": {
+        "x": 50,
+        "y": 290
+      },
+      "parentId": "fae15bb7-185a-47b8-9f3f-951896e0f7dc",
+      "data": {
+        "name": "Manage Appointments"
+      },
+      "measured": {
+        "width": 180,
+        "height": 100
+      }
+    },
+    {
+      "id": "d26d2ed9-d050-4f80-8edd-a85dcd13e5a4",
+      "width": 180,
+      "height": 100,
+      "type": "useCase",
+      "position": {
+        "x": 50,
+        "y": 690
+      },
+      "parentId": "fae15bb7-185a-47b8-9f3f-951896e0f7dc",
+      "data": {
+        "name": "Receive Notification"
+      },
+      "measured": {
+        "width": 180,
+        "height": 100
+      }
+    },
+    {
+      "id": "5b8bb31b-b217-4784-a824-5a634d002c59",
+      "width": 180,
+      "height": 100,
+      "type": "useCase",
+      "position": {
+        "x": 210,
+        "y": 180
+      },
+      "parentId": "fae15bb7-185a-47b8-9f3f-951896e0f7dc",
+      "data": {
+        "name": "Add Clinical Notes"
+      },
+      "measured": {
+        "width": 180,
+        "height": 100
+      }
+    },
+    {
+      "id": "3acae759-34d1-49eb-bb5d-d80cf50b2241",
+      "width": 180,
+      "height": 100,
+      "type": "useCase",
+      "position": {
+        "x": 60,
+        "y": 830
+      },
+      "parentId": "fae15bb7-185a-47b8-9f3f-951896e0f7dc",
+      "data": {
+        "name": "Create Account"
+      },
+      "measured": {
+        "width": 180,
+        "height": 100
+      }
+    },
+    {
+      "id": "23f0ea65-ddc2-4e1a-83f4-fe64366ac98a",
+      "width": 160,
+      "height": 100,
+      "type": "useCase",
+      "position": {
+        "x": 270,
+        "y": 600
+      },
+      "parentId": "fae15bb7-185a-47b8-9f3f-951896e0f7dc",
+      "data": {
+        "name": "Manage Users"
+      },
+      "measured": {
+        "width": 160,
+        "height": 100
+      }
+    },
+    {
+      "id": "73e04f02-8d77-4b0b-b79e-13835f487c06",
+      "width": 180,
+      "height": 100,
+      "type": "useCase",
+      "position": {
+        "x": 60,
+        "y": 60
+      },
+      "parentId": "fae15bb7-185a-47b8-9f3f-951896e0f7dc",
+      "data": {
+        "name": "Query Notes using AI"
+      },
+      "measured": {
+        "width": 180,
+        "height": 100
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "41e8c783-64de-4c0e-9ff1-5fc80912c60c",
+      "source": "daa6f543-f6ac-4cc3-ad78-a799b7904154",
+      "target": "6f61fbb0-e167-40ca-83d5-c7bf2599f24c",
+      "type": "UseCaseAssociation",
+      "sourceHandle": "right",
+      "targetHandle": "left",
+      "data": {
+        "points": []
+      }
+    },
+    {
+      "id": "b7d1a5ba-d613-4961-aa0e-ce6946373caa",
+      "source": "5cf42c63-b82e-4979-a519-c97977cc48c6",
+      "target": "6f61fbb0-e167-40ca-83d5-c7bf2599f24c",
+      "type": "UseCaseInclude",
+      "sourceHandle": "bottom",
+      "targetHandle": "top",
+      "data": {
+        "points": []
+      }
+    },
+    {
+      "id": "59fad540-1e07-4a36-9577-bbf339d5283a",
+      "source": "34760d84-520a-4276-be12-5579201e1e02",
+      "target": "5cf42c63-b82e-4979-a519-c97977cc48c6",
+      "type": "UseCaseAssociation",
+      "sourceHandle": "right",
+      "targetHandle": "left",
+      "data": {
+        "points": []
+      }
+    },
+    {
+      "id": "254c1905-b294-46f7-b410-1aa9caace1f7",
+      "source": "daa6f543-f6ac-4cc3-ad78-a799b7904154",
+      "target": "d26d2ed9-d050-4f80-8edd-a85dcd13e5a4",
+      "type": "UseCaseAssociation",
+      "sourceHandle": "right",
+      "targetHandle": "left",
+      "data": {
+        "points": []
+      }
+    },
+    {
+      "id": "9088f74b-0a47-44bf-a2c7-f466bd869c35",
+      "source": "5b8bb31b-b217-4784-a824-5a634d002c59",
+      "target": "5cf42c63-b82e-4979-a519-c97977cc48c6",
+      "type": "UseCaseExtend",
+      "sourceHandle": "bottom",
+      "targetHandle": "right",
+      "data": {
+        "points": []
+      }
+    },
+    {
+      "id": "cb60650e-54dd-41ea-b7c4-2533e01b1ef6",
+      "source": "daa6f543-f6ac-4cc3-ad78-a799b7904154",
+      "target": "3acae759-34d1-49eb-bb5d-d80cf50b2241",
+      "type": "UseCaseAssociation",
+      "sourceHandle": "right",
+      "targetHandle": "left",
+      "data": {
+        "points": []
+      }
+    },
+    {
+      "id": "d220e4bd-713d-44b2-993b-795f2d37912f",
+      "source": "23f0ea65-ddc2-4e1a-83f4-fe64366ac98a",
+      "target": "3acae759-34d1-49eb-bb5d-d80cf50b2241",
+      "type": "UseCaseInclude",
+      "sourceHandle": "bottom",
+      "targetHandle": "right",
+      "data": {
+        "points": []
+      }
+    },
+    {
+      "id": "a6893aa6-5dbc-4951-8abf-d6ca8265abcc",
+      "source": "a7e237b2-645c-42c3-951f-c52ae26f2978",
+      "target": "23f0ea65-ddc2-4e1a-83f4-fe64366ac98a",
+      "type": "UseCaseAssociation",
+      "sourceHandle": "left",
+      "targetHandle": "right",
+      "data": {
+        "points": []
+      }
+    },
+    {
+      "id": "23897456-a951-4786-b1d4-69753c28c5a1",
+      "source": "34760d84-520a-4276-be12-5579201e1e02",
+      "target": "5b8bb31b-b217-4784-a824-5a634d002c59",
+      "type": "UseCaseAssociation",
+      "sourceHandle": "right",
+      "targetHandle": "left",
+      "data": {
+        "points": []
+      }
+    },
+    {
+      "id": "24ce1368-562c-43de-89c2-db4efa583186",
+      "source": "73e04f02-8d77-4b0b-b79e-13835f487c06",
+      "target": "34760d84-520a-4276-be12-5579201e1e02",
+      "type": "UseCaseAssociation",
+      "sourceHandle": "left",
+      "targetHandle": "right",
+      "data": {
+        "points": []
+      }
+    },
+    {
+      "id": "8b924e9a-78ca-4aa0-9c42-6067edc954c1",
+      "source": "73e04f02-8d77-4b0b-b79e-13835f487c06",
+      "target": "5b8bb31b-b217-4784-a824-5a634d002c59",
+      "type": "UseCaseExtend",
+      "sourceHandle": "right",
+      "targetHandle": "top",
+      "data": {
+        "points": []
+      }
+    },
+    {
+      "id": "3822bbf6-e1d5-443b-8163-a18e7959c790",
+      "source": "d26d2ed9-d050-4f80-8edd-a85dcd13e5a4",
+      "target": "6f61fbb0-e167-40ca-83d5-c7bf2599f24c",
+      "type": "UseCaseExtend",
+      "sourceHandle": "top",
+      "targetHandle": "bottom",
+      "data": {
+        "points": []
+      }
+    }
+  ],
+  "assessments": {}
+}

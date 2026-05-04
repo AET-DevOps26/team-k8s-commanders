@@ -1,0 +1,471 @@
+{
+  "id": "f6ad01c0-aad1-4a0d-a592-ee8013af1525",
+  "version": "4.0.0",
+  "title": "Analysis Object Model",
+  "type": "ClassDiagram",
+  "nodes": [
+    {
+      "id": "2f89f1ef-d3d7-4085-ad3c-305e345c8324",
+      "width": 290,
+      "height": 260,
+      "type": "class",
+      "position": {
+        "x": -250,
+        "y": 710
+      },
+      "data": {
+        "name": "User ",
+        "stereotype": "Abstract",
+        "methods": [
+          {
+            "id": "b0a31869-899b-4898-98ad-5adefdec24a2",
+            "name": "login()"
+          },
+          {
+            "id": "b96baabf-e8ba-4025-a1d0-9d6197d57e2d",
+            "name": "logout()"
+          },
+          {
+            "id": "d5a7314a-9407-4aee-a712-3da496f23a20",
+            "name": "updateProfile()"
+          }
+        ],
+        "attributes": [
+          {
+            "id": "086afccb-53fc-4cc8-8ca8-00909deca557",
+            "name": "name"
+          },
+          {
+            "id": "e714aa01-b504-4b8b-82ce-a70d5ad28139",
+            "name": "email"
+          },
+          {
+            "id": "504b6ea6-1389-48cc-b7b5-585dfd2ced49",
+            "name": "password"
+          },
+          {
+            "id": "7eb3aa6c-88a4-4260-869d-c6e0432078a4",
+            "name": "role"
+          }
+        ]
+      },
+      "measured": {
+        "width": 290,
+        "height": 260
+      }
+    },
+    {
+      "id": "2994702d-b165-413e-836b-eecd3252fa75",
+      "width": 210,
+      "height": 220,
+      "type": "class",
+      "position": {
+        "x": -520,
+        "y": 1090
+      },
+      "data": {
+        "name": "Patient",
+        "methods": [
+          {
+            "id": "5493bf6e-a465-4eba-8c22-367fdc0619ef",
+            "name": "bookAppointment()"
+          },
+          {
+            "id": "f8bc7f86-18a0-4e20-b6eb-7897f87bff3c",
+            "name": "cancelAppointment()"
+          },
+          {
+            "id": "c02e3671-1cd9-47ae-9899-213453dd2fda",
+            "name": "rescheduleAppointment()"
+          },
+          {
+            "id": "127e9c61-cb54-4bf1-a0d2-449817aad814",
+            "name": "viewVisitHistory()"
+          }
+        ],
+        "attributes": [
+          {
+            "id": "8ab45f74-dbeb-4c99-9017-ba393b838def",
+            "name": "dateOfBirth"
+          },
+          {
+            "id": "daa9161e-a845-4027-a85d-c48fe355f007",
+            "name": "phoneNumber"
+          }
+        ]
+      },
+      "measured": {
+        "width": 210,
+        "height": 220
+      }
+    },
+    {
+      "id": "1f7e8864-0c47-492c-99d5-c6063254643f",
+      "width": 230,
+      "height": 220,
+      "type": "class",
+      "position": {
+        "x": -190,
+        "y": 1090
+      },
+      "data": {
+        "name": "Doctor",
+        "methods": [
+          {
+            "id": "6acb0cd6-71ac-4486-bcaa-9963131fd431",
+            "name": "viewSchedule()"
+          },
+          {
+            "id": "c84efd26-69aa-4e71-9d7b-3bbe8034881b",
+            "name": "writeNote()"
+          },
+          {
+            "id": "6dafaac5-7ffd-4d06-9469-6f766322025d",
+            "name": "tagDiagnosis()"
+          },
+          {
+            "id": "529cc9ab-a508-4e9f-8ed0-a38ec1546ae0",
+            "name": "queryAIAssistant"
+          }
+        ],
+        "attributes": [
+          {
+            "id": "6049301e-e819-4bb5-b31b-9793bf8da80d",
+            "name": "specialization"
+          },
+          {
+            "id": "60a150c9-9bc2-49ef-b863-e92a5088e391",
+            "name": "licenseNumber"
+          }
+        ]
+      },
+      "measured": {
+        "width": 230,
+        "height": 220
+      }
+    },
+    {
+      "id": "3b7e4601-8fbf-4a6a-bcf2-ad2c5ccc77f7",
+      "width": 180,
+      "height": 100,
+      "type": "class",
+      "position": {
+        "x": 170,
+        "y": 1090
+      },
+      "data": {
+        "name": "Admin",
+        "methods": [
+          {
+            "id": "93f516dd-0bca-4222-8cab-456d49b6de1a",
+            "name": "manageAccounts()"
+          },
+          {
+            "id": "34f5ea70-514e-466b-8667-6851943d7ef5",
+            "name": "viewClinicOverview()"
+          }
+        ],
+        "attributes": []
+      },
+      "measured": {
+        "width": 180,
+        "height": 100
+      }
+    },
+    {
+      "id": "2e455ff9-f2a4-4033-b3f2-b5054b844fe9",
+      "width": 220,
+      "height": 220,
+      "type": "class",
+      "position": {
+        "x": -360,
+        "y": 1450
+      },
+      "data": {
+        "name": "Appointment",
+        "methods": [
+          {
+            "id": "a9882a3e-a034-47e4-843f-92ec567f82d2",
+            "name": "book()"
+          },
+          {
+            "id": "07f50b65-ba1e-4481-a1cd-017b0b38f983",
+            "name": "cancel()"
+          },
+          {
+            "id": "6f81b264-9898-4829-8aa1-1749c3cbbfb2",
+            "name": "reschedule()"
+          }
+        ],
+        "attributes": [
+          {
+            "id": "02231137-b3b7-4329-8b0b-efa4f80d5acc",
+            "name": "dateTime"
+          },
+          {
+            "id": "48f183cd-aaa6-4652-8aba-5f8395f67931",
+            "name": "status"
+          },
+          {
+            "id": "b12dfad7-2490-4d1a-be43-9de59cf4a9d8",
+            "name": "duration"
+          }
+        ]
+      },
+      "measured": {
+        "width": 220,
+        "height": 220
+      }
+    },
+    {
+      "id": "31004d32-b796-4995-b7ae-9ea6b90e769f",
+      "width": 220,
+      "height": 160,
+      "type": "class",
+      "position": {
+        "x": -360,
+        "y": 1820
+      },
+      "data": {
+        "name": "Notification",
+        "methods": [
+          {
+            "id": "b3c637f3-3260-4f3b-a2b7-835ef5f76290",
+            "name": "send()"
+          }
+        ],
+        "attributes": [
+          {
+            "id": "75f0a344-dda6-4c45-99c5-3b6193f041cc",
+            "name": "message"
+          },
+          {
+            "id": "81047937-4f90-42d1-9f19-7f61b82fc994",
+            "name": "sentAt"
+          },
+          {
+            "id": "2dd04896-111d-4202-aa8f-edee2e7bf683",
+            "name": "channel"
+          }
+        ]
+      },
+      "measured": {
+        "width": 220,
+        "height": 160
+      }
+    },
+    {
+      "id": "a8b5ced8-a924-4b5f-8bda-9ea73746d856",
+      "width": 170,
+      "height": 100,
+      "type": "class",
+      "position": {
+        "x": 50,
+        "y": 1450
+      },
+      "data": {
+        "name": "AIAssistant",
+        "methods": [
+          {
+            "id": "da42496e-8521-4c2d-8120-c710ed8d074f",
+            "name": "query()"
+          },
+          {
+            "id": "cc53d281-117a-4708-bb9e-2dd20d19c3ca",
+            "name": "summarizeHistory()"
+          }
+        ],
+        "attributes": []
+      },
+      "measured": {
+        "width": 170,
+        "height": 100
+      }
+    },
+    {
+      "id": "d7eea2ee-9f88-4eb8-aaa7-50e13b1cfadc",
+      "width": 160,
+      "height": 160,
+      "type": "class",
+      "position": {
+        "x": -740,
+        "y": 1480
+      },
+      "data": {
+        "name": "ClinicalNote",
+        "methods": [
+          {
+            "id": "ea204554-aa71-46c1-a4ca-3c417fc83cc6",
+            "name": "write()"
+          },
+          {
+            "id": "ef194599-be98-4a25-8144-373a99bbae86",
+            "name": "edit()"
+          }
+        ],
+        "attributes": [
+          {
+            "id": "ff7e9b5b-7dc1-408f-9377-c362dee206e6",
+            "name": "content"
+          },
+          {
+            "id": "655da879-c5a6-4648-b6c3-e862404ae49f",
+            "name": "createdAt"
+          }
+        ]
+      },
+      "measured": {
+        "width": 160,
+        "height": 160
+      }
+    },
+    {
+      "id": "53018222-2cb9-4ab9-9dc9-a531b53d8230",
+      "width": 160,
+      "height": 100,
+      "type": "class",
+      "position": {
+        "x": -740,
+        "y": 1810
+      },
+      "data": {
+        "name": "Diagnosis",
+        "methods": [],
+        "attributes": [
+          {
+            "id": "8ce4a0ee-bf2c-491e-9c29-497a4b37d9d6",
+            "name": "code"
+          },
+          {
+            "id": "9dd35920-c89b-4bc7-a550-5f05e41d429a",
+            "name": "description"
+          }
+        ]
+      },
+      "measured": {
+        "width": 160,
+        "height": 100
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "1ffbf6f5-3008-4d15-98de-4fcfadb3d2c6",
+      "source": "2994702d-b165-413e-836b-eecd3252fa75",
+      "target": "2f89f1ef-d3d7-4085-ad3c-305e345c8324",
+      "type": "ClassInheritance",
+      "sourceHandle": "top",
+      "targetHandle": "bottom",
+      "data": {
+        "points": []
+      }
+    },
+    {
+      "id": "4a83d679-1eeb-422e-bac3-7a89eb652a30",
+      "source": "1f7e8864-0c47-492c-99d5-c6063254643f",
+      "target": "2f89f1ef-d3d7-4085-ad3c-305e345c8324",
+      "type": "ClassInheritance",
+      "sourceHandle": "top",
+      "targetHandle": "bottom",
+      "data": {
+        "points": []
+      }
+    },
+    {
+      "id": "3d8b2ccf-85d7-4110-9650-9c049ffc9e94",
+      "source": "3b7e4601-8fbf-4a6a-bcf2-ad2c5ccc77f7",
+      "target": "2f89f1ef-d3d7-4085-ad3c-305e345c8324",
+      "type": "ClassInheritance",
+      "sourceHandle": "top",
+      "targetHandle": "bottom",
+      "data": {
+        "points": []
+      }
+    },
+    {
+      "id": "278de390-68d4-4e98-931b-0f05507f31b9",
+      "source": "2994702d-b165-413e-836b-eecd3252fa75",
+      "target": "2e455ff9-f2a4-4033-b3f2-b5054b844fe9",
+      "type": "ClassUnidirectional",
+      "sourceHandle": "bottom",
+      "targetHandle": "top",
+      "data": {
+        "points": [],
+        "sourceMultiplicity": "1",
+        "targetMultiplicity": "*",
+        "sourceRole": "books"
+      }
+    },
+    {
+      "id": "185d2c16-abb0-4f2a-811d-e3bd948fa4c1",
+      "source": "1f7e8864-0c47-492c-99d5-c6063254643f",
+      "target": "2e455ff9-f2a4-4033-b3f2-b5054b844fe9",
+      "type": "ClassUnidirectional",
+      "sourceHandle": "bottom",
+      "targetHandle": "top",
+      "data": {
+        "sourceMultiplicity": "1",
+        "targetMultiplicity": "*",
+        "sourceRole": "manages",
+        "points": []
+      }
+    },
+    {
+      "id": "8924539e-7abe-43e8-8e51-530c6af059fa",
+      "source": "2e455ff9-f2a4-4033-b3f2-b5054b844fe9",
+      "target": "31004d32-b796-4995-b7ae-9ea6b90e769f",
+      "type": "ClassUnidirectional",
+      "sourceHandle": "bottom",
+      "targetHandle": "top",
+      "data": {
+        "sourceMultiplicity": "1",
+        "targetMultiplicity": "*",
+        "sourceRole": "triggers",
+        "points": []
+      }
+    },
+    {
+      "id": "52c23246-37b9-4780-8be0-cfd2104f1d0f",
+      "source": "1f7e8864-0c47-492c-99d5-c6063254643f",
+      "target": "a8b5ced8-a924-4b5f-8bda-9ea73746d856",
+      "type": "ClassUnidirectional",
+      "sourceHandle": "right",
+      "targetHandle": "top",
+      "data": {
+        "sourceMultiplicity": "*",
+        "targetMultiplicity": "1",
+        "sourceRole": "queries",
+        "points": []
+      }
+    },
+    {
+      "id": "0f294761-16d6-458a-bb51-ea8a9a24a939",
+      "source": "2e455ff9-f2a4-4033-b3f2-b5054b844fe9",
+      "target": "d7eea2ee-9f88-4eb8-aaa7-50e13b1cfadc",
+      "type": "ClassComposition",
+      "sourceHandle": "left",
+      "targetHandle": "right",
+      "data": {
+        "sourceMultiplicity": "1",
+        "targetMultiplicity": "0..1",
+        "sourceRole": "has",
+        "points": []
+      }
+    },
+    {
+      "id": "667e93a2-6705-4c1e-9b0b-7fc7e7ca132c",
+      "source": "d7eea2ee-9f88-4eb8-aaa7-50e13b1cfadc",
+      "target": "53018222-2cb9-4ab9-9dc9-a531b53d8230",
+      "type": "ClassUnidirectional",
+      "sourceHandle": "bottom",
+      "targetHandle": "top",
+      "data": {
+        "sourceMultiplicity": "1",
+        "targetMultiplicity": "*",
+        "sourceRole": "tags",
+        "points": []
+      }
+    }
+  ],
+  "assessments": {}
+}

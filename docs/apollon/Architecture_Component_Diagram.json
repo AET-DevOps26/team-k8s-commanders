@@ -1,7 +1,7 @@
 {
   "id": "caredesk-top-level-component-001",
   "version": "4.0.0",
-  "title": "CareDesk - Top-Level Architecture Component Diagram",
+  "title": "Architecture_Component_Diagram",
   "type": "ComponentDiagram",
   "nodes": [
     {
@@ -209,15 +209,33 @@
       }
     },
     {
+      "id": "6b2d2ef7-d215-4852-8b9e-77e2148245da",
+      "width": 300,
+      "height": 270,
+      "type": "componentSubsystem",
+      "position": {
+        "x": 1250,
+        "y": -700
+      },
+      "data": {
+        "name": "LLM Provider",
+        "isComponentSubsystemHeaderShown": true
+      },
+      "measured": {
+        "width": 300,
+        "height": 270
+      }
+    },
+    {
       "id": "n-llm",
       "width": 180,
       "height": 85,
       "type": "component",
       "position": {
-        "x": 600,
-        "y": 50
+        "x": 60,
+        "y": 110
       },
-      "parentId": "layer-genai",
+      "parentId": "6b2d2ef7-d215-4852-8b9e-77e2148245da",
       "data": {
         "name": "LLM Provider",
         "isComponentHeaderShown": true
@@ -253,7 +271,7 @@
       "type": "componentSubsystem",
       "position": {
         "x": -200,
-        "y": 220
+        "y": 190
       },
       "data": {
         "name": "Persistence Layer (PostgreSQL)",
@@ -376,6 +394,23 @@
       "measured": {
         "width": 300,
         "height": 120
+      }
+    },
+    {
+      "id": "3a6a3572-cbef-4402-8978-1097b5d4966e",
+      "width": 30,
+      "height": 30,
+      "type": "componentInterface",
+      "position": {
+        "x": 1430,
+        "y": -400
+      },
+      "data": {
+        "name": "REST API"
+      },
+      "measured": {
+        "width": 30,
+        "height": 30
       }
     }
   ],
@@ -503,11 +538,11 @@
     },
     {
       "id": "e-ai-llm",
-      "source": "n-ai-service",
-      "target": "n-llm",
-      "type": "ComponentDependency",
-      "sourceHandle": "top",
-      "targetHandle": "left",
+      "source": "n-llm",
+      "target": "3a6a3572-cbef-4402-8978-1097b5d4966e",
+      "type": "ComponentRequiredInterface",
+      "sourceHandle": "bottom",
+      "targetHandle": "top",
       "data": {
         "points": []
       }
@@ -574,6 +609,17 @@
       "type": "ComponentDependency",
       "sourceHandle": "bottom",
       "targetHandle": "top",
+      "data": {
+        "points": []
+      }
+    },
+    {
+      "id": "fb41b0f7-8c74-447a-973d-4055a7db8ea5",
+      "source": "n-ai-service",
+      "target": "3a6a3572-cbef-4402-8978-1097b5d4966e",
+      "type": "ComponentProvidedInterface",
+      "sourceHandle": "top",
+      "targetHandle": "bottom",
       "data": {
         "points": []
       }

@@ -1,0 +1,629 @@
+{
+  "id": "caredesk-top-level-component-001",
+  "version": "4.0.0",
+  "title": "Architecture_Component_Diagram",
+  "type": "ComponentDiagram",
+  "nodes": [
+    {
+      "id": "layer-client",
+      "width": 340,
+      "height": 240,
+      "type": "componentSubsystem",
+      "position": {
+        "x": -770,
+        "y": -340
+      },
+      "data": {
+        "name": "Client Layer",
+        "isComponentSubsystemHeaderShown": true
+      },
+      "measured": {
+        "width": 340,
+        "height": 240
+      }
+    },
+    {
+      "id": "n-client",
+      "width": 280,
+      "height": 120,
+      "type": "component",
+      "position": {
+        "x": 40,
+        "y": 85
+      },
+      "parentId": "layer-client",
+      "data": {
+        "name": "Web SPA (React)",
+        "isComponentHeaderShown": true
+      },
+      "measured": {
+        "width": 280,
+        "height": 120
+      }
+    },
+    {
+      "id": "layer-server",
+      "width": 1250,
+      "height": 480,
+      "type": "componentSubsystem",
+      "position": {
+        "x": -210,
+        "y": -340
+      },
+      "data": {
+        "name": "Server Layer (Spring Boot REST)",
+        "isComponentSubsystemHeaderShown": true
+      },
+      "measured": {
+        "width": 1250,
+        "height": 480
+      }
+    },
+    {
+      "id": "n-api-interface",
+      "width": 20,
+      "height": 20,
+      "type": "componentInterface",
+      "position": {
+        "x": -320,
+        "y": -220
+      },
+      "data": {
+        "name": "REST / HTTPS"
+      },
+      "measured": {
+        "width": 20,
+        "height": 20
+      }
+    },
+    {
+      "id": "n-server",
+      "width": 200,
+      "height": 95,
+      "type": "component",
+      "position": {
+        "x": 520,
+        "y": 70
+      },
+      "parentId": "layer-server",
+      "data": {
+        "name": "API Gateway",
+        "isComponentHeaderShown": true
+      },
+      "measured": {
+        "width": 200,
+        "height": 95
+      }
+    },
+    {
+      "id": "n-auth",
+      "width": 240,
+      "height": 105,
+      "type": "component",
+      "position": {
+        "x": 70,
+        "y": 300
+      },
+      "parentId": "layer-server",
+      "data": {
+        "name": "Auth Service",
+        "isComponentHeaderShown": true
+      },
+      "measured": {
+        "width": 240,
+        "height": 105
+      }
+    },
+    {
+      "id": "n-appointment",
+      "width": 280,
+      "height": 105,
+      "type": "component",
+      "position": {
+        "x": 670,
+        "y": 300
+      },
+      "parentId": "layer-server",
+      "data": {
+        "name": "Patient & Appointment Service",
+        "isComponentHeaderShown": true
+      },
+      "measured": {
+        "width": 280,
+        "height": 105
+      }
+    },
+    {
+      "id": "n-notes",
+      "width": 240,
+      "height": 105,
+      "type": "component",
+      "position": {
+        "x": 930,
+        "y": 70
+      },
+      "parentId": "layer-server",
+      "data": {
+        "name": "Clinical Notes Service",
+        "isComponentHeaderShown": true
+      },
+      "measured": {
+        "width": 240,
+        "height": 105
+      }
+    },
+    {
+      "id": "n-notification",
+      "width": 200,
+      "height": 105,
+      "type": "component",
+      "position": {
+        "x": 370,
+        "y": 300
+      },
+      "parentId": "layer-server",
+      "data": {
+        "name": "Notification Service",
+        "isComponentHeaderShown": true
+      },
+      "measured": {
+        "width": 200,
+        "height": 105
+      }
+    },
+    {
+      "id": "layer-genai",
+      "width": 860,
+      "height": 490,
+      "type": "componentSubsystem",
+      "position": {
+        "x": 1150,
+        "y": -340
+      },
+      "data": {
+        "name": "GenAI Service",
+        "isComponentSubsystemHeaderShown": true
+      },
+      "measured": {
+        "width": 860,
+        "height": 490
+      }
+    },
+    {
+      "id": "n-ai-service",
+      "width": 300,
+      "height": 95,
+      "type": "component",
+      "position": {
+        "x": 70,
+        "y": 140
+      },
+      "parentId": "layer-genai",
+      "data": {
+        "name": "AI Assistant Service",
+        "isComponentHeaderShown": true
+      },
+      "measured": {
+        "width": 300,
+        "height": 95
+      }
+    },
+    {
+      "id": "6b2d2ef7-d215-4852-8b9e-77e2148245da",
+      "width": 300,
+      "height": 270,
+      "type": "componentSubsystem",
+      "position": {
+        "x": 1250,
+        "y": -700
+      },
+      "data": {
+        "name": "LLM Provider",
+        "isComponentSubsystemHeaderShown": true
+      },
+      "measured": {
+        "width": 300,
+        "height": 270
+      }
+    },
+    {
+      "id": "n-llm",
+      "width": 180,
+      "height": 85,
+      "type": "component",
+      "position": {
+        "x": 60,
+        "y": 110
+      },
+      "parentId": "6b2d2ef7-d215-4852-8b9e-77e2148245da",
+      "data": {
+        "name": "LLM Provider",
+        "isComponentHeaderShown": true
+      },
+      "measured": {
+        "width": 180,
+        "height": 85
+      }
+    },
+    {
+      "id": "n-vector-store",
+      "width": 270,
+      "height": 90,
+      "type": "component",
+      "position": {
+        "x": 540,
+        "y": 250
+      },
+      "parentId": "layer-genai",
+      "data": {
+        "name": "Vector store",
+        "isComponentHeaderShown": true
+      },
+      "measured": {
+        "width": 270,
+        "height": 90
+      }
+    },
+    {
+      "id": "layer-persistence",
+      "width": 1620,
+      "height": 300,
+      "type": "componentSubsystem",
+      "position": {
+        "x": -200,
+        "y": 190
+      },
+      "data": {
+        "name": "Persistence Layer (PostgreSQL)",
+        "isComponentSubsystemHeaderShown": true
+      },
+      "measured": {
+        "width": 1620,
+        "height": 300
+      }
+    },
+    {
+      "id": "db-auth",
+      "width": 190,
+      "height": 95,
+      "type": "component",
+      "position": {
+        "x": 50,
+        "y": 80
+      },
+      "parentId": "layer-persistence",
+      "data": {
+        "name": "Auth DB",
+        "isComponentHeaderShown": true
+      },
+      "measured": {
+        "width": 190,
+        "height": 95
+      }
+    },
+    {
+      "id": "db-appointment",
+      "width": 220,
+      "height": 95,
+      "type": "component",
+      "position": {
+        "x": 550,
+        "y": 80
+      },
+      "parentId": "layer-persistence",
+      "data": {
+        "name": "Appointment DB",
+        "isComponentHeaderShown": true
+      },
+      "measured": {
+        "width": 220,
+        "height": 95
+      }
+    },
+    {
+      "id": "db-notes",
+      "width": 200,
+      "height": 95,
+      "type": "component",
+      "position": {
+        "x": 900,
+        "y": 80
+      },
+      "parentId": "layer-persistence",
+      "data": {
+        "name": "Clinical Notes DB",
+        "isComponentHeaderShown": true
+      },
+      "measured": {
+        "width": 200,
+        "height": 95
+      }
+    },
+    {
+      "id": "db-notification",
+      "width": 220,
+      "height": 95,
+      "type": "component",
+      "position": {
+        "x": 280,
+        "y": 80
+      },
+      "parentId": "layer-persistence",
+      "data": {
+        "name": "Notification DB",
+        "isComponentHeaderShown": true
+      },
+      "measured": {
+        "width": 220,
+        "height": 95
+      }
+    },
+    {
+      "id": "db-rag",
+      "width": 280,
+      "height": 95,
+      "type": "component",
+      "position": {
+        "x": 1250,
+        "y": 80
+      },
+      "parentId": "layer-persistence",
+      "data": {
+        "name": "RAG Index DB",
+        "isComponentHeaderShown": true
+      },
+      "measured": {
+        "width": 280,
+        "height": 95
+      }
+    },
+    {
+      "id": "1130047d-a3a5-4d2f-af23-6bb79b9315f2",
+      "width": 300,
+      "height": 120,
+      "type": "component",
+      "position": {
+        "x": 70,
+        "y": 310
+      },
+      "parentId": "layer-genai",
+      "data": {
+        "name": "Clinical Guidelines Knowledge Base",
+        "isComponentHeaderShown": true
+      },
+      "measured": {
+        "width": 300,
+        "height": 120
+      }
+    },
+    {
+      "id": "3a6a3572-cbef-4402-8978-1097b5d4966e",
+      "width": 30,
+      "height": 30,
+      "type": "componentInterface",
+      "position": {
+        "x": 1430,
+        "y": -400
+      },
+      "data": {
+        "name": "REST API"
+      },
+      "measured": {
+        "width": 30,
+        "height": 30
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-client-api",
+      "source": "n-client",
+      "target": "n-api-interface",
+      "type": "ComponentProvidedInterface",
+      "sourceHandle": "right",
+      "targetHandle": "left",
+      "data": {
+        "points": []
+      }
+    },
+    {
+      "id": "e-server-api",
+      "source": "n-server",
+      "target": "n-api-interface",
+      "type": "ComponentRequiredInterface",
+      "sourceHandle": "left",
+      "targetHandle": "right",
+      "data": {
+        "points": []
+      }
+    },
+    {
+      "id": "e-server-auth",
+      "source": "n-server",
+      "target": "n-auth",
+      "type": "ComponentDependency",
+      "sourceHandle": "bottom",
+      "targetHandle": "top",
+      "data": {
+        "points": []
+      }
+    },
+    {
+      "id": "e-server-appointment",
+      "source": "n-server",
+      "target": "n-appointment",
+      "type": "ComponentDependency",
+      "sourceHandle": "bottom",
+      "targetHandle": "top",
+      "data": {
+        "points": []
+      }
+    },
+    {
+      "id": "e-server-notes",
+      "source": "n-server",
+      "target": "n-notes",
+      "type": "ComponentDependency",
+      "sourceHandle": "bottom",
+      "targetHandle": "left",
+      "data": {
+        "points": []
+      }
+    },
+    {
+      "id": "e-server-notification",
+      "source": "n-server",
+      "target": "n-notification",
+      "type": "ComponentDependency",
+      "sourceHandle": "bottom",
+      "targetHandle": "top",
+      "data": {
+        "points": []
+      }
+    },
+    {
+      "id": "e-appointment-notification",
+      "source": "n-appointment",
+      "target": "n-notification",
+      "type": "ComponentDependency",
+      "sourceHandle": "left",
+      "targetHandle": "right",
+      "data": {
+        "points": []
+      }
+    },
+    {
+      "id": "e-notes-ai",
+      "source": "n-notes",
+      "target": "n-ai-service",
+      "type": "ComponentDependency",
+      "sourceHandle": "right",
+      "targetHandle": "left",
+      "data": {
+        "points": []
+      }
+    },
+    {
+      "id": "e-appointment-ai",
+      "source": "n-appointment",
+      "target": "n-ai-service",
+      "type": "ComponentDependency",
+      "sourceHandle": "right",
+      "targetHandle": "left",
+      "data": {
+        "points": []
+      }
+    },
+    {
+      "id": "e-ai-vector",
+      "source": "n-ai-service",
+      "target": "n-vector-store",
+      "type": "ComponentDependency",
+      "sourceHandle": "right",
+      "targetHandle": "left",
+      "data": {
+        "points": []
+      }
+    },
+    {
+      "id": "e-ai-guidelines",
+      "source": "n-ai-service",
+      "target": "n-guidelines",
+      "type": "ComponentDependency",
+      "sourceHandle": "bottom",
+      "targetHandle": "top",
+      "data": {
+        "points": []
+      }
+    },
+    {
+      "id": "e-ai-llm",
+      "source": "n-llm",
+      "target": "3a6a3572-cbef-4402-8978-1097b5d4966e",
+      "type": "ComponentRequiredInterface",
+      "sourceHandle": "bottom",
+      "targetHandle": "top",
+      "data": {
+        "points": []
+      }
+    },
+    {
+      "id": "e-vector-db-rag",
+      "source": "n-vector-store",
+      "target": "db-rag",
+      "type": "ComponentDependency",
+      "sourceHandle": "bottom",
+      "targetHandle": "right",
+      "data": {
+        "points": []
+      }
+    },
+    {
+      "id": "e-auth-db",
+      "source": "n-auth",
+      "target": "db-auth",
+      "type": "ComponentDependency",
+      "sourceHandle": "bottom",
+      "targetHandle": "top",
+      "data": {
+        "points": []
+      }
+    },
+    {
+      "id": "e-appointment-db",
+      "source": "n-appointment",
+      "target": "db-appointment",
+      "type": "ComponentDependency",
+      "sourceHandle": "bottom",
+      "targetHandle": "top",
+      "data": {
+        "points": []
+      }
+    },
+    {
+      "id": "e-notes-db",
+      "source": "n-notes",
+      "target": "db-notes",
+      "type": "ComponentDependency",
+      "sourceHandle": "bottom",
+      "targetHandle": "top",
+      "data": {
+        "points": []
+      }
+    },
+    {
+      "id": "e-notification-db",
+      "source": "n-notification",
+      "target": "db-notification",
+      "type": "ComponentDependency",
+      "sourceHandle": "bottom",
+      "targetHandle": "top",
+      "data": {
+        "points": []
+      }
+    },
+    {
+      "id": "bd477aa3-5898-48e9-aada-a4d195a0728e",
+      "source": "n-ai-service",
+      "target": "1130047d-a3a5-4d2f-af23-6bb79b9315f2",
+      "type": "ComponentDependency",
+      "sourceHandle": "bottom",
+      "targetHandle": "top",
+      "data": {
+        "points": []
+      }
+    },
+    {
+      "id": "fb41b0f7-8c74-447a-973d-4055a7db8ea5",
+      "source": "n-ai-service",
+      "target": "3a6a3572-cbef-4402-8978-1097b5d4966e",
+      "type": "ComponentProvidedInterface",
+      "sourceHandle": "top",
+      "targetHandle": "bottom",
+      "data": {
+        "points": []
+      }
+    }
+  ],
+  "assessments": {}
+}

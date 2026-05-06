@@ -10,13 +10,13 @@ openapi_ts_bin="$repo_root/node_modules/.bin/openapi-typescript"
 
 if [ -x "$openapi_gen_bin" ]; then
   "$openapi_gen_bin" generate -i api/openapi.yaml -g spring \
-    -o services/spring-order/generated --skip-validate-spec
+    -o services/springboot/generated --skip-validate-spec
 else
   openapi-generator-cli generate -i api/openapi.yaml -g spring \
-    -o services/spring-order/generated --skip-validate-spec
+    -o services/springboot/generated --skip-validate-spec
 fi
 
-py_out="services/py-recommender/client"
+py_out="services/ai-assitant/client"
 mkdir -p "$(dirname "$py_out")"
 
 # Ensure .venv/bin is on PATH so tools like `ruff` are available to the Python client

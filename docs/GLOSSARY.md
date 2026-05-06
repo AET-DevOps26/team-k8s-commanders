@@ -83,4 +83,3 @@
 ## Use Case Diagram
 
 ![CareDesk Use Case Diagram](images/Use_Case.png)
-

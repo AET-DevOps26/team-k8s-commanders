@@ -16,7 +16,7 @@ else
     -o services/springboot/generated --skip-validate-spec
 fi
 
-py_out="services/ai-assitant/client"
+py_out="services/ai-assistant/client"
 mkdir -p "$(dirname "$py_out")"
 
 # Ensure .venv/bin is on PATH so tools like `ruff` are available to the Python client

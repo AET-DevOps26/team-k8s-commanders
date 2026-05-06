@@ -10,7 +10,7 @@
       "height": 240,
       "type": "componentSubsystem",
       "position": {
-        "x": -770,
+        "x": -820,
         "y": -340
       },
       "data": {
@@ -65,7 +65,7 @@
       "height": 20,
       "type": "componentInterface",
       "position": {
-        "x": -320,
+        "x": -350,
         "y": -220
       },
       "data": {
@@ -79,11 +79,11 @@
     {
       "id": "n-server",
       "width": 200,
-      "height": 95,
+      "height": 75,
       "type": "component",
       "position": {
         "x": 520,
-        "y": 70
+        "y": 110
       },
       "parentId": "layer-server",
       "data": {
@@ -92,7 +92,7 @@
       },
       "measured": {
         "width": 200,
-        "height": 95
+        "height": 75
       }
     },
     {
@@ -139,8 +139,8 @@
       "height": 105,
       "type": "component",
       "position": {
-        "x": 930,
-        "y": 70
+        "x": 990,
+        "y": 300
       },
       "parentId": "layer-server",
       "data": {
@@ -209,21 +209,21 @@
       }
     },
     {
-      "id": "6b2d2ef7-d215-4852-8b9e-77e2148245da",
-      "width": 300,
-      "height": 270,
+      "id": "a2bb5dc2-0930-4fd9-ab6e-37ee97b4d6a2",
+      "width": 440,
+      "height": 210,
       "type": "componentSubsystem",
       "position": {
-        "x": 1250,
-        "y": -700
+        "x": 1290,
+        "y": -710
       },
       "data": {
-        "name": "LLM Provider",
+        "name": "External LLM Service",
         "isComponentSubsystemHeaderShown": true
       },
       "measured": {
-        "width": 300,
-        "height": 270
+        "width": 440,
+        "height": 210
       }
     },
     {
@@ -232,10 +232,10 @@
       "height": 85,
       "type": "component",
       "position": {
-        "x": 60,
-        "y": 110
+        "x": 120,
+        "y": 80
       },
-      "parentId": "6b2d2ef7-d215-4852-8b9e-77e2148245da",
+      "parentId": "a2bb5dc2-0930-4fd9-ab6e-37ee97b4d6a2",
       "data": {
         "name": "LLM Provider",
         "isComponentHeaderShown": true
@@ -266,30 +266,30 @@
     },
     {
       "id": "layer-persistence",
-      "width": 1620,
+      "width": 1960,
       "height": 300,
       "type": "componentSubsystem",
       "position": {
-        "x": -200,
-        "y": 190
+        "x": -520,
+        "y": 220
       },
       "data": {
         "name": "Persistence Layer (PostgreSQL)",
         "isComponentSubsystemHeaderShown": true
       },
       "measured": {
-        "width": 1620,
+        "width": 1960,
         "height": 300
       }
     },
     {
       "id": "db-auth",
-      "width": 190,
+      "width": 200,
       "height": 95,
       "type": "component",
       "position": {
-        "x": 50,
-        "y": 80
+        "x": 400,
+        "y": 120
       },
       "parentId": "layer-persistence",
       "data": {
@@ -297,7 +297,7 @@
         "isComponentHeaderShown": true
       },
       "measured": {
-        "width": 190,
+        "width": 200,
         "height": 95
       }
     },
@@ -307,8 +307,8 @@
       "height": 95,
       "type": "component",
       "position": {
-        "x": 550,
-        "y": 80
+        "x": 1010,
+        "y": 120
       },
       "parentId": "layer-persistence",
       "data": {
@@ -326,8 +326,8 @@
       "height": 95,
       "type": "component",
       "position": {
-        "x": 900,
-        "y": 80
+        "x": 1320,
+        "y": 120
       },
       "parentId": "layer-persistence",
       "data": {
@@ -345,8 +345,8 @@
       "height": 95,
       "type": "component",
       "position": {
-        "x": 280,
-        "y": 80
+        "x": 670,
+        "y": 120
       },
       "parentId": "layer-persistence",
       "data": {
@@ -364,8 +364,8 @@
       "height": 95,
       "type": "component",
       "position": {
-        "x": 1250,
-        "y": 80
+        "x": 1610,
+        "y": 120
       },
       "parentId": "layer-persistence",
       "data": {
@@ -397,13 +397,13 @@
       }
     },
     {
-      "id": "3a6a3572-cbef-4402-8978-1097b5d4966e",
+      "id": "84cd9101-b418-4245-813a-2c44596b68c6",
       "width": 30,
       "height": 30,
       "type": "componentInterface",
       "position": {
-        "x": 1430,
-        "y": -400
+        "x": 1420,
+        "y": -410
       },
       "data": {
         "name": "REST API"
@@ -465,7 +465,7 @@
       "target": "n-notes",
       "type": "ComponentDependency",
       "sourceHandle": "bottom",
-      "targetHandle": "left",
+      "targetHandle": "top",
       "data": {
         "points": []
       }
@@ -504,17 +504,6 @@
       }
     },
     {
-      "id": "e-appointment-ai",
-      "source": "n-appointment",
-      "target": "n-ai-service",
-      "type": "ComponentDependency",
-      "sourceHandle": "right",
-      "targetHandle": "left",
-      "data": {
-        "points": []
-      }
-    },
-    {
       "id": "e-ai-vector",
       "source": "n-ai-service",
       "target": "n-vector-store",
@@ -530,17 +519,6 @@
       "source": "n-ai-service",
       "target": "n-guidelines",
       "type": "ComponentDependency",
-      "sourceHandle": "bottom",
-      "targetHandle": "top",
-      "data": {
-        "points": []
-      }
-    },
-    {
-      "id": "e-ai-llm",
-      "source": "n-llm",
-      "target": "3a6a3572-cbef-4402-8978-1097b5d4966e",
-      "type": "ComponentRequiredInterface",
       "sourceHandle": "bottom",
       "targetHandle": "top",
       "data": {
@@ -614,12 +592,23 @@
       }
     },
     {
-      "id": "fb41b0f7-8c74-447a-973d-4055a7db8ea5",
+      "id": "2a536fb5-3c10-448f-b284-49e3ff1c925d",
       "source": "n-ai-service",
-      "target": "3a6a3572-cbef-4402-8978-1097b5d4966e",
+      "target": "84cd9101-b418-4245-813a-2c44596b68c6",
       "type": "ComponentProvidedInterface",
       "sourceHandle": "top",
       "targetHandle": "bottom",
+      "data": {
+        "points": []
+      }
+    },
+    {
+      "id": "99dfda73-45ba-4833-a426-41e0d130be89",
+      "source": "n-llm",
+      "target": "84cd9101-b418-4245-813a-2c44596b68c6",
+      "type": "ComponentRequiredInterface",
+      "sourceHandle": "bottom",
+      "targetHandle": "top",
       "data": {
         "points": []
       }

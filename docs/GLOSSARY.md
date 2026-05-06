@@ -72,6 +72,10 @@
 | **Notification** | An automated message sent to a Patient before an upcoming Appointment. Can be delivered via email or SMS. Triggered by the system based on appointment time. |
 | **AIAssistant** | A RAG-based intelligent component available to Doctors. Accepts natural language queries and retrieves grounded answers from patient data and medical guidelines. Does not operate independently of a user query. |
 
+## Use Case Diagram
+
+![CareDesk Use Case Diagram](images/Use_Case.png)
+
 ## Analysis Object Model
 
 ![CareDesk Analysis Object Model](images/AOM.png)
@@ -80,6 +84,3 @@
 
 ![CareDesk Component Diagram](images/Architecture_Component_Diagram.png)
 
-## Use Case Diagram
-
-![CareDesk Use Case Diagram](images/Use_Case.png)

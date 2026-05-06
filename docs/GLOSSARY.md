@@ -75,3 +75,12 @@
 ## Analysis Object Model
 
 ![CareDesk Analysis Object Model](images/AOM.png)
+
+## Top Level Architecture
+
+![CareDesk Component Diagram](images/Architecture_Component_Diagram.png)
+
+## Use Case Diagram
+
+![CareDesk Use Case Diagram](images/Use_Case.png)
+

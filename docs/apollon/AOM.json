@@ -228,7 +228,7 @@
       "type": "class",
       "position": {
         "x": -820,
-        "y": 840
+        "y": 1430
       },
       "data": {
         "name": "Notification",
@@ -357,8 +357,8 @@
       "height": 190,
       "type": "class",
       "position": {
-        "x": -610,
-        "y": 1470
+        "x": -680,
+        "y": 750
       },
       "data": {
         "name": "Clinic",
@@ -460,8 +460,8 @@
       "source": "2e455ff9-f2a4-4033-b3f2-b5054b844fe9",
       "target": "31004d32-b796-4995-b7ae-9ea6b90e769f",
       "type": "ClassUnidirectional",
-      "sourceHandle": "top",
-      "targetHandle": "bottom",
+      "sourceHandle": "bottom",
+      "targetHandle": "top",
       "data": {
         "sourceMultiplicity": "1",
         "targetMultiplicity": "*",
@@ -512,44 +512,16 @@
       }
     },
     {
-      "id": "136bc27c-c9ea-4df0-8daf-a9b6c783af8d",
-      "source": "2994702d-b165-413e-836b-eecd3252fa75",
+      "id": "f6478bb4-fdf7-463c-a420-5d6accb0e566",
+      "source": "2f89f1ef-d3d7-4085-ad3c-305e345c8324",
       "target": "e5bdff26-6a7d-401d-98d8-7fa581b871bb",
       "type": "ClassAggregation",
-      "sourceHandle": "bottom-mid-right",
-      "targetHandle": "top",
+      "sourceHandle": "left",
+      "targetHandle": "right",
       "data": {
+        "points": [],
         "sourceMultiplicity": "*",
-        "targetMultiplicity": "1",
-        "points": []
-      }
-    },
-    {
-      "id": "7a9513e1-7033-47a0-8642-ad9dc1729b26",
-      "source": "1f7e8864-0c47-492c-99d5-c6063254643f",
-      "target": "e5bdff26-6a7d-401d-98d8-7fa581b871bb",
-      "type": "ClassAggregation",
-      "sourceHandle": "bottom",
-      "targetHandle": "top",
-      "data": {
-        "sourceMultiplicity": "*",
-        "targetMultiplicity": "1",
-        "points": []
-      }
-    },
-    {
-      "id": "7d2d1bb0-74d3-4bc7-b7c5-ae8d0592374f",
-      "source": "2e455ff9-f2a4-4033-b3f2-b5054b844fe9",
-      "target": "e5bdff26-6a7d-401d-98d8-7fa581b871bb",
-      "type": "ClassAggregation",
-      "sourceHandle": "bottom",
-      "targetHandle": "top",
-      "data": {
-        "sourceMultiplicity": "*",
-        "targetMultiplicity": "1",
-        "targetRole": "",
-        "sourceRole": "",
-        "points": []
+        "targetMultiplicity": "1"
       }
     }
   ],

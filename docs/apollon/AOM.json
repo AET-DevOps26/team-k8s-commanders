@@ -1,7 +1,7 @@
 {
   "id": "f6ad01c0-aad1-4a0d-a592-ee8013af1525",
   "version": "4.0.0",
-  "title": "Analysis Object Model",
+  "title": "Class Diagram",
   "type": "ClassDiagram",
   "nodes": [
     {
@@ -56,12 +56,12 @@
     },
     {
       "id": "2994702d-b165-413e-836b-eecd3252fa75",
-      "width": 210,
+      "width": 220,
       "height": 220,
       "type": "class",
       "position": {
-        "x": -520,
-        "y": 1090
+        "x": -510,
+        "y": 1120
       },
       "data": {
         "name": "Patient",
@@ -95,17 +95,17 @@
         ]
       },
       "measured": {
-        "width": 210,
+        "width": 220,
         "height": 220
       }
     },
     {
       "id": "1f7e8864-0c47-492c-99d5-c6063254643f",
       "width": 230,
-      "height": 220,
+      "height": 250,
       "type": "class",
       "position": {
-        "x": -190,
+        "x": -220,
         "y": 1090
       },
       "data": {
@@ -125,7 +125,11 @@
           },
           {
             "id": "529cc9ab-a508-4e9f-8ed0-a38ec1546ae0",
-            "name": "queryAIAssistant"
+            "name": "queryAIAssistant()"
+          },
+          {
+            "id": "b364702c-fa46-4153-85bd-473ea464a575",
+            "name": "addPatient()"
           }
         ],
         "attributes": [
@@ -141,7 +145,7 @@
       },
       "measured": {
         "width": 230,
-        "height": 220
+        "height": 250
       }
     },
     {
@@ -150,8 +154,8 @@
       "height": 100,
       "type": "class",
       "position": {
-        "x": 170,
-        "y": 1090
+        "x": 120,
+        "y": 1120
       },
       "data": {
         "name": "Admin",
@@ -178,8 +182,8 @@
       "height": 220,
       "type": "class",
       "position": {
-        "x": -360,
-        "y": 1450
+        "x": -820,
+        "y": 1120
       },
       "data": {
         "name": "Appointment",
@@ -223,8 +227,8 @@
       "height": 160,
       "type": "class",
       "position": {
-        "x": -360,
-        "y": 1820
+        "x": -820,
+        "y": 1430
       },
       "data": {
         "name": "Notification",
@@ -260,8 +264,8 @@
       "height": 100,
       "type": "class",
       "position": {
-        "x": 50,
-        "y": 1450
+        "x": 130,
+        "y": 1300
       },
       "data": {
         "name": "AIAssistant",
@@ -288,8 +292,8 @@
       "height": 160,
       "type": "class",
       "position": {
-        "x": -740,
-        "y": 1480
+        "x": -1080,
+        "y": 1150
       },
       "data": {
         "name": "ClinicalNote",
@@ -325,8 +329,8 @@
       "height": 100,
       "type": "class",
       "position": {
-        "x": -740,
-        "y": 1810
+        "x": -1080,
+        "y": 1460
       },
       "data": {
         "name": "Diagnosis",
@@ -345,6 +349,47 @@
       "measured": {
         "width": 160,
         "height": 100
+      }
+    },
+    {
+      "id": "e5bdff26-6a7d-401d-98d8-7fa581b871bb",
+      "width": 250,
+      "height": 190,
+      "type": "class",
+      "position": {
+        "x": -680,
+        "y": 750
+      },
+      "data": {
+        "name": "Clinic",
+        "methods": [
+          {
+            "id": "f38c4474-7f60-415c-95f8-389991166791",
+            "name": "manageStaff()"
+          },
+          {
+            "id": "45da7788-914e-43b3-853e-20520fee0463",
+            "name": "viewOverview()"
+          }
+        ],
+        "attributes": [
+          {
+            "id": "2710bf5b-70ea-4f92-bc01-6926abc11211",
+            "name": "name"
+          },
+          {
+            "id": "1efd48b7-cb19-4415-99c8-bd4472627952",
+            "name": "address"
+          },
+          {
+            "id": "edd5083a-9ea7-40c0-bd3e-634215a90c10",
+            "name": "phoneNumber"
+          }
+        ]
+      },
+      "measured": {
+        "width": 250,
+        "height": 190
       }
     }
   ],
@@ -387,8 +432,8 @@
       "source": "2994702d-b165-413e-836b-eecd3252fa75",
       "target": "2e455ff9-f2a4-4033-b3f2-b5054b844fe9",
       "type": "ClassUnidirectional",
-      "sourceHandle": "bottom",
-      "targetHandle": "top",
+      "sourceHandle": "left",
+      "targetHandle": "right",
       "data": {
         "points": [],
         "sourceMultiplicity": "1",
@@ -401,8 +446,8 @@
       "source": "1f7e8864-0c47-492c-99d5-c6063254643f",
       "target": "2e455ff9-f2a4-4033-b3f2-b5054b844fe9",
       "type": "ClassUnidirectional",
-      "sourceHandle": "bottom",
-      "targetHandle": "top",
+      "sourceHandle": "bottom-mid-left",
+      "targetHandle": "right",
       "data": {
         "sourceMultiplicity": "1",
         "targetMultiplicity": "*",
@@ -430,7 +475,7 @@
       "target": "a8b5ced8-a924-4b5f-8bda-9ea73746d856",
       "type": "ClassUnidirectional",
       "sourceHandle": "right",
-      "targetHandle": "top",
+      "targetHandle": "left",
       "data": {
         "sourceMultiplicity": "*",
         "targetMultiplicity": "1",
@@ -462,8 +507,21 @@
       "data": {
         "sourceMultiplicity": "1",
         "targetMultiplicity": "*",
-        "sourceRole": "tags",
+        "sourceRole": "records",
         "points": []
+      }
+    },
+    {
+      "id": "f6478bb4-fdf7-463c-a420-5d6accb0e566",
+      "source": "2f89f1ef-d3d7-4085-ad3c-305e345c8324",
+      "target": "e5bdff26-6a7d-401d-98d8-7fa581b871bb",
+      "type": "ClassAggregation",
+      "sourceHandle": "left",
+      "targetHandle": "right",
+      "data": {
+        "points": [],
+        "sourceMultiplicity": "*",
+        "targetMultiplicity": "1"
       }
     }
   ],

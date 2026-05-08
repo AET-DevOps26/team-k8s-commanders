@@ -7,4 +7,769 @@ info:
     url: https://opensource.org/licenses/MIT
 servers:
   - url: /
-paths: {}
+security:
+  - bearerAuth: []
+tags:
+  - name: Auth
+    description: Authentication and profile management
+  - name: Users
+    description: User account and role administration
+  - name: Clinics
+    description: Clinic overview and staff management
+  - name: Patients
+    description: Patient profile and history operations
+  - name: Doctors
+    description: Doctor schedule and clinical workflow operations
+  - name: Appointments
+    description: Appointment lifecycle operations
+  - name: Notifications
+    description: Reminder and delivery operations
+  - name: AI Assistant
+    description: GenAI-powered patient history and clinical guidance queries
+paths:
+  /auth/register:
+    post:
+      tags: [Auth]
+      summary: Register a new patient account
+      operationId: registerUser
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '201':
+          description: Registered successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthSession'
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Authenticate a user
+      operationId: loginUser
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthSession'
+  /auth/logout:
+    post:
+      tags: [Auth]
+      summary: Log out the current session
+      operationId: logoutUser
+      security: []
+      responses:
+        '204':
+          description: Logged out
+  /users:
+    get:
+      tags: [Users]
+      summary: List users
+      operationId: listUsers
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Paginated user list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/UserProfile'
+  /users/{userId}:
+    get:
+      tags: [Users]
+      summary: Get a user by id
+      operationId: getUserById
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+      responses:
+        '200':
+          description: User details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+    put:
+      tags: [Users]
+      summary: Replace a user profile
+      operationId: replaceUser
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserProfile'
+      responses:
+        '200':
+          description: User updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+  /clinics/{clinicId}:
+    get:
+      tags: [Clinics]
+      summary: Get clinic details
+      operationId: getClinicById
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/ClinicId'
+      responses:
+        '200':
+          description: Clinic overview
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Clinic'
+  /clinics/{clinicId}/staff:
+    get:
+      tags: [Clinics]
+      summary: List clinic staff
+      operationId: listClinicStaff
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/ClinicId'
+      responses:
+        '200':
+          description: Staff members
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/UserProfile'
+  /patients/{patientId}:
+    get:
+      tags: [Patients]
+      summary: Get patient profile
+      operationId: getPatientById
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PatientId'
+      responses:
+        '200':
+          description: Patient profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+  /patients/{patientId}/appointments:
+    get:
+      tags: [Patients]
+      summary: List a patient’s appointments
+      operationId: listPatientAppointments
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PatientId'
+      responses:
+        '200':
+          description: Patient appointments
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Appointment'
+  /patients/{patientId}/visit-history:
+    get:
+      tags: [Patients]
+      summary: View a patient’s visit history
+      operationId: getPatientVisitHistory
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PatientId'
+      responses:
+        '200':
+          description: Visit history summary
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VisitHistory'
+  /doctors/{doctorId}:
+    get:
+      tags: [Doctors]
+      summary: Get doctor profile
+      operationId: getDoctorById
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/DoctorId'
+      responses:
+        '200':
+          description: Doctor profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+  /doctors/{doctorId}/schedule:
+    get:
+      tags: [Doctors]
+      summary: View a doctor’s schedule
+      operationId: getDoctorSchedule
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/DoctorId'
+      responses:
+        '200':
+          description: Doctor schedule
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Schedule'
+  /appointments:
+    post:
+      tags: [Appointments]
+      summary: Book an appointment
+      operationId: bookAppointment
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AppointmentCreate'
+      responses:
+        '201':
+          description: Appointment booked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Appointment'
+    get:
+      tags: [Appointments]
+      summary: List appointments
+      operationId: listAppointments
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Paginated appointment list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Appointment'
+  /appointments/{appointmentId}:
+    get:
+      tags: [Appointments]
+      summary: Get appointment details
+      operationId: getAppointmentById
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AppointmentId'
+      responses:
+        '200':
+          description: Appointment details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Appointment'
+    put:
+      tags: [Appointments]
+      summary: Reschedule an appointment
+      operationId: rescheduleAppointment
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AppointmentId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AppointmentRescheduleRequest'
+      responses:
+        '200':
+          description: Appointment rescheduled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Appointment'
+  /appointments/{appointmentId}/cancel:
+    post:
+      tags: [Appointments]
+      summary: Cancel an appointment
+      operationId: cancelAppointment
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AppointmentId'
+      responses:
+        '200':
+          description: Appointment cancelled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Appointment'
+  /appointments/{appointmentId}/note:
+    get:
+      tags: [Appointments]
+      summary: Get the clinical note for an appointment
+      operationId: getAppointmentNote
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AppointmentId'
+      responses:
+        '200':
+          description: Clinical note
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClinicalNote'
+    put:
+      tags: [Appointments]
+      summary: Create or replace the clinical note for an appointment
+      operationId: upsertAppointmentNote
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AppointmentId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClinicalNoteInput'
+      responses:
+        '200':
+          description: Clinical note saved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClinicalNote'
+        '201':
+          description: Clinical note created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClinicalNote'
+  /appointments/{appointmentId}/notifications:
+    get:
+      tags: [Notifications, Appointments]
+      summary: List notifications for an appointment
+      operationId: listAppointmentNotifications
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AppointmentId'
+      responses:
+        '200':
+          description: Appointment notifications
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Notification'
+  /notifications:
+    get:
+      tags: [Notifications]
+      summary: List notifications
+      operationId: listNotifications
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Notifications
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Notification'
+    post:
+      tags: [Notifications]
+      summary: Create a notification
+      operationId: createNotification
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NotificationCreate'
+      responses:
+        '201':
+          description: Notification created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Notification'
+  /notifications/{notificationId}:
+    get:
+      tags: [Notifications]
+      summary: Get a notification
+      operationId: getNotificationById
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/NotificationId'
+      responses:
+        '200':
+          description: Notification
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Notification'
+  /ai/query:
+    post:
+      tags: [AI Assistant]
+      summary: Query patient history using AI
+      operationId: queryAIAssistant
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AIQueryRequest'
+      responses:
+        '200':
+          description: AI response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AIQueryResponse'
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    UserId:
+      name: userId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    PatientId:
+      name: patientId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    DoctorId:
+      name: doctorId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    ClinicId:
+      name: clinicId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    AppointmentId:
+      name: appointmentId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    NotificationId:
+      name: notificationId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+  schemas:
+    UserRole:
+      type: string
+      enum: [PATIENT, DOCTOR, ADMIN]
+    AppointmentStatus:
+      type: string
+      enum: [SCHEDULED, CANCELLED, RESCHEDULED, COMPLETED]
+    UserProfile:
+      type: object
+      required: [id, name, email, role]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        role:
+          $ref: '#/components/schemas/UserRole'
+        clinicId:
+          type: string
+          format: uuid
+        phoneNumber:
+          type: string
+        dateOfBirth:
+          type: string
+          format: date
+        specialization:
+          type: string
+        licenseNumber:
+          type: string
+        password:
+          type: string
+          writeOnly: true
+    Clinic:
+      type: object
+      required: [id, name, address]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        address:
+          type: string
+        phoneNumber:
+          type: string
+    Schedule:
+      type: object
+      required: [doctorId, slots]
+      properties:
+        doctorId:
+          type: string
+          format: uuid
+        slots:
+          type: array
+          items:
+            $ref: '#/components/schemas/ScheduleSlot'
+    ScheduleSlot:
+      type: object
+      required: [startAt, endAt, available]
+      properties:
+        startAt:
+          type: string
+          format: date-time
+        endAt:
+          type: string
+          format: date-time
+        available:
+          type: boolean
+    Appointment:
+      type: object
+      required: [id, patientId, doctorId, dateTime, status, duration]
+      properties:
+        id:
+          type: string
+          format: uuid
+        patientId:
+          type: string
+          format: uuid
+        doctorId:
+          type: string
+          format: uuid
+        dateTime:
+          type: string
+          format: date-time
+        status:
+          $ref: '#/components/schemas/AppointmentStatus'
+        duration:
+          type: integer
+          description: Duration in minutes
+        reason:
+          type: string
+    AppointmentCreate:
+      type: object
+      required: [patientId, doctorId, dateTime, duration]
+      properties:
+        patientId:
+          type: string
+          format: uuid
+        doctorId:
+          type: string
+          format: uuid
+        dateTime:
+          type: string
+          format: date-time
+        duration:
+          type: integer
+          minimum: 1
+        reason:
+          type: string
+    AppointmentRescheduleRequest:
+      type: object
+      required: [dateTime]
+      properties:
+        dateTime:
+          type: string
+          format: date-time
+        duration:
+          type: integer
+    ClinicalNote:
+      type: object
+      required: [id, appointmentId, doctorId, content, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        appointmentId:
+          type: string
+          format: uuid
+        doctorId:
+          type: string
+          format: uuid
+        content:
+          type: string
+        diagnosis:
+          $ref: '#/components/schemas/Diagnosis'
+        createdAt:
+          type: string
+          format: date-time
+    ClinicalNoteInput:
+      type: object
+      properties:
+        content:
+          type: string
+        diagnosis:
+          $ref: '#/components/schemas/Diagnosis'
+    Diagnosis:
+      type: object
+      required: [code, description]
+      properties:
+        code:
+          type: string
+        description:
+          type: string
+    Notification:
+      type: object
+      required: [id, message, sentAt, channel]
+      properties:
+        id:
+          type: string
+          format: uuid
+        appointmentId:
+          type: string
+          format: uuid
+        patientId:
+          type: string
+          format: uuid
+        message:
+          type: string
+        sentAt:
+          type: string
+          format: date-time
+    NotificationCreate:
+      type: object
+      required: [message, channel]
+      properties:
+        appointmentId:
+          type: string
+          format: uuid
+        patientId:
+          type: string
+          format: uuid
+        message:
+          type: string
+    VisitHistory:
+      type: object
+      required: [patientId, appointments]
+      properties:
+        patientId:
+          type: string
+          format: uuid
+        appointments:
+          type: array
+          items:
+            $ref: '#/components/schemas/Appointment'
+        notes:
+          type: array
+          items:
+            $ref: '#/components/schemas/ClinicalNote'
+    AIQueryRequest:
+      type: object
+      required: [query]
+      properties:
+        patientId:
+          type: string
+          format: uuid
+        appointmentId:
+          type: string
+          format: uuid
+        query:
+          type: string
+    AIQueryResponse:
+      type: object
+      required: [answer]
+      properties:
+        answer:
+          type: string
+        sources:
+          type: array
+          items:
+            type: string
+        confidence:
+          type: number
+          format: float
+    RegisterRequest:
+      type: object
+      required: [name, email, password]
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+        role:
+          $ref: '#/components/schemas/UserRole'
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+    AuthSession:
+      type: object
+      required: [accessToken, user]
+      properties:
+        accessToken:
+          type: string
+        refreshToken:
+          type: string
+        user:
+          $ref: '#/components/schemas/UserProfile'

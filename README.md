@@ -17,7 +17,7 @@ Quick setup
 1. From the repository root, run the consolidated setup script. It will:
 	- install Node dev dependencies into `node_modules`,
 	- enable the repo-managed Git hooks, and
-	- attempt an initial generation (FastAPI server stub, Java server stub, TypeScript API).
+	- attempt an initial generation (FastAPI model objects, Java server stub, TypeScript API).
 
 ```bash
 ./scripts/setup-all.sh
@@ -26,7 +26,7 @@ Quick setup
 What the setup script does
 - `scripts/setup-generators.sh`: installs Node dev dependencies from `package.json`.
 - `scripts/install-hooks.sh`: updates `core.hooksPath` to `git/hooks` so versioned shell hooks run automatically.
-- `api/scripts/gen-all.sh`: runs the OpenAPI generator and client generators (used by the post-checkout/post-merge hooks).
+- `api/scripts/gen-all.sh`: runs the OpenAPI generator and model generators (used by the post-checkout/post-merge hooks).
 
 Useful commands
 - Re-run generator setup only (no hooks):
@@ -55,7 +55,7 @@ Generate artifacts manually:
 
 Where files are written
 - Java server stub: `services/springboot/generated/`
-- FastAPI server stub: `services/ai-assistant/generated/`
+- FastAPI model objects: `services/ai-assistant/generated/`
 - TypeScript API: `web-client/src/api.ts`
 
 These paths are ignored by `.gitignore` so generated output is not committed by accident.
@@ -67,7 +67,7 @@ Troubleshooting
 
 Updating generator tools
 - To update Node tools: `npm install` or modify `package.json` and run `npm install`.
-- To update Python tools used by the generated FastAPI server, create a venv in `services/ai-assistant/generated/` and install from `requirements.txt` there.
+- To update Python tools for your own FastAPI implementation, create your app environment separately and import the generated models from `services/ai-assistant/generated/`.
 
 Notes
 - Hooks are implemented as shell scripts under `git/hooks` and are authoritative; no `pre-commit` YAML is required. The consolidated setup script makes the repo ready for development in one step.

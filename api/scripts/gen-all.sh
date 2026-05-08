@@ -15,17 +15,34 @@ else
     -o services/springboot/generated --skip-validate-spec
 fi
 
-## Generate a FastAPI server stub (for your GenAI FastAPI service)
-fastapi_out="services/ai-assistant/generated"
-mkdir -p "$fastapi_out"
-
+## Generate FastAPI-ready model objects only (no server scaffold)
+## Generate FastAPI model objects only and copy them into a single models dir
+# Generate into a temporary folder then copy only the model files to the target
+fastapi_temp_dir=$(mktemp -d)
 if [ -x "$openapi_gen_bin" ]; then
   "$openapi_gen_bin" generate -i api/openapi.yaml -g python-fastapi \
-    -o "$fastapi_out" --skip-validate-spec
+    -o "$fastapi_temp_dir" --skip-validate-spec \
+    --global-property models,apis=false,supportingFiles=false,apiDocs=false,apiTests=false,modelDocs=false,modelTests=false
 else
   openapi-generator-cli generate -i api/openapi.yaml -g python-fastapi \
-    -o "$fastapi_out" --skip-validate-spec
+    -o "$fastapi_temp_dir" --skip-validate-spec \
+    --global-property models,apis=false,supportingFiles=false,apiDocs=false,apiTests=false,modelDocs=false,modelTests=false
 fi
+
+src_models_dir="$fastapi_temp_dir/src/openapi_server/models"
+target_models_dir="$repo_root/services/ai-assistant/models"
+rm -rf "$target_models_dir"
+mkdir -p "$target_models_dir"
+if [ -d "$src_models_dir" ]; then
+  # copy only .py model files
+  cp "$src_models_dir"/*.py "$target_models_dir" 2>/dev/null || true
+fi
+# ensure package init
+if [ ! -f "$target_models_dir/__init__.py" ]; then
+  touch "$target_models_dir/__init__.py"
+fi
+# cleanup temp generation folder
+rm -rf "$fastapi_temp_dir"
 
 if [ -x "$openapi_ts_bin" ]; then
   "$openapi_ts_bin" api/openapi.yaml -o web-client/src/api.ts

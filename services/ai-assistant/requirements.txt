@@ -1,9 +1,9 @@
 # == FastAPI requirements ==
-fastapi
-uvicorn
-python-dotenv
-pydantic
+fastapi==0.136.1
+uvicorn==0.46.0
+python-dotenv==1.2.2
+pydantic==2.13.4
 
 # == Langchain requirements ==
-langchain
+langchain==1.2.18
 

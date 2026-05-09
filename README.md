@@ -1,41 +1,50 @@
 # team-k8s-commanders
-Repository for team K8s Commanders
 
-Local development setup
------------------------
+Repository for team K8s Commanders.
 
-This project stores Git hooks and generator tooling in the repository so developers can get started with a single setup step.
+## Local development setup
 
-Prerequisites
+This project keeps Git hooks and generator tooling in the repository so that a
+single setup step is enough to get a working development environment.
+
+### Prerequisites
+
 - Git
-- Node.js and npm (recommended LTS)
+- Node.js and npm (LTS recommended)
 - Java JDK (required by OpenAPI Generator)
+- Optional: Python 3.10+ for running generated FastAPI models locally
 
-Optional for running generated Python servers: Python 3.10+
+### Quick setup
 
-Quick setup
-1. From the repository root, run the consolidated setup script. It will:
-	- install Node dev dependencies into `node_modules`,
-	- enable the repo-managed Git hooks, and
-	- attempt an initial generation (FastAPI model objects, Java server stub, TypeScript API).
+Run the consolidated setup script from the repository root. It will:
+
+- install Node dev dependencies into `node_modules`,
+- enable the repo-managed Git hooks, and
+- attempt an initial code generation (FastAPI models, Spring server stub,
+  TypeScript API types).
 
 ```bash
 ./scripts/setup-all.sh
 ```
 
-What the setup script does
-- `scripts/setup-generators.sh`: installs Node dev dependencies from `package.json`.
-- `scripts/install-hooks.sh`: updates `core.hooksPath` to `git/hooks` so versioned shell hooks run automatically.
-- `api/scripts/gen-all.sh`: runs the OpenAPI generator and model generators (used by the post-checkout/post-merge hooks).
+### What the setup script does
 
-Useful commands
-- Re-run generator setup only (no hooks):
+- `scripts/setup-generators.sh` — installs Node dev dependencies from
+  `package.json`.
+- `scripts/install-hooks.sh` — sets `core.hooksPath` to `git/hooks` so the
+  versioned shell hooks run automatically.
+- `api/scripts/gen-all.sh` — runs OpenAPI Generator and the model generators
+  (also invoked by the `post-checkout` and `post-merge` hooks).
+
+## Useful commands
+
+Re-run generator setup only (no hooks):
 
 ```bash
 ./scripts/setup-generators.sh
 ```
 
-- Install hooks only:
+Install hooks only:
 
 ```bash
 ./scripts/install-hooks.sh
@@ -47,29 +56,38 @@ Generate artifacts manually:
 ./api/scripts/gen-all.sh
 ```
 
-- Run the pre-commit OpenAPI lint hook manually:
+Run the pre-commit OpenAPI lint hook manually:
 
 ```bash
 ./git/hooks/pre-commit
 ```
 
-Where files are written
-- Java server stub: `services/springboot/generated/`
-- FastAPI model objects: `services/ai-assistant/generated/`
-- TypeScript API: `web-client/src/api.ts`
+## Where files are written
 
-These paths are ignored by `.gitignore` so generated output is not committed by accident.
+- Spring server stub: `services/springboot/generated/`
+- FastAPI model objects: `services/ai-assistant/models/`
+- TypeScript API types: `web-client/src/api.ts`
 
-Troubleshooting
-- If generation fails because a tool is missing, check that `npm` and a Java JDK are installed and re-run `./scripts/setup-generators.sh`.
-- The OpenAPI Generator requires a Java JDK on PATH. Install one if you see a Java-related error.
-- If you prefer containerized generation (no local installs), I can add a `Makefile` + Docker target.
+The `services/*/generated/` and `web-client/src/api.ts` paths are listed in
+`.gitignore`. The FastAPI models under `services/ai-assistant/models/` are
+checked in so the AI assistant service can import them directly.
 
-Updating generator tools
-- To update Node tools: `npm install` or modify `package.json` and run `npm install`.
-- To update Python tools for your own FastAPI implementation, create your app environment separately and import the generated models from `services/ai-assistant/generated/`.
+## Troubleshooting
 
-Notes
-- Hooks are implemented as shell scripts under `git/hooks` and are authoritative; no `pre-commit` YAML is required. The consolidated setup script makes the repo ready for development in one step.
+- If generation fails because a tool is missing, verify that `npm` and a Java
+  JDK are installed and re-run `./scripts/setup-generators.sh`.
+- OpenAPI Generator requires a Java JDK on `PATH`. Install one if a
+  Java-related error is reported.
 
-If you want, I can add `Makefile` targets (`make setup`, `make generate`) or a Docker target for reproducible generation. Tell me which you prefer and I’ll add it.
+## Updating generator tools
+
+- Node tools: edit `package.json` and run `npm install`.
+- For a custom FastAPI implementation, create a separate Python environment
+  and import the generated models from `services/ai-assistant/models/`.
+
+## Notes
+
+- Hooks are implemented as shell scripts under `git/hooks` and are
+  authoritative; no `pre-commit` YAML is required.
+- The OpenAPI specification lives at `api/openapi.yaml` and is the single
+  source of truth for all generated clients and server stubs.

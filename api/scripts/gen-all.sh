@@ -9,10 +9,10 @@ openapi_ts_bin="$repo_root/node_modules/.bin/openapi-typescript"
 
 if [ -x "$openapi_gen_bin" ]; then
   "$openapi_gen_bin" generate -i api/openapi.yaml -g spring \
-    -o services/springboot/generated --skip-validate-spec
+    -o services/springboot/generated
 else
   openapi-generator-cli generate -i api/openapi.yaml -g spring \
-    -o services/springboot/generated --skip-validate-spec
+    -o services/springboot/generated
 fi
 
 ## Generate FastAPI-ready model objects only (no server scaffold)
@@ -21,11 +21,11 @@ fi
 fastapi_temp_dir=$(mktemp -d)
 if [ -x "$openapi_gen_bin" ]; then
   "$openapi_gen_bin" generate -i api/openapi.yaml -g python-fastapi \
-    -o "$fastapi_temp_dir" --skip-validate-spec \
+    -o "$fastapi_temp_dir" \
     --global-property models,apis=false,supportingFiles=false,apiDocs=false,apiTests=false,modelDocs=false,modelTests=false
 else
   openapi-generator-cli generate -i api/openapi.yaml -g python-fastapi \
-    -o "$fastapi_temp_dir" --skip-validate-spec \
+    -o "$fastapi_temp_dir" \
     --global-property models,apis=false,supportingFiles=false,apiDocs=false,apiTests=false,modelDocs=false,modelTests=false
 fi
 

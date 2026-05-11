@@ -6,36 +6,36 @@
   "nodes": [
     {
       "id": "fae15bb7-185a-47b8-9f3f-951896e0f7dc",
-      "width": 480,
-      "height": 960,
+      "width": 540,
+      "height": 1270,
       "type": "useCaseSystem",
       "position": {
         "x": 140,
-        "y": -270
+        "y": -400
       },
       "data": {
         "name": "CareDesk System"
       },
       "measured": {
-        "width": 480,
-        "height": 960
+        "width": 540,
+        "height": 1270
       }
     },
     {
       "id": "6f61fbb0-e167-40ca-83d5-c7bf2599f24c",
-      "width": 180,
+      "width": 190,
       "height": 100,
       "type": "useCase",
       "position": {
         "x": 50,
-        "y": 490
+        "y": 870
       },
       "parentId": "fae15bb7-185a-47b8-9f3f-951896e0f7dc",
       "data": {
         "name": "Book Appointment"
       },
       "measured": {
-        "width": 180,
+        "width": 190,
         "height": 100
       }
     },
@@ -45,8 +45,8 @@
       "height": 150,
       "type": "useCaseActor",
       "position": {
-        "x": -90,
-        "y": -200
+        "x": 750,
+        "y": -180
       },
       "data": {
         "name": "Doctor"
@@ -62,8 +62,8 @@
       "height": 150,
       "type": "useCaseActor",
       "position": {
-        "x": -90,
-        "y": 260
+        "x": -100,
+        "y": 430
       },
       "data": {
         "name": "Patient"
@@ -96,30 +96,12 @@
       "height": 100,
       "type": "useCase",
       "position": {
-        "x": 50,
-        "y": 290
+        "x": 260,
+        "y": 450
       },
       "parentId": "fae15bb7-185a-47b8-9f3f-951896e0f7dc",
       "data": {
         "name": "Manage Appointments"
-      },
-      "measured": {
-        "width": 180,
-        "height": 100
-      }
-    },
-    {
-      "id": "d26d2ed9-d050-4f80-8edd-a85dcd13e5a4",
-      "width": 180,
-      "height": 100,
-      "type": "useCase",
-      "position": {
-        "x": 50,
-        "y": 690
-      },
-      "parentId": "fae15bb7-185a-47b8-9f3f-951896e0f7dc",
-      "data": {
-        "name": "Receive Notification"
       },
       "measured": {
         "width": 180,
@@ -132,8 +114,8 @@
       "height": 100,
       "type": "useCase",
       "position": {
-        "x": 210,
-        "y": 180
+        "x": 40,
+        "y": 340
       },
       "parentId": "fae15bb7-185a-47b8-9f3f-951896e0f7dc",
       "data": {
@@ -150,8 +132,8 @@
       "height": 100,
       "type": "useCase",
       "position": {
-        "x": 60,
-        "y": 830
+        "x": 50,
+        "y": 600
       },
       "parentId": "fae15bb7-185a-47b8-9f3f-951896e0f7dc",
       "data": {
@@ -168,7 +150,7 @@
       "height": 100,
       "type": "useCase",
       "position": {
-        "x": 270,
+        "x": 340,
         "y": 600
       },
       "parentId": "fae15bb7-185a-47b8-9f3f-951896e0f7dc",
@@ -186,12 +168,102 @@
       "height": 100,
       "type": "useCase",
       "position": {
-        "x": 60,
-        "y": 60
+        "x": 260,
+        "y": 200
       },
       "parentId": "fae15bb7-185a-47b8-9f3f-951896e0f7dc",
       "data": {
         "name": "Query Notes using AI"
+      },
+      "measured": {
+        "width": 180,
+        "height": 100
+      }
+    },
+    {
+      "id": "ff9f2b3b-0f1b-4358-b85b-f5f5b760dc11",
+      "width": 180,
+      "height": 100,
+      "type": "useCase",
+      "position": {
+        "x": 50,
+        "y": 740
+      },
+      "parentId": "fae15bb7-185a-47b8-9f3f-951896e0f7dc",
+      "data": {
+        "name": "View Visit History"
+      },
+      "measured": {
+        "width": 180,
+        "height": 100
+      }
+    },
+    {
+      "id": "b04b7566-753d-4226-befe-fbfce8ef3f84",
+      "width": 200,
+      "height": 100,
+      "type": "useCase",
+      "position": {
+        "x": 50,
+        "y": 1000
+      },
+      "parentId": "fae15bb7-185a-47b8-9f3f-951896e0f7dc",
+      "data": {
+        "name": "Cancel Appointment"
+      },
+      "measured": {
+        "width": 200,
+        "height": 100
+      }
+    },
+    {
+      "id": "54e63bc0-9b69-4258-89f7-db81bc5735e6",
+      "width": 210,
+      "height": 100,
+      "type": "useCase",
+      "position": {
+        "x": 50,
+        "y": 1140
+      },
+      "parentId": "fae15bb7-185a-47b8-9f3f-951896e0f7dc",
+      "data": {
+        "name": "Reschedule Appointment"
+      },
+      "measured": {
+        "width": 210,
+        "height": 100
+      }
+    },
+    {
+      "id": "3a4bd5f8-580a-4390-8b18-af50fd828e04",
+      "width": 200,
+      "height": 100,
+      "type": "useCase",
+      "position": {
+        "x": 300,
+        "y": 750
+      },
+      "parentId": "fae15bb7-185a-47b8-9f3f-951896e0f7dc",
+      "data": {
+        "name": "View Clinic Overview"
+      },
+      "measured": {
+        "width": 200,
+        "height": 100
+      }
+    },
+    {
+      "id": "cf4305bf-166b-400d-8be3-b5bfb22a8532",
+      "width": 180,
+      "height": 100,
+      "type": "useCase",
+      "position": {
+        "x": 260,
+        "y": 70
+      },
+      "parentId": "fae15bb7-185a-47b8-9f3f-951896e0f7dc",
+      "data": {
+        "name": "Tag Diagnosis"
       },
       "measured": {
         "width": 180,
@@ -212,50 +284,6 @@
       }
     },
     {
-      "id": "b7d1a5ba-d613-4961-aa0e-ce6946373caa",
-      "source": "5cf42c63-b82e-4979-a519-c97977cc48c6",
-      "target": "6f61fbb0-e167-40ca-83d5-c7bf2599f24c",
-      "type": "UseCaseInclude",
-      "sourceHandle": "bottom",
-      "targetHandle": "top",
-      "data": {
-        "points": []
-      }
-    },
-    {
-      "id": "59fad540-1e07-4a36-9577-bbf339d5283a",
-      "source": "34760d84-520a-4276-be12-5579201e1e02",
-      "target": "5cf42c63-b82e-4979-a519-c97977cc48c6",
-      "type": "UseCaseAssociation",
-      "sourceHandle": "right",
-      "targetHandle": "left",
-      "data": {
-        "points": []
-      }
-    },
-    {
-      "id": "254c1905-b294-46f7-b410-1aa9caace1f7",
-      "source": "daa6f543-f6ac-4cc3-ad78-a799b7904154",
-      "target": "d26d2ed9-d050-4f80-8edd-a85dcd13e5a4",
-      "type": "UseCaseAssociation",
-      "sourceHandle": "right",
-      "targetHandle": "left",
-      "data": {
-        "points": []
-      }
-    },
-    {
-      "id": "9088f74b-0a47-44bf-a2c7-f466bd869c35",
-      "source": "5b8bb31b-b217-4784-a824-5a634d002c59",
-      "target": "5cf42c63-b82e-4979-a519-c97977cc48c6",
-      "type": "UseCaseExtend",
-      "sourceHandle": "bottom",
-      "targetHandle": "right",
-      "data": {
-        "points": []
-      }
-    },
-    {
       "id": "cb60650e-54dd-41ea-b7c4-2533e01b1ef6",
       "source": "daa6f543-f6ac-4cc3-ad78-a799b7904154",
       "target": "3acae759-34d1-49eb-bb5d-d80cf50b2241",
@@ -271,7 +299,7 @@
       "source": "23f0ea65-ddc2-4e1a-83f4-fe64366ac98a",
       "target": "3acae759-34d1-49eb-bb5d-d80cf50b2241",
       "type": "UseCaseInclude",
-      "sourceHandle": "bottom",
+      "sourceHandle": "left",
       "targetHandle": "right",
       "data": {
         "points": []
@@ -289,9 +317,20 @@
       }
     },
     {
-      "id": "23897456-a951-4786-b1d4-69753c28c5a1",
-      "source": "34760d84-520a-4276-be12-5579201e1e02",
+      "id": "999bab1e-11c7-4894-a551-bb7c0647758d",
+      "source": "5b8bb31b-b217-4784-a824-5a634d002c59",
       "target": "5b8bb31b-b217-4784-a824-5a634d002c59",
+      "type": "UseCaseAssociation",
+      "sourceHandle": "left",
+      "targetHandle": "left-mid-bottom",
+      "data": {
+        "points": []
+      }
+    },
+    {
+      "id": "435656cf-a0c7-4e42-b837-b63e523031db",
+      "source": "5cf42c63-b82e-4979-a519-c97977cc48c6",
+      "target": "34760d84-520a-4276-be12-5579201e1e02",
       "type": "UseCaseAssociation",
       "sourceHandle": "right",
       "targetHandle": "left",
@@ -300,9 +339,20 @@
       }
     },
     {
-      "id": "24ce1368-562c-43de-89c2-db4efa583186",
-      "source": "73e04f02-8d77-4b0b-b79e-13835f487c06",
+      "id": "0bf285b2-bfa9-43a5-bf11-54a2ea436169",
+      "source": "5b8bb31b-b217-4784-a824-5a634d002c59",
       "target": "34760d84-520a-4276-be12-5579201e1e02",
+      "type": "UseCaseAssociation",
+      "sourceHandle": "right",
+      "targetHandle": "left",
+      "data": {
+        "points": []
+      }
+    },
+    {
+      "id": "300d6411-ddbd-4cfd-861b-f78d5ce1cfa1",
+      "source": "ff9f2b3b-0f1b-4358-b85b-f5f5b760dc11",
+      "target": "daa6f543-f6ac-4cc3-ad78-a799b7904154",
       "type": "UseCaseAssociation",
       "sourceHandle": "left",
       "targetHandle": "right",
@@ -311,23 +361,78 @@
       }
     },
     {
-      "id": "8b924e9a-78ca-4aa0-9c42-6067edc954c1",
+      "id": "3fac5127-541d-4420-a4b1-0d41de0ffd34",
+      "source": "34760d84-520a-4276-be12-5579201e1e02",
+      "target": "23f0ea65-ddc2-4e1a-83f4-fe64366ac98a",
+      "type": "UseCaseAssociation",
+      "sourceHandle": "left",
+      "targetHandle": "right",
+      "data": {
+        "points": []
+      }
+    },
+    {
+      "id": "e2a58440-d33c-4e37-950d-abc68b3bce34",
+      "source": "34760d84-520a-4276-be12-5579201e1e02",
+      "target": "73e04f02-8d77-4b0b-b79e-13835f487c06",
+      "type": "UseCaseAssociation",
+      "sourceHandle": "left",
+      "targetHandle": "right",
+      "data": {
+        "points": []
+      }
+    },
+    {
+      "id": "0986aac3-72a2-4de4-8753-bdef899fcbd5",
       "source": "73e04f02-8d77-4b0b-b79e-13835f487c06",
       "target": "5b8bb31b-b217-4784-a824-5a634d002c59",
-      "type": "UseCaseExtend",
-      "sourceHandle": "right",
+      "type": "UseCaseInclude",
+      "sourceHandle": "left",
       "targetHandle": "top",
       "data": {
         "points": []
       }
     },
     {
-      "id": "3822bbf6-e1d5-443b-8163-a18e7959c790",
-      "source": "d26d2ed9-d050-4f80-8edd-a85dcd13e5a4",
-      "target": "6f61fbb0-e167-40ca-83d5-c7bf2599f24c",
-      "type": "UseCaseExtend",
-      "sourceHandle": "top",
-      "targetHandle": "bottom",
+      "id": "c07be864-41c0-4a58-a83b-686f18b538f1",
+      "source": "daa6f543-f6ac-4cc3-ad78-a799b7904154",
+      "target": "b04b7566-753d-4226-befe-fbfce8ef3f84",
+      "type": "UseCaseAssociation",
+      "sourceHandle": "right",
+      "targetHandle": "left",
+      "data": {
+        "points": []
+      }
+    },
+    {
+      "id": "06c1d9cc-5c3c-49c8-9877-53d6d9d28895",
+      "source": "daa6f543-f6ac-4cc3-ad78-a799b7904154",
+      "target": "54e63bc0-9b69-4258-89f7-db81bc5735e6",
+      "type": "UseCaseAssociation",
+      "sourceHandle": "right",
+      "targetHandle": "left",
+      "data": {
+        "points": []
+      }
+    },
+    {
+      "id": "1b6b9bfa-f13c-4f47-a52a-e26f1dc71d83",
+      "source": "3a4bd5f8-580a-4390-8b18-af50fd828e04",
+      "target": "a7e237b2-645c-42c3-951f-c52ae26f2978",
+      "type": "UseCaseAssociation",
+      "sourceHandle": "right",
+      "targetHandle": "left",
+      "data": {
+        "points": []
+      }
+    },
+    {
+      "id": "c2cf7080-8945-47a2-8fe6-14752608082c",
+      "source": "cf4305bf-166b-400d-8be3-b5bfb22a8532",
+      "target": "34760d84-520a-4276-be12-5579201e1e02",
+      "type": "UseCaseAssociation",
+      "sourceHandle": "right",
+      "targetHandle": "left",
       "data": {
         "points": []
       }

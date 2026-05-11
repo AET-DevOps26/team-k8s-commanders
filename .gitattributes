@@ -1,0 +1,11 @@
+# Ensure shell scripts use LF endings
+*.sh text eol=lf
+scripts/* text eol=lf
+api/scripts/* text eol=lf
+git/hooks/* text eol=lf
+
+# Default handling for common text files
+*.py text=auto
+*.md text=auto
+*.yaml text=auto
+*.yml text=auto

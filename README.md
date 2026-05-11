@@ -70,7 +70,8 @@ Run the pre-commit OpenAPI lint hook manually:
 
 The `services/*/generated/` and `web-client/src/api.ts` paths are listed in
 `.gitignore`. The FastAPI models under `services/ai-assistant/models/` are
-checked in so the AI assistant service can import them directly.
+checked in so the AI assistant service can import them directly. The models
+are directly commited, changes are reflected through the git hooks.
 
 ## Troubleshooting
 

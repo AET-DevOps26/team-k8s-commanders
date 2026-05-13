@@ -6,4 +6,3 @@ pydantic==2.13.4
 
 # == Langchain requirements ==
 langchain==1.2.18
-

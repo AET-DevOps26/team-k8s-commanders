@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+repo_root="$(git rev-parse --show-toplevel)"
+
+exec npx --yes @redocly/cli lint "$repo_root/api/openapi.yaml"

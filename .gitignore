@@ -1,0 +1,22 @@
+# Node
+node_modules/
+
+# Python virtual env
+.venv/
+
+# Generated clients
+services/*/generated/
+
+# Python client output
+services/*/client/
+
+# Generated TypeScript API
+web-client/src/api.ts
+
+# Editor and OS
+.vscode/
+.DS_Store
+
+# pre-commit cache
+.cache/
+

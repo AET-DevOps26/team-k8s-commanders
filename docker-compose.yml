@@ -7,4 +7,10 @@ services:
       - "8000:8000"
     restart: unless-stopped
     env_file:
-      - ./services/ai-assistant/.env
+      - path: ./services/ai-assistant/.env
+        required: false
+    environment:
+      - LLM_PROVIDER=openwebui
+      - OPENWEBUI_CHAT_COMPLETIONS_URL=https://gpu.aet.cit.tum.de/api/chat/completions
+      - OPENWEBUI_API_KEY=
+      - OPENWEBUI_MODEL=openai/gpt-oss-120b

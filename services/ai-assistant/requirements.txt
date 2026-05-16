@@ -5,4 +5,5 @@ python-dotenv==1.2.2
 pydantic==2.13.4
 
 # == LLM Client ==
-openai==2.37.0
+langchain-core==1.4.0
+langchain-openai==1.2.1

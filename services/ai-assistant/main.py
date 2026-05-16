@@ -1,27 +1,16 @@
-from contextlib import asynccontextmanager
 from dotenv import load_dotenv
 import uvicorn
 from fastapi import FastAPI
 
 from routes import query, health
-from utils.llm import initialize_llm_provider
 
 load_dotenv()
 
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    """Manage application lifespan: startup and shutdown events."""
-    initialize_llm_provider()
-    yield
-
-
 app = FastAPI(
     title="GenAI Service",
-    docs_url=None,      # disable Swagger UI
-    redoc_url=None,     # disable ReDoc
-    openapi_url=None,   # disable OpenAPI schema endpoint
-    lifespan=lifespan,
+    docs_url=None,
+    redoc_url=None,
+    openapi_url=None,
 )
 
 app.include_router(health.router, tags=["health"])

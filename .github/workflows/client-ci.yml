@@ -1,0 +1,40 @@
+name: Client CI
+
+on:
+  push:
+    paths:
+      - 'web-client/**'
+      - '.github/workflows/client-ci.yml'
+  pull_request:
+    paths:
+      - 'web-client/**'
+      - '.github/workflows/client-ci.yml'
+
+jobs:
+  lint-and-build:
+    name: Lint and build client
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: web-client
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web-client/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint client
+        run: npm run lint
+
+      - name: Build client
+        run: npm run build

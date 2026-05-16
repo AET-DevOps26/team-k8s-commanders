@@ -13,6 +13,9 @@ services/*/client/
 # Generated TypeScript API
 web-client/src/api.ts
 
+# Vite production build output
+web-client/dist/
+
 # Editor and OS
 .vscode/
 .DS_Store

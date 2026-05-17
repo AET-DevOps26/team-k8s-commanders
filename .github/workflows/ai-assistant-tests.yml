@@ -1,0 +1,29 @@
+name: AI Assistant Tests
+
+on:
+  push:
+    paths:
+      - "services/ai-assistant/**"
+      - ".github/workflows/ai-assistant-tests.yml"
+  pull_request:
+    paths:
+      - "services/ai-assistant/**"
+      - ".github/workflows/ai-assistant-tests.yml"
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: services/ai-assistant
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Run tests
+        run: bash run_tests.sh

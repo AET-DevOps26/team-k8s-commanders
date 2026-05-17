@@ -1,0 +1,10 @@
+services:
+  ai-assistant:
+    build: 
+      context: ./services/ai-assistant
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+    env_file:
+      - ./services/ai-assistant/.env

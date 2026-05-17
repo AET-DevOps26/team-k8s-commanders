@@ -1,0 +1,2 @@
+# == Testing requirements ==
+pytest==9.0.3

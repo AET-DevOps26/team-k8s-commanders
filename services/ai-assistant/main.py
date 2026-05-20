@@ -13,7 +13,7 @@ app = FastAPI(
     openapi_url=None,
 )
 
-app.include_router(health.router, tags=["health"])
+app.include_router(health.router, prefix="/ai", tags=["health"])
 app.include_router(query.router, prefix="/ai", tags=["query"])
 
 if __name__ == "__main__":

@@ -28,10 +28,9 @@ Create `services/ai-assistant/.env` from `.env.example` if you want to override 
 Useful variables:
 
 - `LLM_PROVIDER=openwebui` or `openai`
-- `OPENWEBUI_CHAT_COMPLETIONS_URL` for OpenWebUI
-- `OPENWEBUI_API_KEY` for hosted OpenWebUI instances
-- `OPENWEBUI_MODEL` for the model name
-- `OPENAI_API_KEY` and `OPENAI_MODEL` for OpenAI
+- `OPENWEBUI_BASE_URL` for OpenWebUI
+- `LLM_API_KEY` for API access
+- `LLM_MODEL` for the model name
 
 ## Run Locally
 

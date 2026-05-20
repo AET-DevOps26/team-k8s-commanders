@@ -49,7 +49,7 @@ docker compose up --build
 | Web client | http://localhost:3000 |
 | AI assistant | http://localhost:8000 |
 
-The web client reads `PUBLIC_API_URL` at runtime (default `http://localhost:8080` for the Spring API on the host). Copy `services/ai-assistant/.env.example` to `services/ai-assistant/.env` before the first run if you use the AI assistant service.
+The web client reads `PUBLIC_API_URL` at runtime (default `http://host.docker.internal:8080` for the Spring API on the host). Copy `services/ai-assistant/.env.example` to `services/ai-assistant/.env` before the first run if you use the AI assistant service.
 
 See [web-client/README.md](web-client/README.md) for standalone client image builds.
 

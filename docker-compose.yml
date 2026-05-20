@@ -14,9 +14,9 @@ services:
       context: ./web-client
       dockerfile: Dockerfile
       args:
-        VITE_API_URL: http://localhost:8080
+        VITE_API_URL: http://host.docker.internal:8080
     ports:
       - "3000:3000"
     restart: unless-stopped
     environment:
-      PUBLIC_API_URL: http://localhost:8080
+      PUBLIC_API_URL: http://host.docker.internal:8080

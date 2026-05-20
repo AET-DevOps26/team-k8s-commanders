@@ -1,6 +1,6 @@
 services:
   ai-assistant:
-    build: 
+    build:
       context: ./services/ai-assistant
       dockerfile: Dockerfile
     ports:
@@ -8,3 +8,15 @@ services:
     restart: unless-stopped
     env_file:
       - ./services/ai-assistant/.env
+
+  web-client:
+    build:
+      context: ./web-client
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: http://localhost:8080
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+    environment:
+      PUBLIC_API_URL: http://localhost:8080

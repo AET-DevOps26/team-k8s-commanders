@@ -8,13 +8,11 @@ import org.openapitools.model.RegisterRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.RequestMapping;
 
 // Implements AuthApi — the interface generated from the OpenAPI spec.
 // All endpoint paths, HTTP methods, and response types come from AuthApi.
-// The base path matches AuthApiController: ${openapi.careDesk.base-path:/api/v1}
+// No /api/v1 prefix here — the gateway owns that. Endpoints are /auth/register, /auth/login, /auth/logout.
 @Controller
-@RequestMapping("${openapi.careDesk.base-path:/api/v1}")
 public class AuthController implements AuthApi {
 
     private final AuthService authService;

@@ -30,9 +30,8 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        // Matches the base path from AuthApiController + AuthApi path constants
-                        // e.g. /api/v1/auth/login, /api/v1/auth/register
-                        .requestMatchers("/api/v1/auth/**").permitAll()
+                        // Gateway owns the /api/v1 prefix — service only sees /auth/**
+                        .requestMatchers("/auth/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)

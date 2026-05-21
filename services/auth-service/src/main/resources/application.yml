@@ -1,6 +1,11 @@
 server:
   port: 8081
 
+# Gateway owns the /api/v1 prefix — service exposes /auth/** directly.
+openapi:
+  careDesk:
+    base-path: ""
+
 spring:
   application:
     name: auth-service

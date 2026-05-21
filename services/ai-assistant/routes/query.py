@@ -3,14 +3,13 @@
 import logging
 from fastapi import APIRouter, HTTPException, status
 from langchain_core.output_parsers import StrOutputParser
-
-logger = logging.getLogger(__name__)
-
 from models.ai_query_request import AIQueryRequest
 from models.ai_query_response import AIQueryResponse
 from utils.llm import get_llm
 from utils.prompt_templates import QUERY_PROMPT
 from utils.retriever import MockPatientRetriever
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -36,10 +35,12 @@ async def query(request: AIQueryRequest) -> AIQueryResponse:
 
     try:
         chain = QUERY_PROMPT | get_llm() | StrOutputParser()
-        answer = await chain.ainvoke({
-            "context": _format_docs(docs),
-            "question": request.query,
-        })
+        answer = await chain.ainvoke(
+            {
+                "context": _format_docs(docs),
+                "question": request.query,
+            }
+        )
 
         return AIQueryResponse(
             answer=answer,

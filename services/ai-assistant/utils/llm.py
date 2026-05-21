@@ -20,7 +20,9 @@ def get_llm() -> ChatOpenAI:
     if provider == "openwebui":
         base_url = os.getenv("OPENWEBUI_BASE_URL")
         if not base_url:
-            raise ValueError("OPENWEBUI_BASE_URL not set (required for openwebui provider)")
+            raise ValueError(
+                "OPENWEBUI_BASE_URL not set (required for openwebui provider)"
+            )
         return ChatOpenAI(api_key=api_key, base_url=base_url, model=model)
 
     raise ValueError(f"Unknown LLM provider: {provider}")

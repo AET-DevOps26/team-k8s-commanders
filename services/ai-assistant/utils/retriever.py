@@ -37,14 +37,16 @@ class MockPatientRetriever(BaseRetriever):
             if history:
                 patient = history.get("patient", {})
                 if patient:
-                    docs.append(Document(
-                        page_content=(
-                            f"Patient: {patient.get('name')} (DOB: {patient.get('dateOfBirth')})\n"
-                            f"Medical History: {', '.join(patient.get('medicalHistory', []))}\n"
-                            f"Current Medications: {', '.join(patient.get('currentMedications', []))}"
-                        ),
-                        metadata={"source": "Patient record"},
-                    ))
+                    docs.append(
+                        Document(
+                            page_content=(
+                                f"Patient: {patient.get('name')} (DOB: {patient.get('dateOfBirth')})\n"
+                                f"Medical History: {', '.join(patient.get('medicalHistory', []))}\n"
+                                f"Current Medications: {', '.join(patient.get('currentMedications', []))}"
+                            ),
+                            metadata={"source": "Patient record"},
+                        )
+                    )
 
                 for note in history.get("clinical_notes", []):
                     content = f"Clinical Note: {note.get('content')}"
@@ -53,21 +55,25 @@ class MockPatientRetriever(BaseRetriever):
                             f"\nDiagnosis: {note['diagnosis'].get('description')}"
                             f" (Code: {note['diagnosis'].get('code')})"
                         )
-                    docs.append(Document(
-                        page_content=content,
-                        metadata={"source": "Clinical note"},
-                    ))
+                    docs.append(
+                        Document(
+                            page_content=content,
+                            metadata={"source": "Clinical note"},
+                        )
+                    )
 
         if self.appointment_id:
             appointment = get_appointment_data(self.appointment_id)
             if appointment:
-                docs.append(Document(
-                    page_content=(
-                        f"Appointment: {appointment.get('reason')}\n"
-                        f"Status: {appointment.get('status')}\n"
-                        f"Date: {appointment.get('dateTime')}"
-                    ),
-                    metadata={"source": "Appointment record"},
-                ))
+                docs.append(
+                    Document(
+                        page_content=(
+                            f"Appointment: {appointment.get('reason')}\n"
+                            f"Status: {appointment.get('status')}\n"
+                            f"Date: {appointment.get('dateTime')}"
+                        ),
+                        metadata={"source": "Appointment record"},
+                    )
+                )
 
         return docs

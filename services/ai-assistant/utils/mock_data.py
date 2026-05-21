@@ -98,10 +98,7 @@ def get_clinical_notes_for_appointment(appointment_id: str) -> Optional[dict]:
 
 def get_patient_appointments(patient_id: str) -> List[dict]:
     """Retrieve all mock appointments for a patient."""
-    return [
-        apt for apt in MOCK_APPOINTMENTS.values()
-        if apt["patientId"] == patient_id
-    ]
+    return [apt for apt in MOCK_APPOINTMENTS.values() if apt["patientId"] == patient_id]
 
 
 def get_patient_complete_history(patient_id: str) -> dict:
@@ -109,14 +106,14 @@ def get_patient_complete_history(patient_id: str) -> dict:
     patient = get_patient_data(patient_id)
     if not patient:
         return {}
-    
+
     appointments = get_patient_appointments(patient_id)
     notes = [
         MOCK_CLINICAL_NOTES[apt["id"]]
         for apt in appointments
         if apt["id"] in MOCK_CLINICAL_NOTES
     ]
-    
+
     return {
         "patient": patient,
         "appointments": appointments,

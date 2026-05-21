@@ -13,7 +13,9 @@ def _fake_llm(response: str) -> FakeListChatModel:
 @patch("routes.query.get_llm")
 def test_query_works_without_authentication(mock_get_llm):
     """Test that query endpoint is publicly accessible with mocked LLM."""
-    mock_get_llm.return_value = _fake_llm("The patient appears to be in stable condition.")
+    mock_get_llm.return_value = _fake_llm(
+        "The patient appears to be in stable condition."
+    )
 
     client = TestClient(app)
     response = client.post(
@@ -35,7 +37,9 @@ def test_query_works_without_authentication(mock_get_llm):
 @patch("routes.query.get_llm")
 def test_query_with_patient_id(mock_get_llm):
     """Test query with patient context."""
-    mock_get_llm.return_value = _fake_llm("Current medications: Lisinopril 10mg daily, Metformin 500mg twice daily.")
+    mock_get_llm.return_value = _fake_llm(
+        "Current medications: Lisinopril 10mg daily, Metformin 500mg twice daily."
+    )
 
     client = TestClient(app)
     response = client.post(
@@ -54,7 +58,9 @@ def test_query_with_patient_id(mock_get_llm):
 @patch("routes.query.get_llm")
 def test_query_with_appointment_id(mock_get_llm):
     """Test query with appointment context."""
-    mock_get_llm.return_value = _fake_llm("The appointment is scheduled for a diabetes check-up.")
+    mock_get_llm.return_value = _fake_llm(
+        "The appointment is scheduled for a diabetes check-up."
+    )
 
     client = TestClient(app)
     response = client.post(
@@ -89,7 +95,11 @@ def test_query_with_both_ids(mock_get_llm):
     assert response.status_code == 200
     data = response.json()
     assert data["answer"] == expected
-    assert set(data["sources"]) == {"Patient record", "Clinical note", "Appointment record"}
+    assert set(data["sources"]) == {
+        "Patient record",
+        "Clinical note",
+        "Appointment record",
+    }
 
 
 def test_query_request_validation():
@@ -119,6 +129,7 @@ def test_query_missing_context_raises_404(mock_get_llm):
 @patch("routes.query.get_llm")
 def test_query_llm_error_handling(mock_get_llm):
     """Test that LLM generation errors are handled gracefully."""
+
     async def _raise(_input):
         raise Exception("LLM service temporarily unavailable")
 

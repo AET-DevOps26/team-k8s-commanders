@@ -45,7 +45,7 @@ async def query(request: AIQueryRequest) -> AIQueryResponse:
         return AIQueryResponse(
             answer=answer,
             sources=list(dict.fromkeys(doc.metadata["source"] for doc in docs)),
-            confidence=0.85,
+            confidence=None,  # TODO: compute from LLM output
         )
 
     except ValueError as e:

@@ -1,6 +1,7 @@
 package com.caredesk.auth.service;
 
 import com.caredesk.auth.config.JwtUtil;
+import com.caredesk.auth.model.Role;
 import com.caredesk.auth.model.User;
 import com.caredesk.auth.repository.UserRepository;
 import org.openapitools.model.AuthSession;
@@ -41,8 +42,8 @@ public class AuthServiceImpl implements AuthService {
         user.setName(request.getName());
         user.setEmail(request.getEmail());
         user.setPassword(passwordEncoder.encode(request.getPassword()));
-        // Default to PATIENT if no role provided (self-registration flow)
-        user.setRole(request.getRole() != null ? request.getRole() : UserRole.PATIENT);
+        // Public self-registration always creates a PATIENT — elevated roles are assigned by admins only.
+        user.setRole(Role.PATIENT);
         userRepository.save(user);
 
         String token = jwtUtil.generateToken(user.getEmail(), user.getRole().name());
@@ -67,9 +68,11 @@ public class AuthServiceImpl implements AuthService {
         // A token blacklist can be added here later if needed.
     }
 
-    // Maps a User entity to the generated UserProfile model expected by the API contract
+    // Maps a User entity to the generated UserProfile model expected by the API contract.
+    // Converts the internal Role enum to the API-layer UserRole at the boundary.
     private UserProfile toUserProfile(User user) {
-        UserProfile profile = new UserProfile(user.getId(), user.getName(), user.getEmail(), user.getRole());
+        UserRole apiRole = UserRole.valueOf(user.getRole().name());
+        UserProfile profile = new UserProfile(user.getId(), user.getName(), user.getEmail(), apiRole);
         profile.setPhoneNumber(user.getPhoneNumber());
         profile.setDateOfBirth(user.getDateOfBirth());
         profile.setSpecialization(user.getSpecialization());

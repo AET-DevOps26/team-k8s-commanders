@@ -20,9 +20,8 @@ else
     -p interfaceOnly=true,useSpringBoot3=true
 fi
 
-## Generate FastAPI-ready model objects only (no server scaffold)
-## Generate FastAPI model objects only and copy them into a single models dir
-# Generate into a temporary folder then copy only the model files to the target
+## Generate only the FastAPI model objects needed by the AI query endpoint.
+# Generate into a temporary folder then copy only the selected model files to the target.
 fastapi_temp_dir=$(mktemp -d)
 if [ -x "$openapi_gen_bin" ]; then
   "$openapi_gen_bin" generate -i api/openapi.yaml -g python-fastapi \
@@ -39,8 +38,9 @@ target_models_dir="$repo_root/services/ai-assistant/models"
 rm -rf "$target_models_dir"
 mkdir -p "$target_models_dir"
 if [ -d "$src_models_dir" ]; then
-  # copy only .py model files
-  cp "$src_models_dir"/*.py "$target_models_dir" 2>/dev/null || true
+  # copy only the model files needed by the AI query endpoint
+  cp "$src_models_dir/ai_query_request.py" "$target_models_dir" 2>/dev/null || true
+  cp "$src_models_dir/ai_query_response.py" "$target_models_dir" 2>/dev/null || true
 fi
 # ensure package init
 if [ ! -f "$target_models_dir/__init__.py" ]; then

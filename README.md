@@ -36,6 +36,23 @@ Run the consolidated setup script from the repository root. It will:
 - `api/scripts/gen-all.sh` — runs OpenAPI Generator and the model generators
   (also invoked by the `post-checkout` and `post-merge` hooks).
 
+## Docker
+
+Start containerized services from the repository root:
+
+```bash
+docker compose up --build
+```
+
+| Service | URL |
+|---------|-----|
+| Web client | http://localhost:3000 |
+| AI assistant | http://localhost:8000 |
+
+The web client reads `PUBLIC_API_URL` at runtime (default `http://host.docker.internal:8080` for the Spring API on the host). Copy `services/ai-assistant/.env.example` to `services/ai-assistant/.env` before the first run if you use the AI assistant service.
+
+See [web-client/README.md](web-client/README.md) for standalone client image builds.
+
 ## Useful commands
 
 Re-run generator setup only (no hooks):

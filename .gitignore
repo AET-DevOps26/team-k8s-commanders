@@ -23,3 +23,5 @@ web-client/dist/
 # pre-commit cache
 .cache/
 
+# misc
+CLAUDE.md

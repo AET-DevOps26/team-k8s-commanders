@@ -1,7 +1,10 @@
 """AI Query endpoint implementation."""
 
+import logging
 from fastapi import APIRouter, HTTPException, status
 from langchain_core.output_parsers import StrOutputParser
+
+logger = logging.getLogger(__name__)
 
 from models.ai_query_request import AIQueryRequest
 from models.ai_query_response import AIQueryResponse
@@ -45,12 +48,14 @@ async def query(request: AIQueryRequest) -> AIQueryResponse:
         )
 
     except ValueError as e:
+        logger.error("LLM configuration error: %s", e)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"LLM configuration error: {str(e)}",
+            detail="LLM configuration error",
         )
     except Exception as e:
+        logger.exception("Unexpected error processing query: %s", e)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error processing query: {str(e)}",
+            detail="Error processing query",
         )

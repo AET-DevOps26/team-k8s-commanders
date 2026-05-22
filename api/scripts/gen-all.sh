@@ -7,12 +7,17 @@ repo_root="$(git rev-parse --show-toplevel)"
 openapi_gen_bin="$repo_root/node_modules/.bin/openapi-generator-cli"
 openapi_ts_bin="$repo_root/node_modules/.bin/openapi-typescript"
 
+spring_gen_dir="$repo_root/services/springboot/generated"
+rm -rf "$spring_gen_dir/src" "$spring_gen_dir/target"
+
 if [ -x "$openapi_gen_bin" ]; then
   "$openapi_gen_bin" generate -i api/openapi.yaml -g spring \
-    -o services/springboot/generated
+    -o services/springboot/generated \
+    -p interfaceOnly=true,useSpringBoot3=true
 else
   openapi-generator-cli generate -i api/openapi.yaml -g spring \
-    -o services/springboot/generated
+    -o services/springboot/generated \
+    -p interfaceOnly=true,useSpringBoot3=true
 fi
 
 ## Generate only the FastAPI model objects needed by the AI query endpoint.

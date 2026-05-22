@@ -1,0 +1,28 @@
+server:
+  port: 8081
+
+# Gateway owns the /api/v1 prefix — service exposes /auth/** directly.
+openapi:
+  careDesk:
+    base-path: ""
+
+spring:
+  application:
+    name: auth-service
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:auth_db}
+    username: ${DB_USER:caredesk}
+    password: ${DB_PASSWORD:caredesk}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+
+jwt:
+  secret: ${JWT_SECRET}
+  expiration-ms: 86400000  # 24 hours

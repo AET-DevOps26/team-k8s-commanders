@@ -1,4 +1,4 @@
-name: AI Assistant Tests
+name: AI Assistant CI
 
 on:
   push:

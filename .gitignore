@@ -25,3 +25,9 @@ web-client/dist/
 
 # misc
 CLAUDE.md
+
+# Prod secrets — create on the VM, never commit
+.env
+
+# TLS certificates for prod nginx
+certs/

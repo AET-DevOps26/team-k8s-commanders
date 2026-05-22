@@ -1,0 +1,47 @@
+services:
+  nginx:
+    image: nginx:stable-alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./infra/nginx/nginx.prod.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./certs:/etc/nginx/certs:ro
+    restart: always
+    depends_on:
+      - web-client
+    networks:
+      - caredesk
+
+  web-client:
+    image: ghcr.io/aet-devops26/team-k8s-commanders/web-client:${IMAGE_TAG:-latest}
+    build:
+      context: ./web-client
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: ${PUBLIC_API_URL:-}
+    restart: always
+    environment:
+      PUBLIC_API_URL: ${PUBLIC_API_URL:-}
+    networks:
+      - caredesk
+
+  ai-assistant:
+    image: ghcr.io/aet-devops26/team-k8s-commanders/ai-assistant:${IMAGE_TAG:-latest}
+    build:
+      context: ./services/ai-assistant
+      dockerfile: Dockerfile
+    restart: always
+    env_file:
+      # Only needs LLM_API_KEY=... — all other vars are set below
+      - ./services/ai-assistant/.env
+    environment:
+      LLM_PROVIDER: openwebui
+      LLM_MODEL: openai/gpt-oss-120b
+      OPENWEBUI_BASE_URL: https://gpu.aet.cit.tum.de/api
+    networks:
+      - caredesk
+
+networks:
+  caredesk:
+    driver: bridge

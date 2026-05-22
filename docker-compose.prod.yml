@@ -32,13 +32,11 @@ services:
       context: ./services/ai-assistant
       dockerfile: Dockerfile
     restart: always
-    env_file:
-      # Only needs LLM_API_KEY=... — all other vars are set below
-      - ./services/ai-assistant/.env
     environment:
       LLM_PROVIDER: openwebui
       LLM_MODEL: openai/gpt-oss-120b
       OPENWEBUI_BASE_URL: https://gpu.aet.cit.tum.de/api
+      LLM_API_KEY: ${LLM_API_KEY}
     networks:
       - caredesk
 

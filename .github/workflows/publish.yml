@@ -7,33 +7,36 @@ on:
       - "services/ai-assistant/**"
       - "web-client/**"
       - ".github/workflows/publish.yml"
+  workflow_dispatch:
 
 jobs:
-  changes:
-    runs-on: ubuntu-latest
-    outputs:
-      ai-assistant: ${{ steps.filter.outputs.ai-assistant }}
-      web-client: ${{ steps.filter.outputs.web-client }}
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dorny/paths-filter@v3
-        id: filter
-        with:
-          filters: |
-            ai-assistant:
-              - "services/ai-assistant/**"
-            web-client:
-              - "web-client/**"
-
-  ai-assistant:
-    needs: changes
-    if: needs.changes.outputs.ai-assistant == 'true'
+  publish:
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
+    strategy:
+      matrix:
+        include:
+          - service: ai-assistant
+            context: ./services/ai-assistant
+            image: ghcr.io/aet-devops26/team-k8s-commanders/ai-assistant
+          - service: web-client
+            context: ./web-client
+            image: ghcr.io/aet-devops26/team-k8s-commanders/web-client
+
     steps:
       - uses: actions/checkout@v4
+
+      - name: Generate image tags
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ matrix.image }}
+          tags: |
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=ref,event=branch
+            type=sha
 
       - name: Log in to GHCR
         uses: docker/login-action@v3
@@ -42,37 +45,9 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push
+      - name: Build and push ${{ matrix.service }}
         uses: docker/build-push-action@v6
         with:
-          context: ./services/ai-assistant
+          context: ${{ matrix.context }}
           push: true
-          tags: |
-            ghcr.io/aet-devops26/team-k8s-commanders/ai-assistant:latest
-            ghcr.io/aet-devops26/team-k8s-commanders/ai-assistant:${{ github.sha }}
-
-  web-client:
-    needs: changes
-    if: needs.changes.outputs.web-client == 'true'
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Log in to GHCR
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build and push
-        uses: docker/build-push-action@v6
-        with:
-          context: ./web-client
-          push: true
-          tags: |
-            ghcr.io/aet-devops26/team-k8s-commanders/web-client:latest
-            ghcr.io/aet-devops26/team-k8s-commanders/web-client:${{ github.sha }}
+          tags: ${{ steps.meta.outputs.tags }}

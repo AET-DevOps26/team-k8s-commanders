@@ -13,6 +13,10 @@ on:
       - ".github/workflows/deploy-azure.yml"
   workflow_dispatch:
 
+permissions:
+  contents: read
+  packages: read
+
 jobs:
   deploy:
     if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
@@ -58,7 +62,8 @@ jobs:
               openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
                 -keyout certs/server.key \
                 -out certs/server.crt \
-                -subj "/CN=caredesk"
+                -subj "/CN=${{ vars.AZURE_PUBLIC_IP }}.nip.io" \
+                -addext "subjectAltName=DNS:${{ vars.AZURE_PUBLIC_IP }}.nip.io"
             fi
 
             echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin

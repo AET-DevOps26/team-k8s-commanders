@@ -10,6 +10,7 @@ services:
     restart: always
     depends_on:
       - web-client
+      - ai-assistant
     networks:
       - caredesk
 
@@ -17,7 +18,7 @@ services:
     image: ghcr.io/aet-devops26/team-k8s-commanders/web-client:${IMAGE_TAG:-latest}
     restart: always
     environment:
-      PUBLIC_API_URL: ${PUBLIC_API_URL:-}
+      PUBLIC_API_URL: ${PUBLIC_API_URL:?PUBLIC_API_URL must be set}
     networks:
       - caredesk
 

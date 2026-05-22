@@ -1,8 +1,10 @@
 """AI Query endpoint implementation."""
 
 import logging
+
 from fastapi import APIRouter, HTTPException, status
 from langchain_core.output_parsers import StrOutputParser
+
 from models.ai_query_request import AIQueryRequest
 from models.ai_query_response import AIQueryResponse
 from utils.llm import get_llm

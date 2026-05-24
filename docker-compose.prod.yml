@@ -29,7 +29,7 @@ services:
       LLM_PROVIDER: openwebui
       LLM_MODEL: openai/gpt-oss-120b
       OPENWEBUI_BASE_URL: https://gpu.aet.cit.tum.de/api
-      LLM_API_KEY: ${LLM_API_KEY}
+      LLM_API_KEY: ${LLM_API_KEY:?LLM_API_KEY must be set}
     networks:
       - caredesk
 

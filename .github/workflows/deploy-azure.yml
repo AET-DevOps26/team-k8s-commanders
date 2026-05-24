@@ -4,9 +4,9 @@ on:
   workflow_run:
     workflows: ["Publish Images"]
     types: [completed]
-    branches: [main, 64-terraform-and-ansible-for-azure-vm-deployment]
+    branches: [main]
   push:
-    branches: [main, 64-terraform-and-ansible-for-azure-vm-deployment]
+    branches: [main]
     paths:
       - "docker-compose.prod.yml"
       - "infra/nginx/**"

@@ -2,7 +2,7 @@ name: Publish Images
 
 on:
   push:
-    branches: [main, 64-terraform-and-ansible-for-azure-vm-deployment]
+    branches: [main]
     paths:
       - "services/ai-assistant/**"
       - "web-client/**"

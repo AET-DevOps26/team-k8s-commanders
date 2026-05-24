@@ -5,7 +5,7 @@ output "public_ip" {
 
 output "ssh_command" {
   description = "SSH command to connect to the VM"
-  value       = "ssh ${var.admin_username}@${azurerm_public_ip.main.ip_address}"
+  value       = "ssh -i ${trimsuffix(var.ssh_public_key_path, ".pub")} ${var.admin_username}@${azurerm_public_ip.main.ip_address}"
 }
 
 output "resource_group_name" {

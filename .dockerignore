@@ -1,5 +1,5 @@
+.git/
 target/
 .env
-.git/
 *.class
-*.md
+node_modules/

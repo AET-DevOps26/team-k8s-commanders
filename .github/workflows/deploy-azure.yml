@@ -1,0 +1,73 @@
+name: Deploy to Azure
+
+on:
+  workflow_run:
+    workflows: ["Publish Images"]
+    types: [completed]
+    branches: [main]
+  push:
+    branches: [main]
+    paths:
+      - "docker-compose.prod.yml"
+      - "infra/nginx/**"
+      - ".github/workflows/deploy-azure.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: read
+
+jobs:
+  deploy:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    environment:
+      name: Azure
+      url: "https://${{ vars.AZURE_PUBLIC_IP }}.nip.io"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Copy compose file and nginx config to VM
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ vars.AZURE_PUBLIC_IP }}
+          username: ${{ vars.AZURE_USER }}
+          key: ${{ secrets.AZURE_PRIVATE_KEY }}
+          source: "docker-compose.prod.yml,infra/nginx/"
+          target: /home/${{ vars.AZURE_USER }}
+
+      - name: Create .env.prod on VM
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ vars.AZURE_PUBLIC_IP }}
+          username: ${{ vars.AZURE_USER }}
+          key: ${{ secrets.AZURE_PRIVATE_KEY }}
+          script: |
+            rm -f .env.prod
+            echo "LLM_API_KEY=${{ secrets.LLM_API_KEY }}" >> .env.prod
+            echo "LLM_PROVIDER=${{ vars.LLM_PROVIDER }}" >> .env.prod
+            echo "LLM_MODEL=${{ vars.LLM_MODEL }}" >> .env.prod
+            echo "OPENWEBUI_BASE_URL=${{ vars.OPENWEBUI_BASE_URL }}" >> .env.prod
+            echo "PUBLIC_API_URL=https://${{ vars.AZURE_PUBLIC_IP }}.nip.io" >> .env.prod
+
+      - name: Deploy with Docker Compose
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ vars.AZURE_PUBLIC_IP }}
+          username: ${{ vars.AZURE_USER }}
+          key: ${{ secrets.AZURE_PRIVATE_KEY }}
+          script: |
+            # Generate self-signed cert on first deploy
+            if [ ! -f certs/server.crt ]; then
+              mkdir -p certs
+              openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+                -keyout certs/server.key \
+                -out certs/server.crt \
+                -subj "/CN=${{ vars.AZURE_PUBLIC_IP }}.nip.io" \
+                -addext "subjectAltName=DNS:${{ vars.AZURE_PUBLIC_IP }}.nip.io"
+            fi
+
+            echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+            docker compose -f docker-compose.prod.yml --env-file .env.prod up --pull=always -d --remove-orphans

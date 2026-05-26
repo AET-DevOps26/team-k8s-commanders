@@ -1,0 +1,46 @@
+services:
+  nginx:
+    image: nginx:stable-alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./infra/nginx/nginx.prod.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./certs:/etc/nginx/certs:ro
+    restart: always
+    depends_on:
+      web-client:
+        condition: service_started
+      ai-assistant:
+        condition: service_healthy
+    networks:
+      - caredesk
+
+  web-client:
+    image: ghcr.io/aet-devops26/team-k8s-commanders/web-client:${IMAGE_TAG:-latest}
+    restart: always
+    environment:
+      PUBLIC_API_URL: ${PUBLIC_API_URL:?PUBLIC_API_URL must be set}
+    networks:
+      - caredesk
+
+  ai-assistant:
+    image: ghcr.io/aet-devops26/team-k8s-commanders/ai-assistant:${IMAGE_TAG:-latest}
+    restart: always
+    environment:
+      LLM_PROVIDER: ${LLM_PROVIDER:?LLM_PROVIDER must be set}
+      LLM_MODEL: ${LLM_MODEL:?LLM_MODEL must be set}
+      OPENWEBUI_BASE_URL: ${OPENWEBUI_BASE_URL:-}
+      LLM_API_KEY: ${LLM_API_KEY:?LLM_API_KEY must be set}
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/ai/health')\""]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    networks:
+      - caredesk
+
+networks:
+  caredesk:
+    driver: bridge

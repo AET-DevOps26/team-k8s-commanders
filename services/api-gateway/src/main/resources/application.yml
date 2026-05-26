@@ -1,0 +1,23 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: api-gateway
+  cloud:
+    gateway:
+      routes:
+        - id: auth-service
+          uri: ${AUTH_SERVICE_URL:http://localhost:8081}
+          predicates:
+            - Path=/auth/**
+
+        - id: ai-assistant
+          uri: ${AI_ASSISTANT_URL:http://localhost:8000}
+          predicates:
+            - Path=/ai/**
+
+# Shared secret used to verify JWTs issued by auth-service.
+# Must match auth-service's JWT_SECRET.
+jwt:
+  secret: ${JWT_SECRET}

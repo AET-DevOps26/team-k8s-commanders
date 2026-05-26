@@ -10,7 +10,7 @@ services:
     restart: always
     depends_on:
       web-client:
-        condition: service_healthy
+        condition: service_started
       ai-assistant:
         condition: service_healthy
     networks:
@@ -21,12 +21,6 @@ services:
     restart: always
     environment:
       PUBLIC_API_URL: ${PUBLIC_API_URL:?PUBLIC_API_URL must be set}
-    healthcheck:
-      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:3000/"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 10s
     networks:
       - caredesk
 

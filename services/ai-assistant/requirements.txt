@@ -6,4 +6,4 @@ pydantic==2.13.4
 
 # == LLM Client ==
 langchain-core==1.4.0
-langchain-openai==1.2.1
+langchain-openai==1.2.2

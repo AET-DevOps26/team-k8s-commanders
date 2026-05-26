@@ -9,8 +9,10 @@ services:
       - ./certs:/etc/nginx/certs:ro
     restart: always
     depends_on:
-      - web-client
-      - ai-assistant
+      web-client:
+        condition: service_healthy
+      ai-assistant:
+        condition: service_healthy
     networks:
       - caredesk
 
@@ -19,6 +21,12 @@ services:
     restart: always
     environment:
       PUBLIC_API_URL: ${PUBLIC_API_URL:?PUBLIC_API_URL must be set}
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/ > /dev/null"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
     networks:
       - caredesk
 
@@ -26,10 +34,16 @@ services:
     image: ghcr.io/aet-devops26/team-k8s-commanders/ai-assistant:${IMAGE_TAG:-latest}
     restart: always
     environment:
-      LLM_PROVIDER: openwebui
-      LLM_MODEL: openai/gpt-oss-120b
-      OPENWEBUI_BASE_URL: https://gpu.aet.cit.tum.de/api
+      LLM_PROVIDER: ${LLM_PROVIDER:?LLM_PROVIDER must be set}
+      LLM_MODEL: ${LLM_MODEL:?LLM_MODEL must be set}
+      OPENWEBUI_BASE_URL: ${OPENWEBUI_BASE_URL:-}
       LLM_API_KEY: ${LLM_API_KEY:?LLM_API_KEY must be set}
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/ai/health')\""]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
     networks:
       - caredesk
 

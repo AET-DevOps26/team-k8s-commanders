@@ -13,7 +13,7 @@ Configures the CareDesk Azure VM (provisioned by Terraform) with Docker Engine a
 | File | Purpose |
 |---|---|
 | `playbook.yml` | Installs Docker CE, Compose plugin, and adds the admin user to the `docker` group |
-| `ansible.cfg` | Points to `inventory.ini` and the Terraform SSH key; disables host-key checking |
+| `ansible.cfg` | Points to `inventory.ini` and the Terraform SSH key; accepts new host keys automatically (`StrictHostKeyChecking=accept-new`) |
 | `inventory.ini` | `caredesk-dev` host entry — **not committed** (gitignored); create from the Terraform output |
 
 ## Setup

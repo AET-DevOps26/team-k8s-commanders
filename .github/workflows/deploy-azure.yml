@@ -47,6 +47,9 @@ jobs:
           script: |
             rm -f .env.prod
             echo "LLM_API_KEY=${{ secrets.LLM_API_KEY }}" >> .env.prod
+            echo "LLM_PROVIDER=${{ vars.LLM_PROVIDER }}" >> .env.prod
+            echo "LLM_MODEL=${{ vars.LLM_MODEL }}" >> .env.prod
+            echo "OPENWEBUI_BASE_URL=${{ vars.OPENWEBUI_BASE_URL }}" >> .env.prod
             echo "PUBLIC_API_URL=https://${{ vars.AZURE_PUBLIC_IP }}.nip.io" >> .env.prod
 
       - name: Deploy with Docker Compose

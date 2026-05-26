@@ -20,3 +20,48 @@ services:
     restart: unless-stopped
     environment:
       PUBLIC_API_URL: http://host.docker.internal:8080
+
+  auth-db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: auth_db
+      POSTGRES_USER: caredesk
+      POSTGRES_PASSWORD: caredesk
+    ports:
+      - "5432:5432"
+    volumes:
+      - auth-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U caredesk -d auth_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  auth-service:
+    build:
+      # Build context is the repo root so the Dockerfile can reach both
+      # services/auth-service AND services/springboot/generated (stubs).
+      context: .
+      dockerfile: services/auth-service/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      auth-db:
+        condition: service_healthy
+    ports:
+      - "8081:8081"
+    environment:
+      DB_HOST: auth-db
+      DB_PORT: 5432
+      DB_NAME: auth_db
+      DB_USER: caredesk
+      DB_PASSWORD: caredesk
+      # Dev-only secret — override in production via env or secrets management.
+      JWT_SECRET: caredesk-compose-dev-secret-must-be-at-least-32-chars
+      # application.yml ships with ddl-auto: validate for production safety.
+      # Compose dev profile overrides to `update` so schema is auto-created
+      # against a fresh Postgres. Production should use proper migrations.
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+
+volumes:
+  auth-db-data:

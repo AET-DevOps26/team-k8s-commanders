@@ -1,0 +1,8 @@
+subscription_id     = "00000000-0000-0000-0000-000000000000"
+project             = "caredesk"
+environment         = "dev"
+location            = "germanywestcentral"
+vm_size             = "Standard_B2s"
+admin_username      = "azureuser"
+ssh_public_key_path = "./caredesk_key.pub"
+os_disk_size_gb     = 30

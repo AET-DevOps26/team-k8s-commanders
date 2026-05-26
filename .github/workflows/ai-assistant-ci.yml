@@ -1,14 +1,14 @@
-name: AI Assistant Tests
+name: AI Assistant CI
 
 on:
   push:
     paths:
       - "services/ai-assistant/**"
-      - ".github/workflows/ai-assistant-tests.yml"
+      - ".github/workflows/ai-assistant-ci.yml"
   pull_request:
     paths:
       - "services/ai-assistant/**"
-      - ".github/workflows/ai-assistant-tests.yml"
+      - ".github/workflows/ai-assistant-ci.yml"
 
 jobs:
   tests:

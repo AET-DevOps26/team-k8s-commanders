@@ -22,9 +22,9 @@ import java.util.List;
 public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
 
     // Public paths that bypass JWT validation. /auth is where you obtain the token,
-    // so it cannot require one.
+    // so it cannot require one. Paths match the external URL (before StripPrefix).
     private static final List<String> PUBLIC_PATHS = List.of(
-            "/auth/**",
+            "/api/v1/auth/**",
             "/actuator/health"
     );
 

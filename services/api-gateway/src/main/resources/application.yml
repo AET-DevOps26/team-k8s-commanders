@@ -6,16 +6,23 @@ spring:
     name: api-gateway
   cloud:
     gateway:
+      # The /api/v1 prefix is owned by the gateway (per the OpenAPI spec's server base path).
+      # StripPrefix=2 removes /api and /v1 before forwarding to downstream services,
+      # so the auth-service receives /auth/register, not /api/v1/auth/register.
       routes:
         - id: auth-service
           uri: ${AUTH_SERVICE_URL:http://localhost:8081}
           predicates:
-            - Path=/auth/**
+            - Path=/api/v1/auth/**
+          filters:
+            - StripPrefix=2
 
         - id: ai-assistant
           uri: ${AI_ASSISTANT_URL:http://localhost:8000}
           predicates:
-            - Path=/ai/**
+            - Path=/api/v1/ai/**
+          filters:
+            - StripPrefix=2
 
 # Shared secret used to verify JWTs issued by auth-service.
 # Must match auth-service's JWT_SECRET.

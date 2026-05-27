@@ -55,6 +55,7 @@ jobs:
             echo "AUTH_DB_NAME=${{ vars.AUTH_DB_NAME }}" >> .env.prod
             echo "AUTH_DB_USER=${{ vars.AUTH_DB_USER }}" >> .env.prod
             echo "AUTH_DB_PASSWORD=${{ secrets.AUTH_DB_PASSWORD }}" >> .env.prod
+            echo "AUTH_DDL_AUTO=update" >> .env.prod
 
       - name: Deploy with Docker Compose
         uses: appleboy/ssh-action@v1.2.5

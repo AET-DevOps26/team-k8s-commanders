@@ -1,4 +1,17 @@
 services:
+  nginx:
+    image: nginx:stable-alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./infra/nginx/nginx.dev.conf:/etc/nginx/conf.d/default.conf:ro
+    restart: unless-stopped
+    depends_on:
+      web-client:
+        condition: service_started
+      api-gateway:
+        condition: service_healthy
+
   ai-assistant:
     build:
       context: ./services/ai-assistant

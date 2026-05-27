@@ -1,0 +1,8 @@
+.terraform/
+terraform.tfstate
+terraform.tfstate.backup
+terraform.tfvars
+*.auto.tfvars
+crash.log
+caredesk_key
+caredesk_key.pub

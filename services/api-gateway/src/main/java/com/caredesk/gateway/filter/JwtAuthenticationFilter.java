@@ -21,6 +21,11 @@ import java.util.List;
 @Component
 public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
 
+    // Headers we set on the forwarded request. Any inbound value with these names
+    // must be stripped first to prevent header spoofing.
+    static final String USER_EMAIL_HEADER = "X-User-Email";
+    static final String USER_ROLE_HEADER = "X-User-Role";
+
     // Public paths that bypass JWT validation. /auth is where you obtain the token,
     // so it cannot require one. Paths match the external URL (before StripPrefix).
     private static final List<String> PUBLIC_PATHS = List.of(
@@ -37,15 +42,24 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
 
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
-        String path = exchange.getRequest().getURI().getPath();
+        // Strip any inbound X-User-* headers immediately so a caller cannot forge
+        // an identity. We re-add them later only after validating the JWT.
+        ServerHttpRequest sanitised = exchange.getRequest().mutate()
+                .headers(h -> {
+                    h.remove(USER_EMAIL_HEADER);
+                    h.remove(USER_ROLE_HEADER);
+                })
+                .build();
+        ServerWebExchange sanitisedExchange = exchange.mutate().request(sanitised).build();
 
+        String path = sanitised.getURI().getPath();
         if (isPublic(path)) {
-            return chain.filter(exchange);
+            return chain.filter(sanitisedExchange);
         }
 
-        String authHeader = exchange.getRequest().getHeaders().getFirst(HttpHeaders.AUTHORIZATION);
+        String authHeader = sanitised.getHeaders().getFirst(HttpHeaders.AUTHORIZATION);
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            return unauthorized(exchange);
+            return unauthorized(sanitisedExchange);
         }
 
         String token = authHeader.substring(7);
@@ -53,21 +67,21 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
         try {
             claims = jwtUtil.parseClaims(token);
         } catch (Exception e) {
-            return unauthorized(exchange);
+            return unauthorized(sanitisedExchange);
         }
 
         String email = claims.getSubject();
         String role = claims.get("role", String.class);
-        if (email == null || role == null || role.isBlank()) {
-            return unauthorized(exchange);
+        if (email == null || email.isBlank() || role == null || role.isBlank()) {
+            return unauthorized(sanitisedExchange);
         }
 
-        ServerHttpRequest mutated = exchange.getRequest().mutate()
-                .header("X-User-Email", email)
-                .header("X-User-Role", role)
+        ServerHttpRequest mutated = sanitised.mutate()
+                .header(USER_EMAIL_HEADER, email)
+                .header(USER_ROLE_HEADER, role)
                 .build();
 
-        return chain.filter(exchange.mutate().request(mutated).build());
+        return chain.filter(sanitisedExchange.mutate().request(mutated).build());
     }
 
     private boolean isPublic(String path) {

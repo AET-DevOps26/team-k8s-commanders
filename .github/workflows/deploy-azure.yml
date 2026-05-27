@@ -39,7 +39,7 @@ jobs:
           target: /home/${{ vars.AZURE_USER }}
 
       - name: Create .env.prod on VM
-        uses: appleboy/ssh-action@v1.0.3
+        uses: appleboy/ssh-action@v1.2.5
         with:
           host: ${{ vars.AZURE_PUBLIC_IP }}
           username: ${{ vars.AZURE_USER }}
@@ -51,9 +51,14 @@ jobs:
             echo "LLM_MODEL=${{ vars.LLM_MODEL }}" >> .env.prod
             echo "OPENWEBUI_BASE_URL=${{ vars.OPENWEBUI_BASE_URL }}" >> .env.prod
             echo "PUBLIC_API_URL=https://${{ vars.AZURE_PUBLIC_IP }}.nip.io" >> .env.prod
+            echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> .env.prod
+            echo "AUTH_DB_NAME=${{ vars.AUTH_DB_NAME }}" >> .env.prod
+            echo "AUTH_DB_USER=${{ vars.AUTH_DB_USER }}" >> .env.prod
+            echo "AUTH_DB_PASSWORD=${{ secrets.AUTH_DB_PASSWORD }}" >> .env.prod
+            echo "AUTH_DDL_AUTO=update" >> .env.prod
 
       - name: Deploy with Docker Compose
-        uses: appleboy/ssh-action@v1.0.3
+        uses: appleboy/ssh-action@v1.2.5
         with:
           host: ${{ vars.AZURE_PUBLIC_IP }}
           username: ${{ vars.AZURE_USER }}

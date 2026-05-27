@@ -9,10 +9,11 @@ services:
     depends_on:
       web-client:
         condition: service_started
-      ai-assistant:
+      api-gateway:
         condition: service_healthy
     networks:
       - caredesk
+    restart: unless-stopped
 
   web-client:
     build:
@@ -69,9 +70,80 @@ services:
     networks:
       - caredesk
 
+  auth-db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: auth_db
+      POSTGRES_USER: caredesk
+      POSTGRES_PASSWORD: caredesk
+    ports:
+      - "5432:5432"
+    volumes:
+      - auth-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U caredesk -d auth_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  auth-service:
+    build:
+      # Build context is the repo root so the Dockerfile can reach both
+      # services/auth-service AND services/springboot/generated (stubs).
+      context: .
+      dockerfile: services/auth-service/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      auth-db:
+        condition: service_healthy
+    # No published port — only reachable inside the compose network via the gateway.
+    environment:
+      DB_HOST: auth-db
+      DB_PORT: 5432
+      DB_NAME: auth_db
+      DB_USER: caredesk
+      DB_PASSWORD: caredesk
+      # Dev-only secret — override in production via env or secrets management.
+      JWT_SECRET: caredesk-compose-dev-secret-must-be-at-least-32-chars
+      # application.yml ships with ddl-auto: validate for production safety.
+      # Compose dev profile overrides to `update` so schema is auto-created
+      # against a fresh Postgres. Production should use proper migrations.
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8081/actuator/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  api-gateway:
+    build:
+      context: ./services/api-gateway
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      auth-service:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    environment:
+      AUTH_SERVICE_URL: http://auth-service:8081
+      AI_ASSISTANT_URL: http://ai-assistant:8000
+      # Must match auth-service's JWT_SECRET so issued tokens verify.
+      JWT_SECRET: caredesk-compose-dev-secret-must-be-at-least-32-chars
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8080/actuator/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+
 networks:
   caredesk:
     driver: bridge
 
 volumes:
+  auth-db-data:
   ollama_data:

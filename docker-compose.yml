@@ -13,7 +13,6 @@ services:
         condition: service_healthy
     networks:
       - caredesk
-    restart: unless-stopped
 
   web-client:
     build:

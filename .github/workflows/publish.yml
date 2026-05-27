@@ -33,8 +33,8 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: springboot-generated-src
-          path: services/springboot/generated/src
+          name: springboot-generated
+          path: services/springboot/generated/
           retention-days: 1
 
   publish:
@@ -71,8 +71,8 @@ jobs:
       - name: Download generated Spring stubs
         uses: actions/download-artifact@v4
         with:
-          name: springboot-generated-src
-          path: services/springboot/generated/src
+          name: springboot-generated
+          path: services/springboot/generated/
 
       - name: Generate image tags
         id: meta

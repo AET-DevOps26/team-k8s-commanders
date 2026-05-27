@@ -61,7 +61,7 @@ services:
       # against a fresh Postgres. Production should use proper migrations.
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
     healthcheck:
-      test: ["CMD-SHELL", "wget -q --spider http://localhost:8081/actuator/health || exit 1"]
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8081/actuator/health || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -83,7 +83,7 @@ services:
       # Must match auth-service's JWT_SECRET so issued tokens verify.
       JWT_SECRET: caredesk-compose-dev-secret-must-be-at-least-32-chars
     healthcheck:
-      test: ["CMD-SHELL", "wget -q --spider http://localhost:8080/actuator/health || exit 1"]
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8080/actuator/health || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 5

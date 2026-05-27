@@ -75,7 +75,7 @@ services:
       # the first deployment so the schema is created, then revert to validate.
       SPRING_JPA_HIBERNATE_DDL_AUTO: ${AUTH_DDL_AUTO:-validate}
     healthcheck:
-      test: ["CMD-SHELL", "wget -q --spider http://localhost:8081/actuator/health || exit 1"]
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8081/actuator/health || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -96,7 +96,7 @@ services:
       AI_ASSISTANT_URL: http://ai-assistant:8000
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set}
     healthcheck:
-      test: ["CMD-SHELL", "wget -q --spider http://localhost:8080/actuator/health || exit 1"]
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8080/actuator/health || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 5

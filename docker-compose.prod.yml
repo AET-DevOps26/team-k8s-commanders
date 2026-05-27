@@ -45,9 +45,9 @@ services:
     image: postgres:16-alpine
     restart: always
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB must be set}
-      POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER must be set}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
+      POSTGRES_DB: ${AUTH_DB_NAME:?AUTH_DB_NAME must be set}
+      POSTGRES_USER: ${AUTH_DB_USER:?AUTH_DB_USER must be set}
+      POSTGRES_PASSWORD: ${AUTH_DB_PASSWORD:?AUTH_DB_PASSWORD must be set}
     volumes:
       - auth-db-data:/var/lib/postgresql/data
     healthcheck:
@@ -67,9 +67,9 @@ services:
     environment:
       DB_HOST: auth-db
       DB_PORT: 5432
-      DB_NAME: ${POSTGRES_DB:?POSTGRES_DB must be set}
-      DB_USER: ${POSTGRES_USER:?POSTGRES_USER must be set}
-      DB_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
+      DB_NAME: ${AUTH_DB_NAME:?AUTH_DB_NAME must be set}
+      DB_USER: ${AUTH_DB_USER:?AUTH_DB_USER must be set}
+      DB_PASSWORD: ${AUTH_DB_PASSWORD:?AUTH_DB_PASSWORD must be set}
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set}
       # application.yml ships with ddl-auto: validate. Set AUTH_DDL_AUTO=update for
       # the first deployment so the schema is created, then revert to validate.

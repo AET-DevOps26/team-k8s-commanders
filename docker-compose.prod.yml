@@ -11,7 +11,7 @@ services:
     depends_on:
       web-client:
         condition: service_started
-      ai-assistant:
+      api-gateway:
         condition: service_healthy
     networks:
       - caredesk
@@ -40,6 +40,72 @@ services:
       start_period: 15s
     networks:
       - caredesk
+
+  auth-db:
+    image: postgres:16-alpine
+    restart: always
+    environment:
+      POSTGRES_DB: ${AUTH_DB_NAME:?AUTH_DB_NAME must be set}
+      POSTGRES_USER: ${AUTH_DB_USER:?AUTH_DB_USER must be set}
+      POSTGRES_PASSWORD: ${AUTH_DB_PASSWORD:?AUTH_DB_PASSWORD must be set}
+    volumes:
+      - auth-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${AUTH_DB_USER} -d $${AUTH_DB_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - caredesk
+
+  auth-service:
+    image: ghcr.io/aet-devops26/team-k8s-commanders/auth-service:${IMAGE_TAG:-latest}
+    restart: always
+    depends_on:
+      auth-db:
+        condition: service_healthy
+    environment:
+      DB_HOST: auth-db
+      DB_PORT: 5432
+      DB_NAME: ${AUTH_DB_NAME:?AUTH_DB_NAME must be set}
+      DB_USER: ${AUTH_DB_USER:?AUTH_DB_USER must be set}
+      DB_PASSWORD: ${AUTH_DB_PASSWORD:?AUTH_DB_PASSWORD must be set}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set}
+      # application.yml ships with ddl-auto: validate. Set AUTH_DDL_AUTO=update for
+      # the first deployment so the schema is created, then revert to validate.
+      SPRING_JPA_HIBERNATE_DDL_AUTO: ${AUTH_DDL_AUTO:-validate}
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8081/actuator/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - caredesk
+
+  api-gateway:
+    image: ghcr.io/aet-devops26/team-k8s-commanders/api-gateway:${IMAGE_TAG:-latest}
+    restart: always
+    depends_on:
+      auth-service:
+        condition: service_healthy
+      ai-assistant:
+        condition: service_healthy
+    environment:
+      AUTH_SERVICE_URL: http://auth-service:8081
+      AI_ASSISTANT_URL: http://ai-assistant:8000
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set}
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8080/actuator/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - caredesk
+
+volumes:
+  auth-db-data:
 
 networks:
   caredesk:

@@ -33,7 +33,8 @@ public class SecurityConfig {
                         // Gateway owns the /api/v1 prefix — service only sees /auth/**
                         .requestMatchers("/auth/**").permitAll()
                         // Health endpoint must be reachable for the Docker healthcheck.
-                        .requestMatchers("/actuator/health/**").permitAll()
+                        // Both forms needed: Spring Security 6 `/**` doesn't match the exact path without trailing slash.
+                        .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)

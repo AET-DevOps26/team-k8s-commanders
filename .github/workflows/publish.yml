@@ -5,6 +5,9 @@ on:
     branches: [main]
     paths:
       - "services/ai-assistant/**"
+      - "services/auth-service/**"
+      - "services/api-gateway/**"
+      - "services/springboot/generated/**"
       - "web-client/**"
       - ".github/workflows/publish.yml"
   workflow_dispatch:
@@ -20,10 +23,22 @@ jobs:
         include:
           - service: ai-assistant
             context: ./services/ai-assistant
+            dockerfile: ./services/ai-assistant/Dockerfile
             image: ghcr.io/aet-devops26/team-k8s-commanders/ai-assistant
           - service: web-client
             context: ./web-client
+            dockerfile: ./web-client/Dockerfile
             image: ghcr.io/aet-devops26/team-k8s-commanders/web-client
+          # auth-service is built from the repo root so the Dockerfile can reach
+          # services/springboot/generated for the OpenAPI stubs JAR.
+          - service: auth-service
+            context: .
+            dockerfile: ./services/auth-service/Dockerfile
+            image: ghcr.io/aet-devops26/team-k8s-commanders/auth-service
+          - service: api-gateway
+            context: ./services/api-gateway
+            dockerfile: ./services/api-gateway/Dockerfile
+            image: ghcr.io/aet-devops26/team-k8s-commanders/api-gateway
 
     steps:
       - uses: actions/checkout@v4
@@ -49,5 +64,6 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: ${{ matrix.context }}
+          file: ${{ matrix.dockerfile }}
           push: true
           tags: ${{ steps.meta.outputs.tags }}

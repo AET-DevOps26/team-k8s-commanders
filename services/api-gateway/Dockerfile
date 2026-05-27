@@ -14,7 +14,11 @@ RUN mvn package -DskipTests -q
 
 # Stage 2 — slim runtime image
 FROM eclipse-temurin:21-jre-alpine
+# Run as a non-root user for runtime security.
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 WORKDIR /app
 COPY --from=builder /app/target/*.jar app.jar
+RUN chown appuser:appgroup app.jar
+USER appuser
 EXPOSE 8080
 ENTRYPOINT ["java", "-jar", "app.jar"]

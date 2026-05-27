@@ -19,10 +19,10 @@ services:
       context: ./web-client
       dockerfile: Dockerfile
       args:
-        VITE_API_URL: http://localhost:80
+        VITE_API_URL: http://host.docker.internal:80
     restart: unless-stopped
     environment:
-      PUBLIC_API_URL: http://localhost:80
+      PUBLIC_API_URL: http://host.docker.internal:80
     networks:
       - caredesk
 

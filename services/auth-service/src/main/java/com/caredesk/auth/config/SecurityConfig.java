@@ -32,6 +32,8 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // Gateway owns the /api/v1 prefix — service only sees /auth/**
                         .requestMatchers("/auth/**").permitAll()
+                        // Health endpoint must be reachable for the Docker healthcheck.
+                        .requestMatchers("/actuator/health/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)

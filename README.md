@@ -53,6 +53,12 @@ docker compose up --build
 
 The web client reads `PUBLIC_API_URL` at runtime (default `http://host.docker.internal:8080` for the Spring API on the host). Copy `services/ai-assistant/.env.example` to `services/ai-assistant/.env` before the first run if you use the AI assistant service.
 
+The AI assistant uses a local Ollama instance — no additional setup is required. 
+
+```
+If Ollama has not been used before on your machine, the first startup may take some time while the model is downloaded.
+```
+
 The auth service uses a Postgres container declared in `docker-compose.yml` and ships with a dev-only `JWT_SECRET` baked into the compose file. Override it via the environment for any non-local use. To bring up just the auth stack run `docker compose up auth-service` (this also starts `auth-db`).
 
 See [web-client/README.md](web-client/README.md) for standalone client image builds.

@@ -1,0 +1,14 @@
+apiVersion: v2
+name: caredesk
+description: CareDesk unified clinic management platform — web client, AI assistant, auth service, and Postgres database.
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+home: https://github.com/AET-DevOps26/team-k8s-commanders
+maintainers:
+  - name: team-k8s-commanders
+dependencies:
+  - name: postgresql
+    version: 15.5.x
+    repository: https://charts.bitnami.com/bitnami
+    condition: postgresql.enabled

@@ -31,3 +31,11 @@ CLAUDE.md
 
 # TLS certificates for prod nginx
 certs/
+
+# Helm dependency lockfile output and downloaded sub-charts
+helm/*/charts/
+helm/*/Chart.lock
+
+# K8s deploy env file (local secrets for `make deploy`)
+.env.k8s
+helm/*/values.local.yaml

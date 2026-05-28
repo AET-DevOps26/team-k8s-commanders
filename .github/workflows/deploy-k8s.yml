@@ -1,0 +1,110 @@
+name: Deploy to AET Cluster
+
+on:
+  workflow_run:
+    workflows: ["Publish Images"]
+    types: [completed]
+    branches: [main]
+  push:
+    branches: [main]
+    paths:
+      - "helm/**"
+      - "scripts/deploy-k8s.sh"
+      - ".github/workflows/deploy-k8s.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    # Only run when the upstream Publish Images workflow succeeded (or on direct triggers)
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    environment:
+      name: AET
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install helm
+        uses: azure/setup-helm@v4
+        with:
+          version: v3.16.0
+
+      - name: Install kubectl
+        uses: azure/setup-kubectl@v4
+
+      - name: Write kubeconfig
+        env:
+          KUBECONFIG_AET: ${{ secrets.KUBECONFIG_AET }}
+        run: |
+          mkdir -p "$HOME/.kube"
+          echo "${KUBECONFIG_AET}" | base64 -d > "$HOME/.kube/config"
+          chmod 600 "$HOME/.kube/config"
+          kubectl config current-context
+
+      - name: Helm dependency update
+        run: |
+          helm repo add bitnami https://charts.bitnami.com/bitnami
+          helm dependency update helm/caredesk
+
+      - name: Determine image tag
+        id: tag
+        run: |
+          # When triggered by workflow_run, use the head SHA of the upstream run;
+          # otherwise use the current commit SHA. The Publish Images workflow
+          # tags images as `sha-<short>` via docker/metadata-action's type=sha.
+          if [ "${{ github.event_name }}" = "workflow_run" ]; then
+            SHA="${{ github.event.workflow_run.head_sha }}"
+          else
+            SHA="${{ github.sha }}"
+          fi
+          echo "tag=sha-${SHA::7}" >> "$GITHUB_OUTPUT"
+
+      - name: Deploy with Helm
+        env:
+          TUM_ID: ${{ vars.TUM_ID }}
+          AUTH_ENABLED: ${{ vars.AUTH_ENABLED }}
+          LLM_PROVIDER: ${{ vars.LLM_PROVIDER }}
+          LLM_MODEL: ${{ vars.LLM_MODEL }}
+          INGRESS_HOST: ${{ vars.INGRESS_HOST }}
+        run: |
+          NS="${TUM_ID}-devops26"
+          kubectl get ns "${NS}" >/dev/null 2>&1 || kubectl create namespace "${NS}"
+
+          SET_FLAGS=(
+            --set "tumId=${TUM_ID}"
+            --set "images.tag=${{ steps.tag.outputs.tag }}"
+            --set "images.pullSecret.username=${{ github.actor }}"
+            --set "images.pullSecret.password=${{ secrets.GHCR_PULL_PAT }}"
+            --set "ai.secrets.llmApiKey=${{ secrets.LLM_API_KEY }}"
+            --set "ai.env.llmProvider=${LLM_PROVIDER}"
+            --set "ai.env.llmModel=${LLM_MODEL}"
+          )
+
+          if [ -n "${INGRESS_HOST}" ]; then
+            SET_FLAGS+=(--set "ingress.host=${INGRESS_HOST}")
+          fi
+
+          if [ "${AUTH_ENABLED}" = "true" ]; then
+            SET_FLAGS+=(
+              --set "auth.enabled=true"
+              --set "postgresql.enabled=true"
+              --set "auth.secrets.jwtSecret=${{ secrets.JWT_SECRET }}"
+              --set "postgresql.auth.password=${{ secrets.POSTGRES_PASSWORD }}"
+            )
+          fi
+
+          helm upgrade --install caredesk helm/caredesk \
+            --namespace "${NS}" \
+            "${SET_FLAGS[@]}" \
+            --wait --timeout 5m
+
+      - name: Smoke test
+        env:
+          TUM_ID: ${{ vars.TUM_ID }}
+        run: |
+          NS="${TUM_ID}-devops26"
+          kubectl -n "${NS}" get pods,svc,ingress
+          helm get notes caredesk -n "${NS}"

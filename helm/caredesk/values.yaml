@@ -1,0 +1,120 @@
+# ─── Identity ──────────────────────────────────────────────────────────────────
+# TUM ID determines namespace: <tumId>-devops26 and default ingress host.
+# Override at install: --set tumId=<your-id>
+tumId: ge38yuc
+
+# ─── CareDesk image settings (chart-local) ────────────────────────────────────
+# IMPORTANT: not under `global.*` so the Bitnami Postgres subchart is not
+# affected (Bitnami honors global.imageRegistry and would prepend it to its
+# own images, breaking pulls).
+images:
+  registry: ghcr.io/aet-devops26/team-k8s-commanders
+  tag: latest
+  pullPolicy: IfNotPresent
+  # imagePullSecret: docker-registry secret pulled into the namespace
+  # GHCR packages may be private — set username+password (PAT with read:packages).
+  # Set create=false if you pre-created the secret out-of-band.
+  pullSecret:
+    create: true
+    name: ghcr-pull
+    server: ghcr.io
+    username: ""
+    password: ""
+    email: caredesk@example.com
+
+# ─── Ingress ───────────────────────────────────────────────────────────────────
+ingress:
+  enabled: true
+  className: nginx
+  # If empty, _helpers renders: caredesk-<tumId>.student.k8s.aet.cit.tum.de
+  # Look up the actual host in Rancher → Ingresses tab after first deploy
+  # and override here if it differs.
+  host: ""
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+  tls:
+    enabled: true
+    # Assumes cluster cert-manager OR pre-created secret; otherwise tls.enabled=false
+    secretName: caredesk-tls
+
+# ─── web-client (React + nginx, port 3000) ────────────────────────────────────
+web:
+  enabled: true
+  replicaCount: 2
+  image:
+    repository: web-client
+    tag: ""        # falls back to images.tag
+  service:
+    port: 3000
+  env:
+    # If empty, _helpers derives https://<ingressHost>/api
+    publicApiUrl: ""
+  resources:
+    requests: { cpu: 50m,  memory: 64Mi }
+    limits:   { cpu: 200m, memory: 128Mi }
+
+# ─── ai-assistant (FastAPI, port 8000) ─────────────────────────────────────────
+ai:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: ai-assistant
+    tag: ""
+  service:
+    port: 8000
+  env:
+    llmProvider: openai
+    llmModel: gpt-4o-mini
+    openwebuiBaseUrl: ""
+  secrets:
+    # REQUIRED when ai.enabled. Pass via --set ai.secrets.llmApiKey=... or .env.k8s
+    llmApiKey: ""
+  resources:
+    requests: { cpu: 100m, memory: 256Mi }
+    limits:   { cpu: 500m, memory: 512Mi }
+
+# ─── auth-service (Spring Boot, port 8081) ────────────────────────────────────
+# Disabled until services/auth-service/Dockerfile lands. Flip to true.
+auth:
+  enabled: false
+  replicaCount: 1
+  image:
+    repository: auth-service
+    tag: ""
+  service:
+    port: 8081
+  env:
+    jwtExpirationMs: "86400000"   # 24h (string to prevent YAML int→float conversion)
+    # Hibernate DDL strategy. Fresh DB has no schema, so default `validate`
+    # (in the app's application.yml) crashes. `update` lets Hibernate create
+    # tables on first boot. Switch to `validate` once real migrations exist.
+    ddlAuto: update
+  secrets:
+    jwtSecret: ""               # REQUIRED when auth.enabled
+  resources:
+    requests: { cpu: 100m, memory: 384Mi }
+    limits:   { cpu: 500m, memory: 768Mi }
+
+# ─── PostgreSQL (Bitnami subchart) ────────────────────────────────────────────
+# Disabled when auth.enabled=false to save cluster resources.
+#
+# NOTE: Bitnami removed legacy image tags from docker.io/bitnami/* in 2025
+# (now require auth via Bitnami Secure Images). We use the bitnamilegacy mirror
+# which keeps the old tags available anonymously.
+postgresql:
+  enabled: false                # set true when auth.enabled=true
+  image:
+    registry: docker.io
+    repository: bitnamilegacy/postgresql
+    tag: 16.4.0-debian-12-r14
+  auth:
+    username: caredesk
+    database: auth_db
+    password: ""                # REQUIRED when postgresql.enabled
+  primary:
+    persistence:
+      enabled: true
+      size: 1Gi
+    resources:
+      requests: { cpu: 100m, memory: 256Mi }
+      limits:   { cpu: 500m, memory: 512Mi }

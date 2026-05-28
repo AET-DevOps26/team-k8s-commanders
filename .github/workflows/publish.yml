@@ -59,7 +59,7 @@ jobs:
             dockerfile: ./services/ai-assistant/Dockerfile
             image: ghcr.io/aet-devops26/team-k8s-commanders/ai-assistant
           - service: web-client
-            context: ./web-client
+            context: .
             dockerfile: ./web-client/Dockerfile
             image: ghcr.io/aet-devops26/team-k8s-commanders/web-client
           # auth-service is built from the repo root so the Dockerfile can reach

@@ -46,12 +46,12 @@ docker compose up --build
 
 | Service | URL |
 |---------|-----|
-| Web client | http://localhost:3000 |
-| AI assistant | http://localhost:8000 |
-| Auth service | http://localhost:8081 |
+| Web client via nginx | http://localhost |
+| Web client direct | http://localhost:3000 |
+| API gateway | http://localhost:8080 |
 | Auth database (Postgres) | localhost:5432 |
 
-The web client reads `PUBLIC_API_URL` at runtime (default `http://host.docker.internal:8080` for the Spring API on the host). Copy `services/ai-assistant/.env.example` to `services/ai-assistant/.env` before the first run if you use the AI assistant service.
+The web client reads `PUBLIC_API_URL` at runtime (default `/api/v1`) and sends API requests through the gateway. Use `http://localhost` for the full compose setup; nginx serves the frontend and forwards `/api/v1/**` to the API gateway without requiring CORS. Copy `services/ai-assistant/.env.example` to `services/ai-assistant/.env` before the first run if you use the AI assistant service.
 
 The auth service uses a Postgres container declared in `docker-compose.yml` and ships with a dev-only `JWT_SECRET` baked into the compose file. Override it via the environment for any non-local use. To bring up just the auth stack run `docker compose up auth-service` (this also starts `auth-db`).
 

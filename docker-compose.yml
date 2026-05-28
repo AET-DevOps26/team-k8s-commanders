@@ -26,12 +26,12 @@ services:
       context: ./web-client
       dockerfile: Dockerfile
       args:
-        VITE_API_URL: http://host.docker.internal:8080
+        VITE_API_URL: /api/v1
     ports:
       - "3000:3000"
     restart: unless-stopped
     environment:
-      PUBLIC_API_URL: http://host.docker.internal:8080
+      PUBLIC_API_URL: /api/v1
 
   auth-db:
     image: postgres:16-alpine

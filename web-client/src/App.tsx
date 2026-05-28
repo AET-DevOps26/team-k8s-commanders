@@ -353,8 +353,8 @@ function AuthForm({ mode, onAuthenticated, onNavigate }: AuthFormProps) {
           <p className="eyebrow">Patient access</p>
           <h1>{isRegister ? 'Create patient account.' : 'Welcome back.'}</h1>
           <p>
-            Sign in with CareDesk credentials. Patient data loads from connected
-            API endpoints only.
+            Welcome to CareDesk. Sign in and discover your health information at
+            a glance.
           </p>
         </div>
 

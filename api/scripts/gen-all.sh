@@ -41,6 +41,8 @@ if [ -d "$src_models_dir" ]; then
   # copy only the model files needed by the AI query endpoint
   cp "$src_models_dir/ai_query_request.py" "$target_models_dir" 2>/dev/null || true
   cp "$src_models_dir/ai_query_response.py" "$target_models_dir" 2>/dev/null || true
+  # UserRole is used to authorise /ai/query (DOCTOR/ADMIN only)
+  cp "$src_models_dir/user_role.py" "$target_models_dir" 2>/dev/null || true
 fi
 # ensure package init
 if [ ! -f "$target_models_dir/__init__.py" ]; then

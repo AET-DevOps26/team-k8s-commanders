@@ -8,6 +8,7 @@ on:
       - "services/ai-assistant/**"
       - "services/auth-service/**"
       - "services/api-gateway/**"
+      - "services/patient-service/**"
       - "web-client/**"
       - ".github/workflows/publish.yml"
   pull_request:
@@ -16,6 +17,7 @@ on:
       - "services/ai-assistant/**"
       - "services/auth-service/**"
       - "services/api-gateway/**"
+      - "services/patient-service/**"
       - "web-client/**"
       - ".github/workflows/publish.yml"
   workflow_dispatch:
@@ -72,6 +74,12 @@ jobs:
             context: ./services/api-gateway
             dockerfile: ./services/api-gateway/Dockerfile
             image: ghcr.io/aet-devops26/team-k8s-commanders/api-gateway
+          # patient-service is built from the repo root for the same reason as
+          # auth-service (needs services/springboot/generated for the stubs JAR).
+          - service: patient-service
+            context: .
+            dockerfile: ./services/patient-service/Dockerfile
+            image: ghcr.io/aet-devops26/team-k8s-commanders/patient-service
 
     steps:
       - uses: actions/checkout@v4

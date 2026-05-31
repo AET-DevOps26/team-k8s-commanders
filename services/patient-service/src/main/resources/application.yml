@@ -1,0 +1,31 @@
+server:
+  port: 8082
+
+# Gateway owns the /api/v1 prefix — this service exposes /patients/**, /doctors/**,
+# /appointments/**, /clinics/** directly.
+openapi:
+  careDesk:
+    base-path: ""
+
+spring:
+  application:
+    name: patient-service
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:patient_db}
+    username: ${DB_USER:caredesk}
+    password: ${DB_PASSWORD:caredesk}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+
+# Actuator health is permitted in SecurityConfig for the Docker healthcheck.
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health

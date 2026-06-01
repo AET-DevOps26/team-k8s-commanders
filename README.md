@@ -50,6 +50,8 @@ docker compose up --build
 | AI assistant | http://localhost:8000 |
 | Auth service | http://localhost:8081 |
 | Auth database (Postgres) | localhost:5432 |
+| Patient service | http://localhost:8082 |
+| Patient database (Postgres) | localhost:5433 |
 
 The web client reads `PUBLIC_API_URL` at runtime (default `http://host.docker.internal:8080` for the Spring API on the host). Copy `services/ai-assistant/.env.example` to `services/ai-assistant/.env` before the first run if you use the AI assistant service.
 
@@ -60,6 +62,8 @@ If Ollama has not been used before on your machine, the first startup may take s
 ```
 
 The auth service uses a Postgres container declared in `docker-compose.yml` and ships with a dev-only `JWT_SECRET` baked into the compose file. Override it via the environment for any non-local use. To bring up just the auth stack run `docker compose up auth-service` (this also starts `auth-db`).
+
+The patient service is a scaffold for patient, doctor, appointment and clinic data. It sits behind the API gateway and trusts the `X-User-Email` / `X-User-Role` headers the gateway injects after JWT validation. It uses its own Postgres container (`patient-db`).
 
 See [web-client/README.md](web-client/README.md) for standalone client image builds.
 

@@ -2,6 +2,7 @@ package com.caredesk.patient.model;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 import org.openapitools.model.AppointmentStatus;
 
 import java.time.OffsetDateTime;
@@ -32,8 +33,9 @@ public class Appointment {
     @Column(nullable = false)
     private AppointmentStatus status;
 
-    // Duration in minutes.
+    // Duration in minutes. Must be greater than zero.
     @NotNull
+    @Positive
     @Column(nullable = false)
     private Integer duration;
 

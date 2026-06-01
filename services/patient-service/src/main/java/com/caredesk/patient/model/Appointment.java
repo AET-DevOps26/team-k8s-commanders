@@ -61,4 +61,16 @@ public class Appointment {
 
     public String getReason() { return reason; }
     public void setReason(String reason) { this.reason = reason; }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof Appointment that)) return false;
+        return id != null && id.equals(that.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return getClass().hashCode();
+    }
 }

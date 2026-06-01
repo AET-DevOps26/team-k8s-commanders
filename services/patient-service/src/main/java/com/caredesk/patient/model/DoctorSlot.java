@@ -33,6 +33,15 @@ public class DoctorSlot {
     @Column(nullable = false)
     private Boolean available = true;
 
+    // Rejects zero-length or backwards time ranges before they hit the DB.
+    @PrePersist
+    @PreUpdate
+    private void validateTimeRange() {
+        if (startAt == null || endAt == null || !endAt.isAfter(startAt)) {
+            throw new IllegalArgumentException("DoctorSlot endAt must be after startAt");
+        }
+    }
+
     public UUID getId() { return id; }
     public void setId(UUID id) { this.id = id; }
 

@@ -3,9 +3,15 @@ package com.caredesk.patient.controller;
 import org.openapitools.api.PatientsApi;
 import org.springframework.stereotype.Controller;
 
-// Scaffold: implements PatientsApi so Spring registers the routes, but does not
-// override the default methods yet. The defaults return 501 Not Implemented.
-// Actual endpoints (getPatientById, listPatientAppointments, etc.) come in #34.
+/**
+ * Scaffold controller for the {@code /patients/**} endpoints.
+ *
+ * <p>Implements {@link PatientsApi} so Spring registers the routes, but does
+ * not override any of the default methods yet. Every endpoint therefore
+ * returns 501 Not Implemented until the real handlers
+ * ({@code getPatientById}, {@code listPatientAppointments} and friends) land
+ * in issue #34.
+ */
 @Controller
 public class PatientsController implements PatientsApi {
 }

@@ -9,20 +9,43 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
-// Patient service sits behind the API gateway and trusts the X-User-Email and
-// X-User-Role headers set by the gateway after it validates the JWT.
-// We do not re-validate the JWT here. Controllers read the trusted headers
-// directly to authorise requests (see PatientHeaderAuthFilter).
+/**
+ * Spring Security configuration for the patient service.
+ *
+ * <p>The service sits behind the API gateway and trusts the
+ * {@code X-User-Email} and {@code X-User-Role} headers set by the gateway
+ * once it has validated the JWT. The patient service therefore does not
+ * re-validate the JWT itself. {@link PatientHeaderAuthFilter} translates
+ * those headers into an authenticated Spring Security principal.
+ */
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
 
     private final PatientHeaderAuthFilter headerAuthFilter;
 
+    /**
+     * Creates the security configuration.
+     *
+     * @param headerAuthFilter filter that promotes trusted gateway headers
+     *                         into the Spring Security context
+     */
     public SecurityConfig(PatientHeaderAuthFilter headerAuthFilter) {
         this.headerAuthFilter = headerAuthFilter;
     }
 
+    /**
+     * Builds the security filter chain.
+     *
+     * <p>CSRF is disabled because the service is stateless and never serves
+     * browser forms. Only {@code /actuator/health/**} is permitted
+     * anonymously, so the Docker healthcheck can reach it. Every other
+     * request requires the trusted headers to be present.
+     *
+     * @param http the {@link HttpSecurity} builder injected by Spring
+     * @return the configured filter chain
+     * @throws Exception if security configuration fails
+     */
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         return http

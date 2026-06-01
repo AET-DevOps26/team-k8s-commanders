@@ -4,10 +4,12 @@ on:
   push:
     paths:
       - 'web-client/**'
+      - 'api/openapi.yaml'
       - '.github/workflows/client-ci.yml'
   pull_request:
     paths:
       - 'web-client/**'
+      - 'api/openapi.yaml'
       - '.github/workflows/client-ci.yml'
 
 jobs:

@@ -2,7 +2,7 @@ name: Deploy to Azure
 
 on:
   workflow_run:
-    workflows: ["Publish Images"]
+    workflows: ["Build and Publish Images"]
     types: [completed]
     branches: [main]
   push:
@@ -51,6 +51,11 @@ jobs:
             echo "LLM_MODEL=${{ vars.LLM_MODEL }}" >> .env.prod
             echo "OPENWEBUI_BASE_URL=${{ vars.OPENWEBUI_BASE_URL }}" >> .env.prod
             echo "PUBLIC_API_URL=https://${{ vars.AZURE_PUBLIC_IP }}.nip.io" >> .env.prod
+            echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> .env.prod
+            echo "AUTH_DB_NAME=${{ vars.AUTH_DB_NAME }}" >> .env.prod
+            echo "AUTH_DB_USER=${{ vars.AUTH_DB_USER }}" >> .env.prod
+            echo "AUTH_DB_PASSWORD=${{ secrets.AUTH_DB_PASSWORD }}" >> .env.prod
+            echo "AUTH_DDL_AUTO=update" >> .env.prod
 
       - name: Deploy with Docker Compose
         uses: appleboy/ssh-action@v1.2.5
@@ -70,4 +75,4 @@ jobs:
             fi
 
             echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-            docker compose -f docker-compose.prod.yml --env-file .env.prod up --pull=always -d --remove-orphans
+            docker compose -f docker-compose.prod.yml --env-file .env.prod up --pull=always -d --force-recreate --remove-orphans

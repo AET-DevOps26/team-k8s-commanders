@@ -56,4 +56,16 @@ public class DoctorSlot {
 
     public Boolean getAvailable() { return available; }
     public void setAvailable(Boolean available) { this.available = available; }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof DoctorSlot that)) return false;
+        return id != null && id.equals(that.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return getClass().hashCode();
+    }
 }

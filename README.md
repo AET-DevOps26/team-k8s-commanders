@@ -63,6 +63,74 @@ The auth service uses a Postgres container declared in `docker-compose.yml` and 
 
 See [web-client/README.md](web-client/README.md) for standalone client image builds.
 
+## Kubernetes deployment
+
+The app deploys to Kubernetes via a single command. One environment variable,
+`DEPLOY_TARGET`, decides **where** it lands:
+
+| `DEPLOY_TARGET` | Where | Script |
+|-----------------|-------|--------|
+| `local` | A [kind](https://kind.sigs.k8s.io/) cluster on your own machine | `scripts/deploy-local.sh` |
+| `aet` (default) | The AET TUM Rancher cluster | `scripts/deploy-k8s.sh` |
+
+### One command
+
+```bash
+make deploy                      # uses DEPLOY_TARGET from .env.k8s (default: aet)
+make deploy DEPLOY_TARGET=local  # force local kind
+make deploy DEPLOY_TARGET=aet    # force AET cluster
+```
+
+`DEPLOY_TARGET` is resolved in this order: an inline/`make` value wins, then an
+exported shell variable, then the `DEPLOY_TARGET=` line in `.env.k8s`, otherwise
+it falls back to `aet`. `make local` is just a shortcut for
+`make deploy DEPLOY_TARGET=local`.
+
+### First-time setup
+
+1. **Config file.** Copy the template and fill it in:
+
+   ```bash
+   cp .env.k8s.example .env.k8s
+   ```
+
+   `.env.k8s` is gitignored. Set at least:
+   - `DEPLOY_TARGET` — `local` or `aet`.
+   - `TUM_ID` — your LRZ/TUM kennung. The namespace is `<TUM_ID>-devops26`. It
+     **must** be a namespace your Rancher account owns. Verify with
+     `kubectl auth can-i --list`; any namespace listed with verb `*` is yours.
+   - `LLM_API_KEY` — required (a real key for `/ai/query`; any non-empty value
+     passes health checks).
+   - `GHCR_USER` / `GHCR_PAT` — only if the container images are private (PAT
+     scope: `read:packages`). Leave empty for public images.
+
+2. **For `aet` only — kubeconfig.** Download `stud.yaml` from
+   <https://rancher.ase.cit.tum.de> and place it at `~/.kube/config`:
+
+   ```bash
+   cp ~/Downloads/stud.yaml ~/.kube/config
+   kubectl config current-context   # should print: stud
+   ```
+
+3. **For `local` only — Docker.** Docker Desktop / OrbStack must be running;
+   `kind`, `kubectl`, and `helm` are auto-installed via brew on macOS if missing.
+
+### Tear down
+
+```bash
+make undeploy   # uninstall release, keep PVCs + namespace
+make purge      # uninstall + delete PVCs + delete namespace
+make local-clean  # delete the local kind cluster entirely
+```
+
+### Chart utilities (no live cluster needed)
+
+```bash
+make lint       # helm lint
+make template   # render manifests to stdout
+make dry-run    # helm upgrade --dry-run against the current cluster
+```
+
 ## Useful commands
 
 Re-run generator setup only (no hooks):

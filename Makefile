@@ -1,11 +1,17 @@
 # CareDesk — one-command deployment targets
 #
-# Local (kind):
-#   make local         -> build images, spin up kind, install ingress, deploy
+# Pick where to deploy with DEPLOY_TARGET (local | aet). Default: aet.
+#   make deploy                      -> deploy to DEPLOY_TARGET (default aet)
+#   make deploy DEPLOY_TARGET=local  -> deploy to local kind cluster
+#   make deploy DEPLOY_TARGET=aet    -> deploy to AET TUM Rancher cluster
+# DEPLOY_TARGET can also be set inline (DEPLOY_TARGET=local make deploy)
+# or as a line in .env.k8s.
+#
+# Local (kind) shortcuts:
+#   make local         -> alias for `make deploy DEPLOY_TARGET=local`
 #   make local-clean   -> delete kind cluster
 #
 # AET TUM cluster (uses .env.k8s):
-#   make deploy        -> helm upgrade --install on Rancher AET cluster
 #   make undeploy      -> uninstall release (keeps PVCs + namespace)
 #   make purge         -> uninstall + delete PVCs + delete namespace
 #
@@ -14,27 +20,28 @@
 #   make template      -> render manifests (no cluster needed)
 #   make dry-run       -> helm dry-run against current cluster
 
-SHELL    := /usr/bin/env bash
-CHART    := helm/caredesk
-TUM_ID  ?= ge38yuc
-NS       := $(TUM_ID)-devops26
-RELEASE ?= caredesk
+SHELL         := /usr/bin/env bash
+CHART         := helm/caredesk
+TUM_ID       ?= ge38yuc
+NS            := $(TUM_ID)-devops26
+RELEASE      ?= caredesk
+DEPLOY_TARGET ?= aet
 
 .PHONY: local local-clean deploy undeploy purge lint template dry-run dep help
 
 help:
 	@grep -E '^(#|[a-zA-Z_-]+:)' Makefile | sed 's/^# //'
 
-# ─── Local kind deploy ────────────────────────────────────────────────────────
+# ─── Deploy (local | aet, chosen by DEPLOY_TARGET) ────────────────────────────
+deploy:
+	@DEPLOY_TARGET=$(DEPLOY_TARGET) ./scripts/deploy.sh
+
+# Local kind shortcut: same as `make deploy DEPLOY_TARGET=local`
 local:
-	@./scripts/deploy-local.sh
+	@DEPLOY_TARGET=local ./scripts/deploy.sh
 
 local-clean:
 	@kind delete cluster --name caredesk
-
-# ─── AET cluster deploy ───────────────────────────────────────────────────────
-deploy:
-	@./scripts/deploy-k8s.sh
 
 undeploy:
 	@./scripts/undeploy-k8s.sh

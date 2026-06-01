@@ -17,6 +17,11 @@ spring:
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
+      # `validate` is the production-safe default. It will fail to boot if the
+      # patient_db schema is missing, which is intentional in production.
+      # Dev compose and prod compose both override this with
+      # SPRING_JPA_HIBERNATE_DDL_AUTO=update so the schema is created on first
+      # boot against a fresh Postgres. See docker-compose.yml.
       ddl-auto: validate
     show-sql: false
     properties:

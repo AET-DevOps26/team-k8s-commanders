@@ -108,6 +108,7 @@ services:
       DB_PASSWORD: caredesk
       # Dev-only secret — override in production via env or secrets management.
       JWT_SECRET: caredesk-compose-dev-secret-must-be-at-least-32-chars
+      SPRING_PROFILES_ACTIVE: dev
       # application.yml ships with ddl-auto: validate for production safety.
       # Compose dev profile overrides to `update` so schema is auto-created
       # against a fresh Postgres. Production should use proper migrations.

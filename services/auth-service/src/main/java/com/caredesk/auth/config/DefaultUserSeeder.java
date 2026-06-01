@@ -5,12 +5,14 @@ import com.caredesk.auth.model.User;
 import com.caredesk.auth.repository.UserRepository;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
+import org.springframework.context.annotation.Profile;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
 
 @Component
+@Profile("dev")
 public class DefaultUserSeeder implements ApplicationRunner {
 
     private static final List<DefaultUser> DEFAULT_USERS = List.of(

@@ -1,8 +1,14 @@
 package com.caredesk.auth;
 
+import com.caredesk.auth.config.DefaultUserSeeder;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.NoSuchBeanDefinitionException;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.ApplicationContext;
 import org.springframework.test.context.TestPropertySource;
+
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @SpringBootTest
 @TestPropertySource(properties = {
@@ -16,7 +22,16 @@ import org.springframework.test.context.TestPropertySource;
 })
 class AuthServiceApplicationTests {
 
+    @Autowired
+    private ApplicationContext applicationContext;
+
     @Test
     void contextLoads() {
+    }
+
+    @Test
+    void defaultUserSeederIsDisabledWithoutDevProfile() {
+        assertThatThrownBy(() -> applicationContext.getBean(DefaultUserSeeder.class))
+                .isInstanceOf(NoSuchBeanDefinitionException.class);
     }
 }

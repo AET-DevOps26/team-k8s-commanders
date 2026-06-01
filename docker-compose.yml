@@ -16,13 +16,14 @@ services:
 
   web-client:
     build:
-      context: ./web-client
-      dockerfile: Dockerfile
+      # Repo root so the Dockerfile can reach api/openapi.yaml and web-client/
+      context: .
+      dockerfile: web-client/Dockerfile
       args:
-        VITE_API_URL: http://host.docker.internal:80
+        VITE_API_URL: /api/v1
     restart: unless-stopped
     environment:
-      PUBLIC_API_URL: http://host.docker.internal:80
+      PUBLIC_API_URL: /api/v1
     networks:
       - caredesk
 

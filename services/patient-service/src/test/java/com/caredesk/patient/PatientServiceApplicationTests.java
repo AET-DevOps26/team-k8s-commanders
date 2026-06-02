@@ -1,15 +1,20 @@
 package com.caredesk.patient;
 
+import com.caredesk.patient.repository.AppointmentRepository;
+import com.caredesk.patient.repository.DoctorSlotRepository;
+import com.caredesk.patient.repository.PatientRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.TestPropertySource;
 
 /**
  * Smoke test that verifies the Spring application context boots.
  *
  * <p>JPA, data-source and JPA-repository auto-configurations are excluded so
- * the test runs without a real Postgres instance. This keeps the smoke test
- * fast and free of Testcontainers dependencies.
+ * the test runs without a real Postgres instance. The repositories are
+ * provided as mocks so beans that depend on them (AppointmentService and
+ * friends) can still be created.
  */
 @SpringBootTest
 @TestPropertySource(properties = {
@@ -19,6 +24,15 @@ import org.springframework.test.context.TestPropertySource;
                 "org.springframework.boot.autoconfigure.data.jpa.JpaRepositoriesAutoConfiguration"
 })
 class PatientServiceApplicationTests {
+
+    @MockBean
+    PatientRepository patientRepository;
+
+    @MockBean
+    AppointmentRepository appointmentRepository;
+
+    @MockBean
+    DoctorSlotRepository doctorSlotRepository;
 
     /**
      * Boots the Spring context with the auto-configurations above excluded.

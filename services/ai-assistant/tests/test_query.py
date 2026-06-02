@@ -5,14 +5,18 @@ from langchain_core.runnables import RunnableLambda
 
 from main import app
 
+# Role header injected by the API gateway after JWT validation.
+DOCTOR_HEADERS = {"X-User-Role": "DOCTOR"}
+ADMIN_HEADERS = {"X-User-Role": "ADMIN"}
+
 
 def _fake_llm(response: str) -> FakeListChatModel:
     return FakeListChatModel(responses=[response])
 
 
 @patch("routes.query.get_llm")
-def test_query_works_without_authentication(mock_get_llm):
-    """Test that query endpoint is publicly accessible with mocked LLM."""
+def test_query_allowed_for_doctor(mock_get_llm):
+    """Test that DOCTOR role can query with mocked LLM."""
     mock_get_llm.return_value = _fake_llm(
         "The patient appears to be in stable condition."
     )
@@ -20,6 +24,7 @@ def test_query_works_without_authentication(mock_get_llm):
     client = TestClient(app)
     response = client.post(
         "/ai/query",
+        headers=DOCTOR_HEADERS,
         json={
             "query": "What is the patient's current status?",
             "patientId": "550e8400-e29b-41d4-a716-446655440000",
@@ -44,6 +49,7 @@ def test_query_with_patient_id(mock_get_llm):
     client = TestClient(app)
     response = client.post(
         "/ai/query",
+        headers=DOCTOR_HEADERS,
         json={
             "query": "What are the patient's current medications?",
             "patientId": "550e8400-e29b-41d4-a716-446655440000",
@@ -65,6 +71,7 @@ def test_query_with_appointment_id(mock_get_llm):
     client = TestClient(app)
     response = client.post(
         "/ai/query",
+        headers=DOCTOR_HEADERS,
         json={
             "query": "What is scheduled for the appointment?",
             "appointmentId": "660e8400-e29b-41d4-a716-446655440000",
@@ -85,6 +92,7 @@ def test_query_with_both_ids(mock_get_llm):
     client = TestClient(app)
     response = client.post(
         "/ai/query",
+        headers=ADMIN_HEADERS,
         json={
             "query": "What should be the focus of this appointment?",
             "patientId": "550e8400-e29b-41d4-a716-446655440000",
@@ -105,7 +113,7 @@ def test_query_with_both_ids(mock_get_llm):
 def test_query_request_validation():
     """Test query request validation."""
     client = TestClient(app)
-    response = client.post("/ai/query", json={})
+    response = client.post("/ai/query", headers=DOCTOR_HEADERS, json={})
     assert response.status_code == 422
 
 
@@ -115,6 +123,7 @@ def test_query_missing_context_raises_404(mock_get_llm):
     client = TestClient(app)
     response = client.post(
         "/ai/query",
+        headers=DOCTOR_HEADERS,
         json={
             "query": "What is the status?",
             "patientId": "00000000-0000-0000-0000-000000000000",
@@ -138,6 +147,7 @@ def test_query_llm_error_handling(mock_get_llm):
     client = TestClient(app)
     response = client.post(
         "/ai/query",
+        headers=DOCTOR_HEADERS,
         json={
             "query": "What is the status?",
             "patientId": "550e8400-e29b-41d4-a716-446655440000",
@@ -146,3 +156,41 @@ def test_query_llm_error_handling(mock_get_llm):
 
     assert response.status_code == 500
     assert "error processing query" in response.json()["detail"].lower()
+
+
+_AUTH_PAYLOAD = {
+    "query": "What is the patient's current status?",
+    "patientId": "550e8400-e29b-41d4-a716-446655440000",
+}
+
+
+def test_query_forbidden_for_patient():
+    """PATIENT role is authenticated but not allowed to query the assistant."""
+    client = TestClient(app)
+    response = client.post(
+        "/ai/query",
+        headers={"X-User-Role": "PATIENT"},
+        json=_AUTH_PAYLOAD,
+    )
+
+    assert response.status_code == 403
+
+
+def test_query_unauthorized_without_role_header():
+    """A missing role header (request not forwarded by the gateway) is rejected."""
+    client = TestClient(app)
+    response = client.post("/ai/query", json=_AUTH_PAYLOAD)
+
+    assert response.status_code == 401
+
+
+def test_query_forbidden_for_unknown_role():
+    """An unrecognized role value is rejected."""
+    client = TestClient(app)
+    response = client.post(
+        "/ai/query",
+        headers={"X-User-Role": "SUPERHERO"},
+        json=_AUTH_PAYLOAD,
+    )
+
+    assert response.status_code == 403

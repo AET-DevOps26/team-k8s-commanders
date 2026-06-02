@@ -1,0 +1,36 @@
+server:
+  port: 8082
+
+# Gateway owns the /api/v1 prefix — this service exposes /patients/**, /doctors/**,
+# /appointments/**, /clinics/** directly.
+openapi:
+  careDesk:
+    base-path: ""
+
+spring:
+  application:
+    name: patient-service
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:patient_db}
+    username: ${DB_USER:caredesk}
+    password: ${DB_PASSWORD:caredesk}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      # `validate` is the production-safe default. It will fail to boot if the
+      # patient_db schema is missing, which is intentional in production.
+      # Dev compose and prod compose both override this with
+      # SPRING_JPA_HIBERNATE_DDL_AUTO=update so the schema is created on first
+      # boot against a fresh Postgres. See docker-compose.yml.
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+
+# Actuator health is permitted in SecurityConfig for the Docker healthcheck.
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health

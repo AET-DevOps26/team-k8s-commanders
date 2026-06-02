@@ -16,13 +16,14 @@ services:
 
   web-client:
     build:
-      context: ./web-client
-      dockerfile: Dockerfile
+      # Repo root so the Dockerfile can reach api/openapi.yaml and web-client/
+      context: .
+      dockerfile: web-client/Dockerfile
       args:
-        VITE_API_URL: http://host.docker.internal:80
+        VITE_API_URL: /api/v1
     restart: unless-stopped
     environment:
-      PUBLIC_API_URL: http://host.docker.internal:80
+      PUBLIC_API_URL: /api/v1
     networks:
       - caredesk
 
@@ -107,12 +108,61 @@ services:
       DB_PASSWORD: caredesk
       # Dev-only secret — override in production via env or secrets management.
       JWT_SECRET: caredesk-compose-dev-secret-must-be-at-least-32-chars
+      SPRING_PROFILES_ACTIVE: dev
       # application.yml ships with ddl-auto: validate for production safety.
       # Compose dev profile overrides to `update` so schema is auto-created
       # against a fresh Postgres. Production should use proper migrations.
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
     healthcheck:
       test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8081/actuator/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - caredesk
+
+  patient-db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: patient_db
+      POSTGRES_USER: caredesk
+      POSTGRES_PASSWORD: caredesk
+    ports:
+      - "5433:5432"
+    volumes:
+      - patient-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U caredesk -d patient_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - caredesk
+
+  patient-service:
+    build:
+      # Build context is the repo root so the Dockerfile can reach both
+      # services/patient-service AND services/springboot/generated (stubs).
+      context: .
+      dockerfile: services/patient-service/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      patient-db:
+        condition: service_healthy
+    # No published port — only reachable inside the compose network via the gateway.
+    environment:
+      DB_HOST: patient-db
+      DB_PORT: 5432
+      DB_NAME: patient_db
+      DB_USER: caredesk
+      DB_PASSWORD: caredesk
+      # application.yml ships with ddl-auto: validate. Compose dev profile
+      # overrides to update so the schema is auto-created against a fresh DB.
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8082/actuator/health || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -128,11 +178,14 @@ services:
     depends_on:
       auth-service:
         condition: service_healthy
+      patient-service:
+        condition: service_healthy
     ports:
       - "8080:8080"
     environment:
       AUTH_SERVICE_URL: http://auth-service:8081
       AI_ASSISTANT_URL: http://ai-assistant:8000
+      PATIENT_SERVICE_URL: http://patient-service:8082
       # Must match auth-service's JWT_SECRET so issued tokens verify.
       JWT_SECRET: caredesk-compose-dev-secret-must-be-at-least-32-chars
     healthcheck:
@@ -150,4 +203,5 @@ networks:
 
 volumes:
   auth-db-data:
+  patient-db-data:
   ollama_data:

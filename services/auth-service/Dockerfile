@@ -11,7 +11,26 @@
 #     docker build -f services/auth-service/Dockerfile -t caredesk-auth-service .
 
 
-# Stage 1 — build & install the OpenAPI stubs into a shared local Maven repo
+# Stage 1 — generate the OpenAPI Spring stubs from the checked-in API spec
+# ---------------------------------------------------------------------------
+# CI downloads services/springboot/generated as an artifact before building the
+# image, but local Docker builds do not have that generated directory. Generate
+# it inside the Docker build so `docker compose up --build` works from a clean
+# checkout.
+FROM node:24-alpine AS stubs-generator
+RUN apk add --no-cache openjdk21-jre
+WORKDIR /repo
+COPY package.json package-lock.json* ./
+RUN npm ci
+COPY api/openapi.yaml api/openapi.yaml
+RUN npx openapi-generator-cli generate \
+    -i api/openapi.yaml \
+    -g spring \
+    -o services/springboot/generated \
+    -p interfaceOnly=true,useSpringBoot3=true
+
+
+# Stage 2 — build & install the OpenAPI stubs into a shared local Maven repo
 # ---------------------------------------------------------------------------
 # We deliberately do NOT run `mvn install` on the stubs project — that would
 # trigger spring-boot-maven-plugin's repackage step and produce a Spring Boot
@@ -21,8 +40,8 @@
 # server.port=8080), and install a plain classes JAR.
 FROM maven:3.9-eclipse-temurin-21 AS stubs-builder
 WORKDIR /stubs
-COPY services/springboot/generated/pom.xml .
-COPY services/springboot/generated/src ./src
+COPY --from=stubs-generator /repo/services/springboot/generated/pom.xml .
+COPY --from=stubs-generator /repo/services/springboot/generated/src ./src
 # Compile classes only; skip Spring Boot repackage.
 RUN mvn compile -q
 # Remove the stub project's application.properties — it sets server.port=8080
@@ -39,7 +58,7 @@ RUN cd target/classes && jar cf /tmp/openapi-spring-1.0.0.jar . \
         -q
 
 
-# Stage 2 — build the auth-service JAR
+# Stage 3 — build the auth-service JAR
 FROM maven:3.9-eclipse-temurin-21 AS app-builder
 WORKDIR /app
 # Carry over the local Maven repo from stage 1 (contains the stubs JAR).
@@ -51,7 +70,7 @@ COPY services/auth-service/src ./src
 RUN mvn package -DskipTests -q
 
 
-# Stage 3 — slim runtime image (no JDK, no Maven)
+# Stage 4 — slim runtime image (no JDK, no Maven)
 FROM eclipse-temurin:21-jre-alpine
 # Run as a non-root user for runtime security.
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup

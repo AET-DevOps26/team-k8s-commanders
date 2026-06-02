@@ -2,11 +2,13 @@
 
 import logging
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from langchain_core.output_parsers import StrOutputParser
 
 from models.ai_query_request import AIQueryRequest
 from models.ai_query_response import AIQueryResponse
+from models.user_role import UserRole
+from utils.auth import require_roles
 from utils.llm import get_llm
 from utils.prompt_templates import QUERY_PROMPT
 from utils.retriever import MockPatientRetriever
@@ -21,8 +23,15 @@ def _format_docs(docs) -> str:
 
 
 @router.post("/query")
-async def query(request: AIQueryRequest) -> AIQueryResponse:
-    """Query the AI Assistant with patient/appointment context."""
+async def query(
+    request: AIQueryRequest,
+    _role: UserRole = Depends(require_roles(UserRole.DOCTOR, UserRole.ADMIN)),
+) -> AIQueryResponse:
+    """Query the AI Assistant with patient/appointment context.
+
+    Restricted to DOCTOR and ADMIN roles, authorized from the gateway-provided
+    ``X-User-Role`` header.
+    """
     retriever = MockPatientRetriever(
         patient_id=str(request.patient_id) if request.patient_id else None,
         appointment_id=str(request.appointment_id) if request.appointment_id else None,

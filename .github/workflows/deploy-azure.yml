@@ -50,7 +50,7 @@ jobs:
             echo "LLM_PROVIDER=${{ vars.LLM_PROVIDER }}" >> .env.prod
             echo "LLM_MODEL=${{ vars.LLM_MODEL }}" >> .env.prod
             echo "OPENWEBUI_BASE_URL=${{ vars.OPENWEBUI_BASE_URL }}" >> .env.prod
-            echo "PUBLIC_API_URL=https://${{ vars.AZURE_PUBLIC_IP }}.nip.io" >> .env.prod
+            echo "PUBLIC_API_URL=/api/v1" >> .env.prod
             echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> .env.prod
             echo "AUTH_DB_NAME=${{ vars.AUTH_DB_NAME }}" >> .env.prod
             echo "AUTH_DB_USER=${{ vars.AUTH_DB_USER }}" >> .env.prod

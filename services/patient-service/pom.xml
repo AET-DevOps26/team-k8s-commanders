@@ -12,18 +12,17 @@
     </parent>
 
     <groupId>com.caredesk</groupId>
-    <artifactId>auth-service</artifactId>
+    <artifactId>patient-service</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <name>auth-service</name>
-    <description>CareDesk Auth Service — user registration, login, JWT issuance, role management</description>
+    <name>patient-service</name>
+    <description>CareDesk Patient and Appointment Service — patients, doctors, appointments, clinics</description>
 
     <properties>
         <java.version>21</java.version>
-        <jjwt.version>0.12.5</jjwt.version>
     </properties>
 
     <dependencies>
-        <!-- OpenAPI generated stubs — provides AuthApi interface + all model classes -->
+        <!-- OpenAPI generated stubs — provides PatientsApi, AppointmentsApi, DoctorsApi, ClinicsApi + models -->
         <dependency>
             <groupId>org.openapitools</groupId>
             <artifactId>openapi-spring</artifactId>
@@ -56,7 +55,7 @@
             <scope>runtime</scope>
         </dependency>
 
-        <!-- Required by generated models -->
+        <!-- Required by the generated models -->
         <dependency>
             <groupId>org.openapitools</groupId>
             <artifactId>jackson-databind-nullable</artifactId>
@@ -65,25 +64,6 @@
         <dependency>
             <groupId>com.fasterxml.jackson.datatype</groupId>
             <artifactId>jackson-datatype-jsr310</artifactId>
-        </dependency>
-
-        <!-- JWT -->
-        <dependency>
-            <groupId>io.jsonwebtoken</groupId>
-            <artifactId>jjwt-api</artifactId>
-            <version>${jjwt.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>io.jsonwebtoken</groupId>
-            <artifactId>jjwt-impl</artifactId>
-            <version>${jjwt.version}</version>
-            <scope>runtime</scope>
-        </dependency>
-        <dependency>
-            <groupId>io.jsonwebtoken</groupId>
-            <artifactId>jjwt-jackson</artifactId>
-            <version>${jjwt.version}</version>
-            <scope>runtime</scope>
         </dependency>
 
         <dependency>
@@ -96,11 +76,6 @@
             <artifactId>spring-security-test</artifactId>
             <scope>test</scope>
         </dependency>
-        <dependency>
-            <groupId>com.h2database</groupId>
-            <artifactId>h2</artifactId>
-            <scope>test</scope>
-        </dependency>
     </dependencies>
 
     <build>
@@ -109,7 +84,7 @@
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <configuration>
-                    <mainClass>com.caredesk.auth.AuthServiceApplication</mainClass>
+                    <mainClass>com.caredesk.patient.PatientServiceApplication</mainClass>
                 </configuration>
             </plugin>
         </plugins>

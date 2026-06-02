@@ -105,8 +105,8 @@ build_image() {
 }
 
 BUILT_IMAGES=()
-build_image web-client    "${REPO_ROOT}/web-client"            && BUILT_IMAGES+=("${REGISTRY}/web-client:${IMAGE_TAG}")
-build_image ai-assistant  "${REPO_ROOT}/services/ai-assistant" && BUILT_IMAGES+=("${REGISTRY}/ai-assistant:${IMAGE_TAG}")
+build_image web-client    "${REPO_ROOT}/web-client" false "${REPO_ROOT}" && BUILT_IMAGES+=("${REGISTRY}/web-client:${IMAGE_TAG}")
+build_image ai-assistant  "${REPO_ROOT}/services/ai-assistant"           && BUILT_IMAGES+=("${REGISTRY}/ai-assistant:${IMAGE_TAG}")
 
 # auth-service Dockerfile expects build context = repo root and pulls in the
 # generated Spring stubs (services/springboot/generated/) which are gitignored.

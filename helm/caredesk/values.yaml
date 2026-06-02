@@ -47,7 +47,8 @@ web:
   service:
     port: 3000
   env:
-    # If empty, _helpers derives https://<ingressHost>/api
+    # If empty, _helpers derives https://<ingressHost>/api.
+    # The auth Ingress rewrites /api/auth/* to auth-service's /auth/* routes.
     publicApiUrl: ""
   resources:
     requests: { cpu: 50m,  memory: 64Mi }

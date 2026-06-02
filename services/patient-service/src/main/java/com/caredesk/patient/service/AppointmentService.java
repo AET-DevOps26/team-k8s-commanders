@@ -111,14 +111,14 @@ public class AppointmentService {
      * @param id      the appointment id
      * @param request the new date / time and optional duration
      * @return the updated appointment as an API DTO
-     * @throws AppointmentNotFoundException if no appointment exists with that id
-     * @throws IllegalStateException        if the appointment is already cancelled
+     * @throws AppointmentNotFoundException       if no appointment exists with that id
+     * @throws AppointmentStateConflictException  if the appointment is already cancelled
      */
     public org.openapitools.model.Appointment reschedule(UUID id, AppointmentRescheduleRequest request) {
         Appointment entity = appointmentRepository.findById(id)
                 .orElseThrow(() -> new AppointmentNotFoundException(id));
         if (entity.getStatus() == AppointmentStatus.CANCELLED) {
-            throw new IllegalStateException("Cancelled appointment cannot be rescheduled: " + id);
+            throw new AppointmentStateConflictException("Cancelled appointment cannot be rescheduled: " + id);
         }
         entity.setDateTime(request.getDateTime());
         if (request.getDuration() != null) {

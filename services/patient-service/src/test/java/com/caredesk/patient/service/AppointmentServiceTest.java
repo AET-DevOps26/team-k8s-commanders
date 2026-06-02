@@ -22,7 +22,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -135,7 +134,7 @@ class AppointmentServiceTest {
         AppointmentRescheduleRequest req = new AppointmentRescheduleRequest(
                 OffsetDateTime.parse("2026-07-01T15:00:00Z"));
         assertThatThrownBy(() -> service.reschedule(a.getId(), req))
-                .isInstanceOf(IllegalStateException.class);
+                .isInstanceOf(AppointmentStateConflictException.class);
         verify(repository, never()).save(any());
     }
 

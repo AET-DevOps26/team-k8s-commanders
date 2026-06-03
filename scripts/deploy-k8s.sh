@@ -45,7 +45,9 @@ set +a
 
 : "${TUM_ID:?TUM_ID is required in .env.k8s}"
 : "${LLM_API_KEY:?LLM_API_KEY is required in .env.k8s}"
-NAMESPACE="${TUM_ID}-devops26"
+# NAMESPACE overridable (AET cluster sometimes provisions namespaces with
+# different naming, e.g. <tumId>-devops26-<team>). Default keeps PDF pattern.
+NAMESPACE="${NAMESPACE:-${TUM_ID}-devops26}"
 RELEASE="${RELEASE:-caredesk}"
 IMAGE_TAG="${IMAGE_TAG:-latest}"
 AUTH_ENABLED="${AUTH_ENABLED:-false}"

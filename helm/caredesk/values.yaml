@@ -34,6 +34,10 @@ ingress:
     nginx.ingress.kubernetes.io/proxy-body-size: "10m"
   tls:
     enabled: true
+    # Cluster cert-manager auto-fills the secret when this issuer is set.
+    # AET cluster ships with `letsencrypt-prod`. Set to "" to disable cert-manager
+    # request (then provide the secret manually or set tls.enabled=false).
+    clusterIssuer: letsencrypt-prod
     # Assumes cluster cert-manager OR pre-created secret; otherwise tls.enabled=false
     secretName: caredesk-tls
 

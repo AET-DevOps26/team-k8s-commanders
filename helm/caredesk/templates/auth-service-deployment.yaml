@@ -62,19 +62,28 @@ spec:
                 secretKeyRef:
                   name: {{ include "caredesk.fullname" . }}-app
                   key: JWT_SECRET
+          # Startup probe gives Spring Boot + JPA schema gen a generous window
+          # (up to 150s) before liveness/readiness take over. Prevents the
+          # liveness probe from killing a still-booting pod → restart loop.
+          startupProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            failureThreshold: 30
           readinessProbe:
             httpGet:
               path: /actuator/health/readiness
               port: http
-            initialDelaySeconds: 15
             periodSeconds: 10
-            failureThreshold: 30
+            failureThreshold: 6
           livenessProbe:
             httpGet:
               path: /actuator/health/liveness
               port: http
-            initialDelaySeconds: 30
-            periodSeconds: 30
+            periodSeconds: 15
+            failureThreshold: 3
           resources:
             {{- toYaml .Values.auth.resources | nindent 12 }}
 {{- end }}

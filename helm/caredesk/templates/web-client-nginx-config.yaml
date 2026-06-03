@@ -1,0 +1,40 @@
+{{- if .Values.web.enabled -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "caredesk.fullname" . }}-web-nginx
+  labels:
+    {{- include "caredesk.labels" . | nindent 4 }}
+    app.kubernetes.io/component: web
+data:
+  # Replaces /etc/nginx/conf.d/default.conf inside the web-client image.
+  # The image ships a config that proxies /api/v1/ to a `api-gateway` host —
+  # that host does not exist in Kubernetes (the Ingress routes /api/v1 directly
+  # to the auth service), so nginx fails to boot with
+  #   "host not found in upstream api-gateway".
+  # This ConfigMap drops the proxy block and keeps only what's needed in-cluster.
+  default.conf: |
+    server {
+        listen 3000;
+        server_name _;
+        root /usr/share/nginx/html;
+        index index.html;
+
+        # Runtime env injection (window.__ENV__) — written by docker-entrypoint.sh
+        location = /config.js {
+            add_header Cache-Control "no-store";
+        }
+
+        # SPA fallback
+        location / {
+            add_header Cache-Control "no-store";
+            try_files $uri $uri/ /index.html;
+        }
+
+        # Static assets — cache aggressively (Vite hashes filenames)
+        location ~* \.(js|css|png|svg|ico|woff2?)$ {
+            expires 1y;
+            add_header Cache-Control "public, immutable";
+        }
+    }
+{{- end }}

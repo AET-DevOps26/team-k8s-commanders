@@ -56,6 +56,7 @@ public class SecurityConfig {
                         .requestMatchers("/actuator/health/**").permitAll()
                         // Everything else requires an authenticated principal, which
                         // NotesHeaderAuthFilter sets from the gateway-injected headers.
+                        .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(headerAuthFilter, UsernamePasswordAuthenticationFilter.class)

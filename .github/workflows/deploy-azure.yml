@@ -62,7 +62,7 @@ jobs:
             echo "NOTES_DB_NAME=${{ vars.NOTES_DB_NAME }}" >> .env.prod
             echo "NOTES_DB_USER=${{ vars.NOTES_DB_USER }}" >> .env.prod
             echo "NOTES_DB_PASSWORD=${{ secrets.NOTES_DB_PASSWORD }}" >> .env.prod
-            echo "NOTES_DDL_AUTO=update" >> .env.prod
+            echo "NOTES_DDL_AUTO=${{ vars.NOTES_DDL_AUTO }}" >> .env.prod
 
       - name: Deploy with Docker Compose
         uses: appleboy/ssh-action@v1.2.5

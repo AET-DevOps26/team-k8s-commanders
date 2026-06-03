@@ -19,6 +19,9 @@ services:
   web-client:
     image: ghcr.io/aet-devops26/team-k8s-commanders/web-client:${IMAGE_TAG:-latest}
     restart: always
+    depends_on:
+      api-gateway:
+        condition: service_healthy
     environment:
       PUBLIC_API_URL: ${PUBLIC_API_URL:-/api/v1}
     networks:

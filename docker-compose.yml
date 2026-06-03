@@ -22,6 +22,9 @@ services:
       args:
         VITE_API_URL: /api/v1
     restart: unless-stopped
+    depends_on:
+      api-gateway:
+        condition: service_healthy
     environment:
       PUBLIC_API_URL: /api/v1
     networks:

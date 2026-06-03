@@ -53,7 +53,10 @@ public class SecurityConfig {
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         // Health endpoint must be reachable for the Docker healthcheck.
-                        .requestMatchers("/actuator/health/**").permitAll()
+                        // Both forms needed: Spring Security 6 `/**` does not match the
+                        // exact path without a trailing segment, so the bare /actuator/health
+                        // would otherwise return 401 and break the prod healthcheck.
+                        .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
                         // Everything else requires an authenticated principal, which
                         // PatientHeaderAuthFilter sets from the gateway-injected headers.
                         .anyRequest().authenticated()

@@ -46,7 +46,7 @@ public class AuthServiceImpl implements AuthService {
         user.setRole(Role.PATIENT);
         userRepository.save(user);
 
-        String token = jwtUtil.generateToken(user.getEmail(), user.getRole().name());
+        String token = jwtUtil.generateToken(user.getId().toString(), user.getEmail(), user.getRole().name());
         return new AuthSession(token, toUserProfile(user));
     }
 
@@ -58,7 +58,7 @@ public class AuthServiceImpl implements AuthService {
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
-        String token = jwtUtil.generateToken(user.getEmail(), user.getRole().name());
+        String token = jwtUtil.generateToken(user.getId().toString(), user.getEmail(), user.getRole().name());
         return new AuthSession(token, toUserProfile(user));
     }
 

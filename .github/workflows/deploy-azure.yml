@@ -27,7 +27,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Copy compose file and nginx config to VM
         uses: appleboy/scp-action@v0.1.7

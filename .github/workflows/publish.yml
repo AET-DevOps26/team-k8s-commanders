@@ -26,7 +26,7 @@ jobs:
   generate-stubs:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - uses: actions/setup-java@v4
         with:
@@ -82,7 +82,7 @@ jobs:
             image: ghcr.io/aet-devops26/team-k8s-commanders/patient-service
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Download generated Spring stubs
         uses: actions/download-artifact@v4

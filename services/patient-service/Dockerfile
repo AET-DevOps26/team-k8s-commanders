@@ -43,7 +43,7 @@ RUN mvn package -DskipTests -q
 # ---------------------------------------------------------------------------
 # Stage 3 — slim runtime image
 # ---------------------------------------------------------------------------
-FROM eclipse-temurin:21-jre-alpine
+FROM eclipse-temurin:21.0.11_10-jre-alpine
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 WORKDIR /app
 COPY --from=app-builder /app/target/*.jar app.jar

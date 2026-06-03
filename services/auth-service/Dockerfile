@@ -71,7 +71,7 @@ RUN mvn package -DskipTests -q
 
 
 # Stage 4 — slim runtime image (no JDK, no Maven)
-FROM eclipse-temurin:21-jre-alpine
+FROM eclipse-temurin:21.0.11_10-jre-alpine
 # Run as a non-root user for runtime security.
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 WORKDIR /app

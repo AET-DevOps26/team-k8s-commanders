@@ -50,20 +50,15 @@ purge:
 	@./scripts/undeploy-k8s.sh --purge
 
 # ─── Chart utilities ──────────────────────────────────────────────────────────
-dep:
-	@helm repo add bitnami https://charts.bitnami.com/bitnami 2>/dev/null || true
-	@helm dependency update $(CHART)
-
-lint: dep
+# No subchart dependencies — databases are plain postgres Deployments.
+lint:
 	@helm lint $(CHART)
 
-template: dep
+template:
 	@helm template $(RELEASE) $(CHART) --namespace $(NS) \
 		--set ai.secrets.llmApiKey=dummy \
-		--set auth.enabled=true \
-		--set postgresql.enabled=true \
-		--set auth.secrets.jwtSecret=dummy \
-		--set postgresql.auth.password=dummy
+		--set backend.jwtSecret=dummy-dev-jwt-secret-min-32-characters \
+		--set postgres.password=dummy
 
-dry-run: dep
+dry-run:
 	@helm upgrade --install $(RELEASE) $(CHART) --namespace $(NS) --dry-run --debug

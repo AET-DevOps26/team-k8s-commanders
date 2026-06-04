@@ -9,9 +9,9 @@ metadata:
 data:
   # Replaces /etc/nginx/conf.d/default.conf inside the web-client image.
   # The image ships a config that proxies /api/v1/ to a `api-gateway` host —
-  # that host does not exist in Kubernetes (the Ingress routes /api/v1 directly
-  # to the auth service), so nginx fails to boot with
-  #   "host not found in upstream api-gateway".
+  # that host does not exist in Kubernetes (the Ingress routes /api/v1 to the
+  # api-gateway service, which then routes to auth/patient/notes/ai), so nginx
+  # fails to boot with "host not found in upstream api-gateway".
   # This ConfigMap drops the proxy block and keeps only what's needed in-cluster.
   default.conf: |
     server {

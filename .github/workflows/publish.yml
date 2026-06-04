@@ -66,7 +66,6 @@ jobs:
           - service: web-client
             context: .
             dockerfile: ./web-client/Dockerfile
-            dockerfile: ./web-client/Dockerfile
             image: ghcr.io/aet-devops26/team-k8s-commanders/web-client
           # auth-service is built from the repo root so the Dockerfile can reach
           # services/springboot/generated for the OpenAPI stubs JAR.
@@ -101,7 +100,6 @@ jobs:
           path: services/springboot/generated/
 
       - name: Generate image tags
-        if: steps.check.outputs.exists == 'true'
         id: meta
         uses: docker/metadata-action@v5
         with:
@@ -120,7 +118,6 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push ${{ matrix.service }}
-        if: steps.check.outputs.exists == 'true'
         uses: docker/build-push-action@v6
         with:
           context: ${{ matrix.context }}

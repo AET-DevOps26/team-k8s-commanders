@@ -44,11 +44,6 @@ jobs:
           chmod 600 "$HOME/.kube/config"
           kubectl config current-context
 
-      - name: Helm dependency update
-        run: |
-          helm repo add bitnami https://charts.bitnami.com/bitnami
-          helm dependency update helm/caredesk
-
       - name: Determine image tag
         id: tag
         run: |
@@ -87,13 +82,13 @@ jobs:
             SET_FLAGS+=(--set "ingress.host=${INGRESS_HOST}")
           fi
 
-          if [ "${AUTH_ENABLED}" = "true" ]; then
-            SET_FLAGS+=(
-              --set "auth.enabled=true"
-              --set "postgresql.enabled=true"
-              --set "auth.secrets.jwtSecret=${{ secrets.JWT_SECRET }}"
-              --set "postgresql.auth.password=${{ secrets.POSTGRES_PASSWORD }}"
-            )
+          # The full stack (incl. auth + per-service Postgres) is enabled by
+          # chart defaults. Inject real secrets over the dev defaults when set.
+          if [ -n "${{ secrets.JWT_SECRET }}" ]; then
+            SET_FLAGS+=(--set "backend.jwtSecret=${{ secrets.JWT_SECRET }}")
+          fi
+          if [ -n "${{ secrets.POSTGRES_PASSWORD }}" ]; then
+            SET_FLAGS+=(--set "postgres.password=${{ secrets.POSTGRES_PASSWORD }}")
           fi
 
           helm upgrade --install caredesk helm/caredesk \

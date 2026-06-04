@@ -21,12 +21,10 @@ ai:
   secrets:
     llmApiKey: sk-...           # OpenAI / OpenWebUI key
 
-auth:
-  enabled: false                # flip to true once auth-service Dockerfile exists
-  secrets:
-    jwtSecret: <64-byte-hex>    # `openssl rand -hex 64`
+# Shared JWT secret (auth-service signs, api-gateway verifies). >= 32 chars.
+backend:
+  jwtSecret: <64-byte-hex>      # `openssl rand -hex 64`
 
-postgresql:
-  enabled: false                # follows auth.enabled
-  auth:
-    password: <strong-password>
+# Password for every per-service Postgres (auth-db / patient-db / notes-db).
+postgres:
+  password: <strong-password>

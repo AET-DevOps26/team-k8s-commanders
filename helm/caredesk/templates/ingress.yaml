@@ -27,9 +27,10 @@ spec:
       http:
         paths:
           {{- if .Values.gateway.enabled }}
-          # All API traffic enters through the gateway, which owns the /api/v1
-          # prefix (JWT verification + routing). No path rewrite — the gateway
-          # strips /api/v1 itself before forwarding downstream.
+          # The /api prefix (covering all /api/v1/** routes) is forwarded
+          # unchanged to the gateway — no nginx rewrite. The gateway owns the
+          # /api/v1 routes and strips that prefix itself (StripPrefix=2) before
+          # forwarding to the downstream services.
           - path: /api
             pathType: Prefix
             backend:

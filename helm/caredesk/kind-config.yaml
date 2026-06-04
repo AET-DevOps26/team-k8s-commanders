@@ -1,6 +1,6 @@
 # kind cluster config for local CareDesk deployment.
-# Maps node ports 80/443 to host 8080/8443 so the ingress is reachable at
-# http://caredesk.localtest.me:8080.
+# Maps node ports 80/443 to host 18080/18443 so the ingress is reachable at
+# http://caredesk.localtest.me:18080.
 kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
 name: caredesk

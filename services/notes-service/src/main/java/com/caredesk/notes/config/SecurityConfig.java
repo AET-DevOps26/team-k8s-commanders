@@ -1,4 +1,4 @@
-package com.caredesk.patient.config;
+package com.caredesk.notes.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -10,19 +10,19 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 /**
- * Spring Security configuration for the patient service.
+ * Spring Security configuration for the notes service.
  *
  * <p>The service sits behind the API gateway and trusts the
  * {@code X-User-Email} and {@code X-User-Role} headers set by the gateway
- * once it has validated the JWT. The patient service therefore does not
- * re-validate the JWT itself. {@link PatientHeaderAuthFilter} translates
+ * once it has validated the JWT. The notes service therefore does not
+ * re-validate the JWT itself. {@link NotesHeaderAuthFilter} translates
  * those headers into an authenticated Spring Security principal.
  */
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
 
-    private final PatientHeaderAuthFilter headerAuthFilter;
+    private final NotesHeaderAuthFilter headerAuthFilter;
 
     /**
      * Creates the security configuration.
@@ -30,7 +30,7 @@ public class SecurityConfig {
      * @param headerAuthFilter filter that promotes trusted gateway headers
      *                         into the Spring Security context
      */
-    public SecurityConfig(PatientHeaderAuthFilter headerAuthFilter) {
+    public SecurityConfig(NotesHeaderAuthFilter headerAuthFilter) {
         this.headerAuthFilter = headerAuthFilter;
     }
 
@@ -53,12 +53,9 @@ public class SecurityConfig {
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         // Health endpoint must be reachable for the Docker healthcheck.
-                        // Both forms needed: Spring Security 6 `/**` does not match the
-                        // exact path without a trailing segment, so the bare /actuator/health
-                        // would otherwise return 401 and break the prod healthcheck.
                         .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
                         // Everything else requires an authenticated principal, which
-                        // PatientHeaderAuthFilter sets from the gateway-injected headers.
+                        // NotesHeaderAuthFilter sets from the gateway-injected headers.
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(headerAuthFilter, UsernamePasswordAuthenticationFilter.class)

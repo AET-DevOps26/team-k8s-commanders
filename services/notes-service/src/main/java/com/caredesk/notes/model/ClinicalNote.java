@@ -83,6 +83,17 @@ public class ClinicalNote {
     public void setCreatedAt(OffsetDateTime createdAt) { this.createdAt = createdAt; }
 
     /**
+     * Stamps the creation time on first persist if it has not been set
+     * explicitly, satisfying the {@code @NotNull} / non-null column constraint.
+     */
+    @PrePersist
+    void prePersist() {
+        if (createdAt == null) {
+            createdAt = OffsetDateTime.now();
+        }
+    }
+
+    /**
      * JPA-safe equality based on the primary key.
      *
      * @param o the other object

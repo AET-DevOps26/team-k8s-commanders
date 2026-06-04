@@ -27,10 +27,10 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Copy compose file and nginx config to VM
-        uses: appleboy/scp-action@v0.1.7
+        uses: appleboy/scp-action@v1.0.0
         with:
           host: ${{ vars.AZURE_PUBLIC_IP }}
           username: ${{ vars.AZURE_USER }}
@@ -55,10 +55,11 @@ jobs:
             echo "AUTH_DB_NAME=${{ vars.AUTH_DB_NAME }}" >> .env.prod
             echo "AUTH_DB_USER=${{ vars.AUTH_DB_USER }}" >> .env.prod
             echo "AUTH_DB_PASSWORD=${{ secrets.AUTH_DB_PASSWORD }}" >> .env.prod
-            echo "AUTH_DDL_AUTO=update" >> .env.prod
+            echo "AUTH_DDL_AUTO=${{ vars.AUTH_DDL_AUTO }}" >> .env.prod
             echo "PATIENT_DB_NAME=${{ vars.PATIENT_DB_NAME }}" >> .env.prod
             echo "PATIENT_DB_USER=${{ vars.PATIENT_DB_USER }}" >> .env.prod
             echo "PATIENT_DB_PASSWORD=${{ secrets.PATIENT_DB_PASSWORD }}" >> .env.prod
+            echo "PATIENT_DDL_AUTO=${{ vars.PATIENT_DDL_AUTO }}" >> .env.prod
             echo "NOTES_DB_NAME=${{ vars.NOTES_DB_NAME }}" >> .env.prod
             echo "NOTES_DB_USER=${{ vars.NOTES_DB_USER }}" >> .env.prod
             echo "NOTES_DB_PASSWORD=${{ secrets.NOTES_DB_PASSWORD }}" >> .env.prod

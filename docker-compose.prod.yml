@@ -19,6 +19,9 @@ services:
   web-client:
     image: ghcr.io/aet-devops26/team-k8s-commanders/web-client:${IMAGE_TAG:-latest}
     restart: always
+    depends_on:
+      api-gateway:
+        condition: service_healthy
     environment:
       PUBLIC_API_URL: ${PUBLIC_API_URL:-/api/v1}
     networks:
@@ -51,7 +54,7 @@ services:
     volumes:
       - auth-db-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $${AUTH_DB_USER} -d $${AUTH_DB_NAME}"]
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -79,7 +82,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-      start_period: 30s
+      start_period: 360s
     networks:
       - caredesk
 
@@ -93,7 +96,7 @@ services:
     volumes:
       - patient-db-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $${PATIENT_DB_USER} -d $${PATIENT_DB_NAME}"]
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -120,7 +123,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-      start_period: 30s
+      start_period: 360s
     networks:
       - caredesk
 
@@ -188,7 +191,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-      start_period: 30s
+      start_period: 360s
     networks:
       - caredesk
 

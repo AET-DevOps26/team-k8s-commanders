@@ -57,6 +57,9 @@ public class SecurityConfig {
                         // exact path without a trailing segment, so the bare /actuator/health
                         // would otherwise return 401 and break the prod healthcheck.
                         .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
+                        // Spring forwards unhandled exceptions to /error. Without permitting
+                        // it, error pages come back as 403 instead of the intended status.
+                        .requestMatchers("/error").permitAll()
                         // Everything else requires an authenticated principal, which
                         // PatientHeaderAuthFilter sets from the gateway-injected headers.
                         .anyRequest().authenticated()

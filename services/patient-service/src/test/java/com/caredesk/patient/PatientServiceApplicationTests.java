@@ -13,8 +13,8 @@ import org.springframework.test.context.TestPropertySource;
  *
  * <p>JPA, data-source and JPA-repository auto-configurations are excluded so
  * the test runs without a real Postgres instance. The repositories are
- * provided as mocks so beans that depend on them (PatientService and friends)
- * can still be created.
+ * provided as mocks so beans that depend on them (PatientService,
+ * AppointmentService and friends) can still be created.
  */
 @SpringBootTest
 @TestPropertySource(properties = {

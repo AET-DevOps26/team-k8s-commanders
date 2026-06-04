@@ -1,0 +1,71 @@
+{{- if .Values.gateway.enabled -}}
+{{- $fn := include "caredesk.fullname" . -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $fn }}-gateway
+  labels:
+    {{- include "caredesk.labels" . | nindent 4 }}
+    app.kubernetes.io/component: gateway
+spec:
+  replicas: {{ .Values.gateway.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "caredesk.selectorLabels" (dict "root" . "component" "gateway") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "caredesk.selectorLabels" (dict "root" . "component" "gateway") | nindent 8 }}
+      annotations:
+        checksum/secret: {{ include (print $.Template.BasePath "/secret-app.yaml") . | sha256sum }}
+    spec:
+      {{- include "caredesk.imagePullSecrets" . | nindent 6 }}
+      containers:
+        - name: api-gateway
+          image: {{ include "caredesk.image" (dict "root" $ "image" .Values.gateway.image) | quote }}
+          imagePullPolicy: {{ .Values.images.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.gateway.service.port }}
+          env:
+            - name: SERVER_PORT
+              value: {{ .Values.gateway.service.port | quote }}
+            # The published api-gateway image pins Spring Cloud 2023.0.x while the
+            # parent is Spring Boot 3.5.x. The strict compatibility verifier aborts
+            # startup, although Spring Cloud Gateway runs fine on Boot 3.5 at
+            # runtime. Disabling the verifier keeps the stack deployable from the
+            # current image; the proper fix (spring-cloud 2025.0.x in the gateway
+            # pom) makes this a harmless no-op once a new image is published.
+            - name: SPRING_CLOUD_COMPATIBILITYVERIFIER_ENABLED
+              value: "false"
+            - name: AUTH_SERVICE_URL
+              value: {{ printf "http://%s-auth:%d" $fn (int .Values.auth.service.port) | quote }}
+            - name: PATIENT_SERVICE_URL
+              value: {{ printf "http://%s-patient:%d" $fn (int .Values.patient.service.port) | quote }}
+            - name: NOTES_SERVICE_URL
+              value: {{ printf "http://%s-notes:%d" $fn (int .Values.notes.service.port) | quote }}
+            - name: AI_ASSISTANT_URL
+              value: {{ printf "http://%s-ai:%d" $fn (int .Values.ai.service.port) | quote }}
+            {{- include "caredesk.jwtEnv" . | nindent 12 }}
+          startupProbe:
+            httpGet:
+              path: /actuator/health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            failureThreshold: 40
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: http
+            periodSeconds: 10
+            failureThreshold: 6
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: http
+            periodSeconds: 15
+            failureThreshold: 3
+          resources:
+            {{- toYaml .Values.gateway.resources | nindent 12 }}
+{{- end }}

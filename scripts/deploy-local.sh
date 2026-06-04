@@ -104,40 +104,37 @@ build_image() {
   fi
 }
 
-BUILT_IMAGES=()
-build_image web-client    "${REPO_ROOT}/web-client" false "${REPO_ROOT}" && BUILT_IMAGES+=("${REGISTRY}/web-client:${IMAGE_TAG}")
-build_image ai-assistant  "${REPO_ROOT}/services/ai-assistant"           && BUILT_IMAGES+=("${REGISTRY}/ai-assistant:${IMAGE_TAG}")
-
-# auth-service Dockerfile expects build context = repo root and pulls in the
-# generated Spring stubs (services/springboot/generated/) which are gitignored.
-# Build it from repo root, silently — skip if it fails (e.g. stubs not generated).
-AUTH_BUILT=false
-if [[ -f "${REPO_ROOT}/services/auth-service/Dockerfile" && -f "${REPO_ROOT}/services/springboot/generated/pom.xml" ]]; then
-  if build_image auth-service "${REPO_ROOT}/services/auth-service" true "${REPO_ROOT}"; then
-    BUILT_IMAGES+=("${REGISTRY}/auth-service:${IMAGE_TAG}")
-    AUTH_BUILT=true
-  else
-    warn "auth-service build failed — continuing without auth. Run ./api/scripts/gen-all.sh first."
-  fi
-else
-  warn "Skipping auth-service: Dockerfile or generated Spring stubs missing. Run ./api/scripts/gen-all.sh + ensure services/auth-service/Dockerfile exists."
+# The Spring services (auth/patient/notes) build from the repo root and pull in
+# the generated OpenAPI stubs (services/springboot/generated/). Fail fast if they
+# are missing — the full stack needs all of them.
+if [[ ! -f "${REPO_ROOT}/services/springboot/generated/pom.xml" ]]; then
+  err "Generated Spring stubs missing (services/springboot/generated/). Run ./api/scripts/gen-all.sh first."
+  exit 1
 fi
+
+BUILT_IMAGES=()
+#           service          context                                quiet  build-context
+build_image web-client      "${REPO_ROOT}/web-client"               false "${REPO_ROOT}" && BUILT_IMAGES+=("${REGISTRY}/web-client:${IMAGE_TAG}")
+build_image ai-assistant    "${REPO_ROOT}/services/ai-assistant"                          && BUILT_IMAGES+=("${REGISTRY}/ai-assistant:${IMAGE_TAG}")
+build_image api-gateway     "${REPO_ROOT}/services/api-gateway"      true                 && BUILT_IMAGES+=("${REGISTRY}/api-gateway:${IMAGE_TAG}")
+build_image auth-service    "${REPO_ROOT}/services/auth-service"     true  "${REPO_ROOT}" && BUILT_IMAGES+=("${REGISTRY}/auth-service:${IMAGE_TAG}")
+build_image patient-service "${REPO_ROOT}/services/patient-service"  true  "${REPO_ROOT}" && BUILT_IMAGES+=("${REGISTRY}/patient-service:${IMAGE_TAG}")
+build_image notes-service   "${REPO_ROOT}/services/notes-service"    true  "${REPO_ROOT}" && BUILT_IMAGES+=("${REGISTRY}/notes-service:${IMAGE_TAG}")
 
 # ─── 5. Load images into kind ─────────────────────────────────────────────────
+# Pull the Postgres base image and load it too, so pullPolicy=Never works for
+# every pod (the chart runs one postgres:16-alpine per backend service).
+PG_IMAGE="$(grep -E '^[[:space:]]*image:[[:space:]]*postgres' "${CHART_DIR}/values.yaml" | head -n1 | sed -E 's/.*image:[[:space:]]*//; s/["'"'"']//g; s/[[:space:]]*#.*//; s/[[:space:]]*$//')"
+PG_IMAGE="${PG_IMAGE:-postgres:16-alpine}"
+log "Pulling ${PG_IMAGE} for kind load"
+docker pull "${PG_IMAGE}" >/dev/null
+
 log "Loading images into kind cluster"
-kind load docker-image "${BUILT_IMAGES[@]}" --name "${CLUSTER_NAME}"
+kind load docker-image "${BUILT_IMAGES[@]}" "${PG_IMAGE}" --name "${CLUSTER_NAME}"
 
 # ─── 6. Helm deploy ───────────────────────────────────────────────────────────
-log "Helm dependency update"
-helm repo add bitnami https://charts.bitnami.com/bitnami >/dev/null 2>&1 || true
-helm repo update bitnami >/dev/null 2>&1 || warn "bitnami repo update failed — using cached chart if present"
-# Only run dep update if subchart not yet downloaded — avoids hard failure when bitnami is unreachable.
-if [[ ! -d "${CHART_DIR}/charts" ]] || ! ls "${CHART_DIR}/charts"/postgresql-*.tgz >/dev/null 2>&1; then
-  helm dependency update "${CHART_DIR}"
-else
-  log "Postgres subchart already present — skipping dep update"
-fi
-
+# No subchart dependencies anymore (databases are plain postgres Deployments),
+# so no `helm dependency update` / bitnami repo is required.
 kubectl get ns "${NAMESPACE}" >/dev/null 2>&1 || kubectl create namespace "${NAMESPACE}"
 
 SET_FLAGS=(
@@ -149,34 +146,25 @@ SET_FLAGS=(
   --set "ingress.tls.enabled=false"             # no cert-manager in kind
   --set "ai.secrets.llmApiKey=local-dummy"      # health probe ok; /ai/query needs real key
   --set "web.replicaCount=1"                    # save resources
+  # The kind ingress is published on host port ${INGRESS_PORT}; bake it into the
+  # SPA's API base so browser calls reach the gateway (the auto-derived host
+  # would otherwise omit the port and hit :80).
+  --set "web.env.publicApiUrl=http://${INGRESS_HOST}:${INGRESS_PORT}/api/v1"
 )
-
-if [[ "${AUTH_BUILT}" == "true" ]]; then
-  log "auth-service Dockerfile found — enabling auth + Postgres"
-  SET_FLAGS+=(
-    --set "auth.enabled=true"
-    --set "postgresql.enabled=true"
-    --set "auth.secrets.jwtSecret=local-jwt-secret-do-not-use-in-prod"
-    --set "postgresql.auth.password=localpass"
-    --set "postgresql.primary.persistence.size=512Mi"
-  )
-fi
 
 log "Helm upgrade --install ${RELEASE} -> ns/${NAMESPACE}"
 helm upgrade --install "${RELEASE}" "${CHART_DIR}" \
   --namespace "${NAMESPACE}" \
   "${SET_FLAGS[@]}" \
-  --wait --timeout 5m
+  --wait --timeout 8m
 
 # ─── 7. Done ──────────────────────────────────────────────────────────────────
 URL="http://${INGRESS_HOST}:${INGRESS_PORT}"
 log "Deployed."
 echo
 echo "  Web: ${URL}/"
-echo "  AI:  ${URL}/ai/health"
-if [[ "${AUTH_BUILT}" == "true" ]]; then
-  echo "  API: ${URL}/api/auth/login"
-fi
+echo "  API: ${URL}/api/v1/   (via api-gateway)"
+echo "       e.g. POST ${URL}/api/v1/auth/register"
 echo
 echo "Inspect:   kubectl -n ${NAMESPACE} get pods,svc,ingress"
 echo "Logs:      kubectl -n ${NAMESPACE} logs -l app.kubernetes.io/instance=${RELEASE} --tail=50"

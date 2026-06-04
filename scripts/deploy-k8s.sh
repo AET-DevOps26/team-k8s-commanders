@@ -1,14 +1,20 @@
 #!/usr/bin/env bash
 # One-command deploy of CareDesk to the AET Kubernetes cluster.
 #
-# Prerequisites (the tutor):
-#   - helm v3 + kubectl on PATH
-#   - kubeconfig at ~/.kube/config (download stud.yaml from https://rancher.ase.cit.tum.de)
-#   - .env.k8s at repo root, filled in from helm/caredesk/.env.k8s.example
+# Works with ZERO configuration — the chart ships dev defaults and the GHCR
+# images are public, so no .env.k8s and no secrets are required:
 #
-# Usage:
 #   ./scripts/deploy-k8s.sh
 #   make deploy
+#
+# Prerequisites:
+#   - helm v3 + kubectl on PATH
+#   - kubeconfig at ~/.kube/config (download stud.yaml from https://rancher.ase.cit.tum.de)
+#
+# Optional overrides (env or .env.k8s at repo root): TUM_ID, NAMESPACE, RELEASE,
+# IMAGE_TAG, LLM_API_KEY, LLM_PROVIDER, LLM_MODEL, OPENWEBUI_BASE_URL,
+# JWT_SECRET, POSTGRES_PASSWORD, INGRESS_HOST, INGRESS_TLS_ENABLED,
+# GHCR_USER, GHCR_PAT.
 
 set -euo pipefail
 
@@ -31,26 +37,20 @@ require() {
 require helm
 require kubectl
 
-if [[ ! -f "${ENV_FILE}" ]]; then
-  err ".env.k8s not found at ${ENV_FILE}"
-  err "Create one: cp ${CHART_DIR}/.env.k8s.example ${ENV_FILE} && edit it."
-  exit 1
+# .env.k8s is OPTIONAL — load it only if present (overrides defaults below).
+if [[ -f "${ENV_FILE}" ]]; then
+  log "Loading overrides from .env.k8s"
+  set -a
+  # shellcheck disable=SC1090
+  source "${ENV_FILE}"
+  set +a
 fi
 
-# Load .env.k8s (export every assignment)
-set -a
-# shellcheck disable=SC1090
-source "${ENV_FILE}"
-set +a
-
-: "${TUM_ID:?TUM_ID is required in .env.k8s}"
-: "${LLM_API_KEY:?LLM_API_KEY is required in .env.k8s}"
-# NAMESPACE overridable (AET cluster sometimes provisions namespaces with
-# different naming, e.g. <tumId>-devops26-<team>). Default keeps PDF pattern.
+# Defaults make the script runnable with no config at all.
+TUM_ID="${TUM_ID:-ge38yuc}"
 NAMESPACE="${NAMESPACE:-${TUM_ID}-devops26}"
 RELEASE="${RELEASE:-caredesk}"
 IMAGE_TAG="${IMAGE_TAG:-latest}"
-AUTH_ENABLED="${AUTH_ENABLED:-false}"
 
 # Verify kube context
 if ! kubectl config current-context >/dev/null 2>&1; then
@@ -64,45 +64,36 @@ log "Ensuring namespace ${NAMESPACE}"
 kubectl get ns "${NAMESPACE}" >/dev/null 2>&1 || \
   kubectl create namespace "${NAMESPACE}"
 
-# ─── Helm dependencies (Bitnami Postgres) ─────────────────────────────────────
-log "Adding bitnami repo + updating chart dependencies"
-helm repo add bitnami https://charts.bitnami.com/bitnami >/dev/null 2>&1 || true
-helm repo update bitnami >/dev/null
-helm dependency update "${CHART_DIR}" >/dev/null
-
 # ─── Compose --set flags ───────────────────────────────────────────────────────
+# The full stack (web, gateway, auth, patient, notes, ai + one Postgres each)
+# is enabled by chart defaults. Everything below is an OPTIONAL override.
 SET_FLAGS=(
   --set "tumId=${TUM_ID}"
   --set "images.tag=${IMAGE_TAG}"
-  --set "ai.secrets.llmApiKey=${LLM_API_KEY}"
 )
-[[ -n "${LLM_PROVIDER:-}" ]]      && SET_FLAGS+=(--set "ai.env.llmProvider=${LLM_PROVIDER}")
-[[ -n "${LLM_MODEL:-}" ]]         && SET_FLAGS+=(--set "ai.env.llmModel=${LLM_MODEL}")
-[[ -n "${OPENWEBUI_BASE_URL:-}" ]] && SET_FLAGS+=(--set "ai.env.openwebuiBaseUrl=${OPENWEBUI_BASE_URL}")
-[[ -n "${GHCR_USER:-}" ]]         && SET_FLAGS+=(--set "images.pullSecret.username=${GHCR_USER}")
-[[ -n "${GHCR_PAT:-}" ]]          && SET_FLAGS+=(--set "images.pullSecret.password=${GHCR_PAT}")
-[[ -n "${INGRESS_HOST:-}" ]]      && SET_FLAGS+=(--set "ingress.host=${INGRESS_HOST}")
+[[ -n "${LLM_API_KEY:-}" ]]         && SET_FLAGS+=(--set "ai.secrets.llmApiKey=${LLM_API_KEY}")
+[[ -n "${LLM_PROVIDER:-}" ]]        && SET_FLAGS+=(--set "ai.env.llmProvider=${LLM_PROVIDER}")
+[[ -n "${LLM_MODEL:-}" ]]           && SET_FLAGS+=(--set "ai.env.llmModel=${LLM_MODEL}")
+[[ -n "${OPENWEBUI_BASE_URL:-}" ]]  && SET_FLAGS+=(--set "ai.env.openwebuiBaseUrl=${OPENWEBUI_BASE_URL}")
+[[ -n "${JWT_SECRET:-}" ]]          && SET_FLAGS+=(--set "backend.jwtSecret=${JWT_SECRET}")
+[[ -n "${POSTGRES_PASSWORD:-}" ]]   && SET_FLAGS+=(--set "postgres.password=${POSTGRES_PASSWORD}")
+[[ -n "${GHCR_USER:-}" ]]           && SET_FLAGS+=(--set "images.pullSecret.create=true" --set "images.pullSecret.username=${GHCR_USER}")
+[[ -n "${GHCR_PAT:-}" ]]            && SET_FLAGS+=(--set "images.pullSecret.password=${GHCR_PAT}")
+[[ -n "${INGRESS_HOST:-}" ]]        && SET_FLAGS+=(--set "ingress.host=${INGRESS_HOST}")
 [[ -n "${INGRESS_TLS_ENABLED:-}" ]] && SET_FLAGS+=(--set "ingress.tls.enabled=${INGRESS_TLS_ENABLED}")
 
-if [[ "${AUTH_ENABLED}" == "true" ]]; then
-  : "${JWT_SECRET:?JWT_SECRET required when AUTH_ENABLED=true}"
-  : "${POSTGRES_PASSWORD:?POSTGRES_PASSWORD required when AUTH_ENABLED=true}"
-  SET_FLAGS+=(
-    --set "auth.enabled=true"
-    --set "postgresql.enabled=true"
-    --set "auth.secrets.jwtSecret=${JWT_SECRET}"
-    --set "postgresql.auth.password=${POSTGRES_PASSWORD}"
-  )
-else
-  warn "auth.enabled=false (set AUTH_ENABLED=true in .env.k8s to include auth-service + Postgres)"
+if [[ -z "${LLM_API_KEY:-}" ]]; then
+  warn "No LLM_API_KEY set — ai-assistant deploys healthy but cannot answer until a key is provided."
 fi
 
 # ─── Deploy ───────────────────────────────────────────────────────────────────
+# 8 Spring/Node pods + 3 Postgres on a shared student cluster need a generous
+# --wait window for image pulls and JPA schema creation on first boot.
 log "helm upgrade --install ${RELEASE} -> ns/${NAMESPACE}"
 helm upgrade --install "${RELEASE}" "${CHART_DIR}" \
   --namespace "${NAMESPACE}" \
   "${SET_FLAGS[@]}" \
-  --wait --timeout 5m
+  --wait --timeout 9m
 
 log "Done. Release notes:"
 helm get notes "${RELEASE}" --namespace "${NAMESPACE}"

@@ -1,263 +1,157 @@
 # CareDesk Helm Chart
 
-Deploys the full CareDesk stack — **web-client**, **ai-assistant**, optional **auth-service**, and bundled **PostgreSQL** — to either a **local kind cluster** or the **TUM AET cluster** (Rancher: <https://rancher.ase.cit.tum.de>).
+Deploys the **full CareDesk stack** to a Kubernetes cluster (local **kind** or the
+**TUM AET** Rancher cluster):
 
-Same chart, same `make` interface. One command for each target.
-
----
-
-## 0 · Prerequisites
-
-| Tool                   | Local (kind) | AET cluster |
-|------------------------|:------------:|:-----------:|
-| **Docker** (running)   | ✅ required  | optional    |
-| `helm` v3              | auto (brew)  | ✅ required |
-| `kubectl`              | auto (brew)  | ✅ required |
-| `kind`                 | auto (brew)  | —           |
-| TUM cluster kubeconfig | —            | ✅ required |
-
-`scripts/deploy-local.sh` `brew install`s any missing CLI on macOS. On Linux install manually.
+- **web-client** (React + nginx)
+- **api-gateway** (Spring Cloud Gateway — single API entry point, JWT verify, header injection)
+- **auth-service**, **patient-service**, **notes-service** (Spring Boot)
+- **ai-assistant** (FastAPI)
+- one **PostgreSQL** per backend service (`auth-db`, `patient-db`, `notes-db`)
 
 ---
 
-## 1 · One command — local (kind)
+## 1 · Deploy with one command — no env files
 
-For development, demos, or testing without TUM cluster access.
+The chart ships working development defaults (JWT secret, DB password) and the
+GHCR images are **public**, so it installs with a **single command and zero
+pre-created files or secrets** — exactly what a grader needs.
 
 ```bash
-make local
+helm upgrade --install caredesk helm/caredesk \
+  --namespace <your-namespace> --create-namespace \
+  --set tumId=<your-tum-id>
 ```
 
-That's it. The script (idempotent — re-run anytime):
+That is the whole deploy. Example for this team:
 
-1. Installs `kind` / `kubectl` / `helm` via `brew` if missing
-2. Creates a kind cluster `caredesk` with ingress port-mapping (host → **18080/18443**)
-3. Installs `ingress-nginx` (kind variant)
-4. Builds Docker images for web-client + ai-assistant (and auth-service if its Dockerfile + generated Spring stubs are present)
-5. `kind load` images into the cluster (no GHCR pull needed)
-6. `helm dependency update` + `helm upgrade --install … --wait`
-
-Open <http://caredesk.localtest.me:18080>. `localtest.me` is a public DNS wildcard pointing to `127.0.0.1` — no `/etc/hosts` edit needed (host ports 18080/18443 avoid the common `8080` clash).
-
-> **If `caredesk.localtest.me` does not resolve** (offline / strict DNS / VPN split-DNS):
-> ```bash
-> echo "127.0.0.1 caredesk.localtest.me" | sudo tee -a /etc/hosts
-> ```
-> Or curl-test with a Host header: `curl -H "Host: caredesk.localtest.me" http://localhost:18080/`
-
-**Routes** (single ingress, host `caredesk.localtest.me`):
-- `/` → web-client
-- `/ai` → ai-assistant
-- `/api/v1` → auth-service (only when `auth.enabled=true`)
-
-**Teardown:**
 ```bash
-make local-clean     # deletes the kind cluster (all data wiped)
+helm upgrade --install caredesk helm/caredesk \
+  --namespace ge38yuc-devops26-team-k8s-commanders --create-namespace \
+  --set tumId=ge38yuc
 ```
 
-> Requires Docker Desktop / OrbStack running. AI `/ai/query` needs a real `LLM_API_KEY` (default is a dummy); web + auth + DB work out of the box.
+- `tumId` only drives the default ingress host
+  `caredesk-<tumId>.student.k8s.aet.cit.tum.de`. Override the host directly with
+  `--set ingress.host=<host>` if it differs (look it up in Rancher → Ingresses).
+- The AI assistant **deploys and stays healthy without a key**; it just cannot
+  answer until you add one: `--set ai.secrets.llmApiKey=sk-...`.
+- For a real environment, override the dev defaults:
+  `--set backend.jwtSecret=<secret> --set postgres.password=<pw>`.
+
+Open the printed URL (`https://caredesk-<tumId>.student.k8s.aet.cit.tum.de/`).
+cert-manager (`letsencrypt-prod`) issues the TLS cert on first deploy (~30 s).
+
+### Prerequisites
+
+| Tool | Local (kind) | AET cluster |
+|------|:---:|:---:|
+| `helm` v3 | ✅ | ✅ |
+| `kubectl` | ✅ | ✅ |
+| `kind` + Docker | ✅ | — |
+| AET kubeconfig (`stud.yaml` → `~/.kube/config`, context `stud`) | — | ✅ |
 
 ---
 
-## 2 · One command — AET TUM cluster
+## 2 · What gets deployed
 
-For the tutor / grader.
+| Component | Image (`ghcr.io/aet-devops26/team-k8s-commanders/…`) | Port | Replicas |
+|-----------|------------------------------------------------------|------|----------|
+| web-client | `web-client` | 3000 | 2 |
+| api-gateway | `api-gateway` | 8080 | 1 |
+| auth-service | `auth-service` | 8081 | 1 |
+| patient-service | `patient-service` | 8082 | 1 |
+| notes-service | `notes-service` | 8083 | 1 |
+| ai-assistant | `ai-assistant` | 8000 | 1 |
+| auth-db / patient-db / notes-db | `postgres:16-alpine` | 5432 | 1 each (1Gi PVC) |
 
-### Setup (once)
+Images default to tag `latest`; override with `--set images.tag=<tag>`.
 
-1. **Get kubeconfig from Rancher**
-   - Open <https://rancher.ase.cit.tum.de> (TUM VPN required if off-campus)
-   - Login with TUM ID → **Cluster (Student Cluster)** → top-right **⋮ → Download KubeConfig** → `stud.yaml`
-   - Merge into your `~/.kube/config` (or replace; back up first):
-     ```bash
-     mkdir -p ~/.kube
-     cp ~/.kube/config ~/.kube/config.bak 2>/dev/null || true
-     KUBECONFIG=~/.kube/config:~/Downloads/stud.yaml kubectl config view --flatten > /tmp/merged
-     mv /tmp/merged ~/.kube/config && chmod 600 ~/.kube/config
-     kubectl config use-context stud
-     kubectl config current-context        # → stud
-     ```
+**Routing** (single ingress host):
 
-2. **Verify namespace exists** (Rancher provisions it for your team)
-   ```bash
-   kubectl get ns | grep devops26
-   # → e.g. ge38yuc-devops26-team-k8s-commanders   Active
-   ```
+- `/` → **web-client**
+- `/api/v1/**` → **api-gateway**, which verifies the JWT, injects `X-User-*`
+  headers and routes onward:
+  - `/api/v1/auth/**` → auth-service
+  - `/api/v1/patients/**`, `/api/v1/appointments/**`, `/api/v1/doctors/**` → patient-service
+  - `/api/v1/appointments/*/note` → notes-service
+  - `/api/v1/ai/**` → ai-assistant
 
-3. **Fill in deployment env file**
-   ```bash
-   cp helm/caredesk/.env.k8s.example .env.k8s
-   # edit the values described in the table below
-   ```
-
-### Deploy
-
-```bash
-make deploy
-# or, when namespace differs from the default <TUM_ID>-devops26:
-NAMESPACE=ge38yuc-devops26-team-k8s-commanders make deploy
-```
-
-The script:
-
-1. Loads `.env.k8s`
-2. Verifies `kubectl` current-context, creates the namespace if missing
-3. `helm repo add bitnami` + `helm dependency update`
-4. Runs `helm upgrade --install caredesk helm/caredesk -n <NS> --wait`
-5. Prints URLs via `helm get notes`
-
-**Open** the printed URL — e.g. `https://caredesk-<id>.student.k8s.aet.cit.tum.de/`. The chart auto-requests a Let's Encrypt cert via cert-manager (cluster-issuer `letsencrypt-prod`) — first cert issuance takes ~30 s.
-
-> **If Chrome shows `ERR_CERT_AUTHORITY_INVALID` / HSTS warning** on the very first visit (from before cert was issued):
-> 1. Open `chrome://net-internals/#hsts`
-> 2. "Delete domain security policies" → paste your hostname → **Delete**
-> 3. Reload the page (force-refresh: ⌘⇧R)
+The web-client calls the API at `https://<host>/api/v1` (injected at runtime via
+`PUBLIC_API_URL` → `window.__ENV__`). No `api-gateway` DNS dependency inside the
+image — the chart mounts a Kubernetes-only nginx config.
 
 ---
 
-## 3 · `.env.k8s` reference
+## 3 · Tear down
 
-| Variable              | Required?                | Purpose                                             |
-|-----------------------|--------------------------|-----------------------------------------------------|
-| `TUM_ID`              | always                   | TUM login id; default namespace becomes `${TUM_ID}-devops26` and ingress host becomes `caredesk-${TUM_ID}.student.k8s.aet.cit.tum.de` |
-| `LLM_API_KEY`         | always (ai)              | OpenAI / OpenWebUI key                              |
-| `LLM_PROVIDER`        | recommended              | `openai` \| `openwebui`                             |
-| `LLM_MODEL`           | recommended              | e.g. `gpt-4o-mini`                                  |
-| `OPENWEBUI_BASE_URL`  | when provider=openwebui  | OpenWebUI endpoint                                  |
-| `GHCR_USER`           | if GHCR pkgs private     | GitHub username                                     |
-| `GHCR_PAT`            | if GHCR pkgs private     | PAT (classic) with `read:packages` scope            |
-| `INGRESS_HOST`        | if custom DNS            | Override default ingress host                       |
-| `INGRESS_TLS_ENABLED` | optional                 | `true` (default) \| `false`                         |
-| `IMAGE_TAG`           | optional                 | Image tag to deploy (default `latest`; CI sets sha) |
-| `AUTH_ENABLED`        | optional                 | `false` (default) \| `true` to include auth + DB    |
-| `JWT_SECRET`          | only when `AUTH_ENABLED=true` | `openssl rand -hex 32`                         |
-| `POSTGRES_PASSWORD`   | only when `AUTH_ENABLED=true` | Strong password for Bitnami Postgres           |
+```bash
+helm uninstall caredesk -n <your-namespace>
+```
 
-Also reads `NAMESPACE` from shell env (not from `.env.k8s`) to override the default namespace pattern.
+This removes every chart resource **including the database PVCs** (they are
+chart-owned, so their data is wiped). The namespace itself is left in place.
 
 ---
 
-## 4 · What gets deployed
+## 4 · Chart utilities (no live cluster needed)
 
-| Component      | Image (GHCR)                                                  | Port | Replicas | Default state |
-|----------------|---------------------------------------------------------------|------|----------|---------------|
-| web-client     | `ghcr.io/aet-devops26/team-k8s-commanders/web-client`         | 3000 | 2        | enabled       |
-| ai-assistant   | `ghcr.io/aet-devops26/team-k8s-commanders/ai-assistant`       | 8000 | 1        | enabled       |
-| auth-service   | `ghcr.io/aet-devops26/team-k8s-commanders/auth-service`       | 8081 | 1        | **disabled** (flip `AUTH_ENABLED=true`) |
-| PostgreSQL     | `bitnamilegacy/postgresql:16.4.0-debian-12-r14`               | 5432 | 1        | follows `auth.enabled` |
+```bash
+helm lint helm/caredesk
+helm template caredesk helm/caredesk -n <ns>              # render manifests
+helm template caredesk helm/caredesk -n <ns> | kubectl apply --dry-run=server -f -
+```
 
-**Chart side-note**: the web-client image bakes-in an nginx config that proxies `/api/v1/` to a `api-gateway` host (used in `docker-compose.prod.yml`). In Kubernetes this host doesn't exist, so the chart mounts a Kubernetes-only `default.conf` over it via ConfigMap — ingress handles the API routing. No image rebuild needed.
-
-**Routes** (one ingress host):
-- `/` → web-client
-- `/ai` → ai-assistant
-- `/api/v1/…` → auth-service (rewrite-target strips `/api` prefix)
+A `Makefile` wrapper (`make deploy` / `make undeploy`, driven by an optional
+`.env.k8s`) is also available for CI parity, but is **not required** — the single
+`helm upgrade --install` above is self-contained.
 
 ---
 
-## 5 · Useful commands
+## 5 · CI/CD
 
-```bash
-# local kind
-make local            # full deploy (build + cluster + ingress + helm)
-make local-clean      # delete kind cluster
+| Workflow | Trigger | Action |
+|----------|---------|--------|
+| `publish.yml` | push to `main` touching `services/**` or `web-client/**` | Build + push all 6 images to GHCR (matrix: web-client, api-gateway, auth-service, patient-service, notes-service, ai-assistant) |
+| `deploy-k8s.yml` | after Publish Images succeeds | `helm upgrade --install` against the AET cluster (image tag = `sha-<short>`) |
 
-# AET cluster
-make deploy           # helm upgrade --install
-make undeploy         # helm uninstall (keeps PVCs + namespace)
-make purge            # helm uninstall + delete PVCs + delete namespace
-
-# chart dev (no cluster needed for lint/template)
-make lint
-make template
-make dry-run
-```
-
-Inspect after deploy:
-
-```bash
-NS=ge38yuc-devops26-team-k8s-commanders      # adjust to your namespace
-kubectl -n $NS get pods,svc,ingress,certificate
-kubectl -n $NS logs -l app.kubernetes.io/instance=caredesk --tail=50 -f
-helm get notes caredesk -n $NS
-helm get values caredesk -n $NS              # currently active overrides
-helm list -n $NS                             # release status
-
-# GUI:
-k9s -n $NS                                   # brew install k9s
-```
+**Required repo secrets/variables** for the CI deploy: `KUBECONFIG_AET`,
+`TUM_ID`, and (optionally) `LLM_API_KEY`. JWT secret and DB password fall back to
+the chart's dev defaults unless overridden.
 
 ---
 
-## 6 · CI/CD
+## 6 · Troubleshooting
 
-| Workflow             | Trigger                                  | Action |
-|----------------------|------------------------------------------|--------|
-| `publish.yml`        | push to `main` touching `services/**` or `web-client/**` | Build + push images to GHCR (matrix: ai-assistant, web-client, auth-service — auth skipped if Dockerfile absent) |
-| `deploy-k8s.yml`     | after `Publish Images` succeeds          | `helm upgrade --install` against AET cluster |
-| `deploy-azure.yml`   | push to `main` or after publish          | Docker Compose deploy to Azure VM (separate path, see PR #72) |
-
-**Required repo Secrets** (Settings → Secrets and variables → Actions → Secrets):
-- `KUBECONFIG_AET` — `base64 < stud.yaml` (one line)
-- `GHCR_PULL_PAT` — PAT with `read:packages`
-- `LLM_API_KEY` — already exists (PR #72)
-- `JWT_SECRET` — only when `AUTH_ENABLED=true`
-- `POSTGRES_PASSWORD` — only when `AUTH_ENABLED=true`
-
-**Required repo Variables**:
-- `TUM_ID` — e.g. `ge38yuc`
-- `AUTH_ENABLED` — `true` | `false`
-- `LLM_PROVIDER`, `LLM_MODEL` — already exist (PR #72)
-- `INGRESS_HOST` — optional override
-
----
-
-## 7 · Troubleshooting
-
-### `Error: UPGRADE FAILED: another operation in progress`
-Previous `helm install/upgrade` was killed mid-flight → release stuck in `pending-install`. Fix:
+### `helm uninstall` left PVCs behind
+The chart deletes its PVCs, but a stuck finalizer can leave them `Terminating`.
+Force-remove:
 ```bash
-helm history caredesk -n <NS>            # confirm pending status
-helm uninstall caredesk -n <NS>          # wipes the release
-make deploy                              # fresh install
+kubectl -n <ns> delete pvc -l app.kubernetes.io/part-of=caredesk
 ```
 
-### Web pod `CrashLoopBackOff` with `host not found in upstream "api-gateway"`
-Chart should mount the K8s nginx ConfigMap — confirm:
+### api-gateway `CrashLoopBackOff` — "Spring Boot 3.5.x not compatible with this Spring Cloud release train"
+The published image pins Spring Cloud 2023.0.x under Spring Boot 3.5.x; the strict
+compatibility verifier aborts startup even though the gateway runs fine at runtime.
+The chart already disables the verifier
+(`SPRING_CLOUD_COMPATIBILITYVERIFIER_ENABLED=false`). The permanent fix is the
+gateway `pom.xml` bump to `spring-cloud.version` **2025.0.x** (aligned with Boot
+3.5); once a new image is published the flag becomes a harmless no-op.
+
+### Spring service `CrashLoopBackOff` on first boot
+Each service waits on its own Postgres and creates its schema
+(`SPRING_JPA_HIBERNATE_DDL_AUTO=update`). The startup probe allows ~200 s. If it
+still loops, check the DB pod and logs:
 ```bash
-kubectl -n <NS> get configmap caredesk-web-nginx
-kubectl -n <NS> get pod -l app.kubernetes.io/component=web -o yaml | grep -A3 volumeMounts
-```
-If missing, re-run `make deploy` after pulling latest chart.
-
-### Postgres `ImagePullBackOff: docker.io/bitnami/postgresql … not found`
-Bitnami removed legacy tags from docker.io in 2025. Chart pins `bitnamilegacy/postgresql` instead — confirm `values.yaml` has `postgresql.image.repository: bitnamilegacy/postgresql`.
-
-### Auth `CrashLoopBackOff` right after first deploy
-Auth waits for Postgres via an `initContainer`. If it still loops, check:
-```bash
-kubectl -n <NS> logs caredesk-auth-... --previous
-```
-Usually means `JWT_SECRET` is unquoted in `.env.k8s` (Spring parses it as a number).
-
-### Chrome `ERR_CERT_AUTHORITY_INVALID` / `NET::ERR_CERT_AUTHORITY_INVALID` / HSTS warning
-First deploy briefly served a fake cert before cert-manager finished. Browser cached HSTS for it. Fix:
-1. `chrome://net-internals/#hsts`
-2. "Delete domain security policies" → paste hostname → **Delete**
-3. Force-refresh
-
-Verify the live cert is real Let's Encrypt:
-```bash
-echo | openssl s_client -connect <HOST>:443 -servername <HOST> 2>/dev/null \
-  | openssl x509 -noout -issuer
-# → issuer=… Let's Encrypt … ✓
+kubectl -n <ns> get pods
+kubectl -n <ns> logs deploy/caredesk-<service> --previous
 ```
 
-### Ingress host shows wrong / fake URL
-The default rendered host is `caredesk-<TUM_ID>.student.k8s.aet.cit.tum.de`. If the actual cluster ingress uses a different suffix:
-1. Open Rancher → your namespace → **Ingresses** tab
-2. Note the URL for the `caredesk` ingress
-3. Set `INGRESS_HOST` in `.env.k8s` and rerun `make deploy`
+### Ingress host shows the wrong URL
+Default host is `caredesk-<tumId>.student.k8s.aet.cit.tum.de`. If the cluster uses
+a different suffix, look it up in Rancher → Ingresses and redeploy with
+`--set ingress.host=<actual-host>`.
 
 ### AET cluster gets reset weekly
-The DevOps space is wiped end of week (fair-use policy, PDF slide W04E02-14). Re-run `make deploy` after reset — chart is idempotent, no state assumed (PVCs are recreated).
+The DevOps namespace is wiped end of week. Re-run the one-command deploy — the
+chart is idempotent and assumes no pre-existing state (PVCs are recreated).

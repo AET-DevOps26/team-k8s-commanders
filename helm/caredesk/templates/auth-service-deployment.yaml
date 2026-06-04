@@ -16,27 +16,9 @@ spec:
       labels:
         {{- include "caredesk.selectorLabels" (dict "root" . "component" "auth") | nindent 8 }}
       annotations:
-        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
         checksum/secret: {{ include (print $.Template.BasePath "/secret-app.yaml") . | sha256sum }}
     spec:
       {{- include "caredesk.imagePullSecrets" . | nindent 6 }}
-      {{- if .Values.postgresql.enabled }}
-      initContainers:
-        # Block startup until Postgres accepts TCP connections — avoids
-        # CrashLoopBackOff while the DB pod is still pulling/initialising.
-        - name: wait-for-postgres
-          image: busybox:1.36
-          command:
-            - sh
-            - -c
-            - |
-              until nc -z {{ include "caredesk.postgresHost" . }} 5432; do
-                echo "waiting for postgres..."; sleep 2;
-              done
-          resources:
-            requests: { cpu: 10m, memory: 16Mi }
-            limits:   { cpu: 50m, memory: 32Mi }
-      {{- end }}
       containers:
         - name: auth-service
           image: {{ include "caredesk.image" (dict "root" $ "image" .Values.auth.image) | quote }}
@@ -44,43 +26,30 @@ spec:
           ports:
             - name: http
               containerPort: {{ .Values.auth.service.port }}
-          envFrom:
-            - configMapRef:
-                name: {{ include "caredesk.fullname" . }}-config
           env:
             - name: SERVER_PORT
               value: {{ .Values.auth.service.port | quote }}
-            - name: SPRING_JPA_HIBERNATE_DDL_AUTO
-              value: {{ .Values.auth.env.ddlAuto | quote }}
-            - name: DB_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: {{ .Release.Name }}-postgresql
-                  key: password
-            - name: JWT_SECRET
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "caredesk.fullname" . }}-app
-                  key: JWT_SECRET
-          # Startup probe gives Spring Boot + JPA schema gen a generous window
-          # (up to 150s) before liveness/readiness take over. Prevents the
-          # liveness probe from killing a still-booting pod → restart loop.
+            - name: JWT_EXPIRATION_MS
+              value: {{ .Values.backend.jwtExpirationMs | quote }}
+            {{- include "caredesk.dbEnv" (dict "root" $ "host" .Values.auth.dbHost "name" .Values.auth.dbName) | nindent 12 }}
+            {{- include "caredesk.jwtEnv" . | nindent 12 }}
+          # Generous startup window for Spring Boot + JPA schema generation.
           startupProbe:
             httpGet:
-              path: /actuator/health/liveness
+              path: /actuator/health
               port: http
             initialDelaySeconds: 10
             periodSeconds: 5
-            failureThreshold: 30
+            failureThreshold: 40
           readinessProbe:
             httpGet:
-              path: /actuator/health/readiness
+              path: /actuator/health
               port: http
             periodSeconds: 10
             failureThreshold: 6
           livenessProbe:
             httpGet:
-              path: /actuator/health/liveness
+              path: /actuator/health
               port: http
             periodSeconds: 15
             failureThreshold: 3

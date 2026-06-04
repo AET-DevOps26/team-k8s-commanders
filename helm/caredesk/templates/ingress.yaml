@@ -1,43 +1,6 @@
 {{- if .Values.ingress.enabled -}}
 {{- $fullName := include "caredesk.fullname" . -}}
 {{- $host := include "caredesk.ingressHost" . -}}
-{{- if .Values.auth.enabled }}
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: {{ $fullName }}-auth
-  labels:
-    {{- include "caredesk.labels" . | nindent 4 }}
-  annotations:
-    nginx.ingress.kubernetes.io/rewrite-target: /$2
-    nginx.ingress.kubernetes.io/use-regex: "true"
-    {{- if and .Values.ingress.tls.enabled .Values.ingress.tls.clusterIssuer }}
-    cert-manager.io/cluster-issuer: {{ .Values.ingress.tls.clusterIssuer | quote }}
-    {{- end }}
-    {{- with .Values.ingress.annotations }}
-    {{- toYaml . | nindent 4 }}
-    {{- end }}
-spec:
-  ingressClassName: {{ .Values.ingress.className }}
-  {{- if .Values.ingress.tls.enabled }}
-  tls:
-    - hosts:
-        - {{ $host | quote }}
-      secretName: {{ .Values.ingress.tls.secretName }}
-  {{- end }}
-  rules:
-    - host: {{ $host | quote }}
-      http:
-        paths:
-          - path: /api(/|$)(.*)
-            pathType: ImplementationSpecific
-            backend:
-              service:
-                name: {{ $fullName }}-auth
-                port:
-                  number: {{ .Values.auth.service.port }}
----
-{{- end }}
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -63,14 +26,17 @@ spec:
     - host: {{ $host | quote }}
       http:
         paths:
-          {{- if .Values.ai.enabled }}
-          - path: /ai
+          {{- if .Values.gateway.enabled }}
+          # All API traffic enters through the gateway, which owns the /api/v1
+          # prefix (JWT verification + routing). No path rewrite — the gateway
+          # strips /api/v1 itself before forwarding downstream.
+          - path: /api
             pathType: Prefix
             backend:
               service:
-                name: {{ $fullName }}-ai
+                name: {{ $fullName }}-gateway
                 port:
-                  number: {{ .Values.ai.service.port }}
+                  number: {{ .Values.gateway.service.port }}
           {{- end }}
           {{- if .Values.web.enabled }}
           - path: /

@@ -73,62 +73,53 @@ See [web-client/README.md](web-client/README.md) for standalone client image bui
 
 ## Kubernetes deployment
 
-The app deploys to Kubernetes via a single command. One environment variable,
-`DEPLOY_TARGET`, decides **where** it lands:
+The whole stack — web-client, api-gateway, auth/patient/notes services,
+ai-assistant and one PostgreSQL per service — deploys with **a single command and
+no pre-created env files or secrets**. The chart ships working dev defaults and
+the GHCR images are public.
 
-| `DEPLOY_TARGET` | Where | Script |
-|-----------------|-------|--------|
-| `local` | A [kind](https://kind.sigs.k8s.io/) cluster on your own machine | `scripts/deploy-local.sh` |
-| `aet` (default) | The AET TUM Rancher cluster | `scripts/deploy-k8s.sh` |
-
-### One command
+### One command (no env file)
 
 ```bash
-make deploy                      # uses DEPLOY_TARGET from .env.k8s (default: aet)
-make deploy DEPLOY_TARGET=local  # force local kind
-make deploy DEPLOY_TARGET=aet    # force AET cluster
+helm upgrade --install caredesk helm/caredesk \
+  --namespace <your-namespace> --create-namespace \
+  --set tumId=<your-tum-id>
 ```
 
-`DEPLOY_TARGET` is resolved in this order: an inline/`make` value wins, then an
-exported shell variable, then the `DEPLOY_TARGET=` line in `.env.k8s`, otherwise
-it falls back to `aet`. `make local` is just a shortcut for
-`make deploy DEPLOY_TARGET=local`.
+Example:
 
-### First-time setup
+```bash
+helm upgrade --install caredesk helm/caredesk \
+  --namespace ge38yuc-devops26-team-k8s-commanders --create-namespace \
+  --set tumId=ge38yuc
+```
 
-1. **Config file.** Copy the template and fill it in:
+Open `https://caredesk-<tumId>.student.k8s.aet.cit.tum.de/`. cert-manager issues
+the TLS cert on first deploy (~30 s). The AI assistant deploys healthy without a
+key; add one with `--set ai.secrets.llmApiKey=sk-...`. Full chart docs and
+routing: [`helm/caredesk/README.md`](helm/caredesk/README.md).
 
-   ```bash
-   cp .env.k8s.example .env.k8s
-   ```
+**For the AET cluster** you only need the kubeconfig (context `stud`):
 
-   `.env.k8s` is gitignored. Set at least:
-   - `DEPLOY_TARGET` — `local` or `aet`.
-   - `TUM_ID` — your LRZ/TUM kennung. The namespace is `<TUM_ID>-devops26`. It
-     **must** be a namespace your Rancher account owns. Verify with
-     `kubectl auth can-i --list`; any namespace listed with verb `*` is yours.
-   - `LLM_API_KEY` — required (a real key for `/ai/query`; any non-empty value
-     passes health checks).
-   - `GHCR_USER` / `GHCR_PAT` — only if the container images are private (PAT
-     scope: `read:packages`). Leave empty for public images.
+```bash
+cp ~/Downloads/stud.yaml ~/.kube/config
+kubectl config current-context   # should print: stud
+```
 
-2. **For `aet` only — kubeconfig.** Download `stud.yaml` from
-   <https://rancher.ase.cit.tum.de> and place it at `~/.kube/config`:
+**For a local kind cluster**, the `make` wrapper builds + loads images:
 
-   ```bash
-   cp ~/Downloads/stud.yaml ~/.kube/config
-   kubectl config current-context   # should print: stud
-   ```
+```bash
+make deploy DEPLOY_TARGET=local   # kind + ingress + helm, optional .env.k8s
+```
 
-3. **For `local` only — Docker.** Docker Desktop / OrbStack must be running;
-   `kind`, `kubectl`, and `helm` are auto-installed via brew on macOS if missing.
+The `make deploy` / `.env.k8s` path still exists for CI parity and local kind,
+but is **optional** — the `helm upgrade --install` above is self-contained.
 
 ### Tear down
 
 ```bash
-make undeploy   # uninstall release, keep PVCs + namespace
-make purge      # uninstall + delete PVCs + delete namespace
-make local-clean  # delete the local kind cluster entirely
+helm uninstall caredesk -n <your-namespace>   # removes all resources incl. DB PVCs
+make local-clean                              # delete the local kind cluster
 ```
 
 ### Chart utilities (no live cluster needed)

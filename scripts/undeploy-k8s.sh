@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
-# Tear down the CareDesk release. By default keeps the namespace + PVCs.
-# Use --purge to also delete PVCs (Bitnami Postgres data) and the namespace.
+# Tear down the CareDesk release. `helm uninstall` already removes the chart's
+# Postgres PVCs (they are chart-owned), so the data is wiped either way; the
+# namespace is kept. Use --purge to also delete any orphaned PVCs and the
+# namespace itself.
 
 set -euo pipefail
 
@@ -16,8 +18,8 @@ PURGE=false
 if [[ -f "${ENV_FILE}" ]]; then
   set -a; source "${ENV_FILE}"; set +a
 fi
-: "${TUM_ID:?TUM_ID is required (set in .env.k8s or env)}"
-NAMESPACE="${TUM_ID}-devops26"
+TUM_ID="${TUM_ID:-ge38yuc}"
+NAMESPACE="${NAMESPACE:-${TUM_ID}-devops26}"
 RELEASE="${RELEASE:-caredesk}"
 
 log "Uninstalling release ${RELEASE} from ns/${NAMESPACE}"

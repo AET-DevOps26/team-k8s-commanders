@@ -60,7 +60,7 @@ app.kubernetes.io/component: {{ .component }}
 {{- .Values.web.env.publicApiUrl -}}
 {{- else -}}
 {{- $proto := ternary "https" "http" .Values.ingress.tls.enabled -}}
-{{- printf "%s://%s/api" $proto (include "caredesk.ingressHost" .) -}}
+{{- printf "%s://%s/api/v1" $proto (include "caredesk.ingressHost" .) -}}
 {{- end -}}
 {{- end -}}
 
@@ -78,7 +78,31 @@ imagePullSecrets:
 {{- end -}}
 {{- end -}}
 
-{{/* Postgres host (from Bitnami subchart service) */}}
-{{- define "caredesk.postgresHost" -}}
-{{- printf "%s-postgresql" .Release.Name -}}
+{{/* Backend env shared by every Spring service: DB wiring + DDL strategy.
+     Call with: include "caredesk.dbEnv" (dict "root" $ "host" "..." "name" "...") */}}
+{{- define "caredesk.dbEnv" -}}
+- name: DB_HOST
+  value: {{ .host | quote }}
+- name: DB_PORT
+  value: "5432"
+- name: DB_NAME
+  value: {{ .name | quote }}
+- name: DB_USER
+  value: {{ .root.Values.postgres.username | quote }}
+- name: DB_PASSWORD
+  valueFrom:
+    secretKeyRef:
+      name: {{ include "caredesk.fullname" .root }}-db
+      key: password
+- name: SPRING_JPA_HIBERNATE_DDL_AUTO
+  value: {{ .root.Values.backend.ddlAuto | quote }}
+{{- end -}}
+
+{{/* JWT secret env entry (shared by auth-service and api-gateway) */}}
+{{- define "caredesk.jwtEnv" -}}
+- name: JWT_SECRET
+  valueFrom:
+    secretKeyRef:
+      name: {{ include "caredesk.fullname" . }}-app
+      key: JWT_SECRET
 {{- end -}}

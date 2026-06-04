@@ -19,6 +19,9 @@ services:
   web-client:
     image: ghcr.io/aet-devops26/team-k8s-commanders/web-client:${IMAGE_TAG:-latest}
     restart: always
+    depends_on:
+      api-gateway:
+        condition: service_healthy
     environment:
       PUBLIC_API_URL: ${PUBLIC_API_URL:-/api/v1}
     networks:
@@ -51,7 +54,7 @@ services:
     volumes:
       - auth-db-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $${AUTH_DB_USER} -d $${AUTH_DB_NAME}"]
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -79,7 +82,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-      start_period: 30s
+      start_period: 360s
     networks:
       - caredesk
 
@@ -93,7 +96,7 @@ services:
     volumes:
       - patient-db-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $${PATIENT_DB_USER} -d $${PATIENT_DB_NAME}"]
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -120,6 +123,47 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 360s
+    networks:
+      - caredesk
+
+  notes-db:
+    image: postgres:16-alpine
+    restart: always
+    environment:
+      POSTGRES_DB: ${NOTES_DB_NAME:?NOTES_DB_NAME must be set}
+      POSTGRES_USER: ${NOTES_DB_USER:?NOTES_DB_USER must be set}
+      POSTGRES_PASSWORD: ${NOTES_DB_PASSWORD:?NOTES_DB_PASSWORD must be set}
+    volumes:
+      - notes-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - caredesk
+
+  notes-service:
+    image: ghcr.io/aet-devops26/team-k8s-commanders/notes-service:${IMAGE_TAG:-latest}
+    restart: always
+    depends_on:
+      notes-db:
+        condition: service_healthy
+    environment:
+      DB_HOST: notes-db
+      DB_PORT: 5432
+      DB_NAME: ${NOTES_DB_NAME:?NOTES_DB_NAME must be set}
+      DB_USER: ${NOTES_DB_USER:?NOTES_DB_USER must be set}
+      DB_PASSWORD: ${NOTES_DB_PASSWORD:?NOTES_DB_PASSWORD must be set}
+      # application.yml ships with ddl-auto: validate. Set NOTES_DDL_AUTO=update
+      # for the first deployment so the schema is created, then revert.
+      SPRING_JPA_HIBERNATE_DDL_AUTO: ${NOTES_DDL_AUTO:-validate}
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8083/actuator/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
       start_period: 30s
     networks:
       - caredesk
@@ -134,23 +178,27 @@ services:
         condition: service_healthy
       patient-service:
         condition: service_healthy
+      notes-service:
+        condition: service_healthy
     environment:
       AUTH_SERVICE_URL: http://auth-service:8081
       AI_ASSISTANT_URL: http://ai-assistant:8000
       PATIENT_SERVICE_URL: http://patient-service:8082
+      NOTES_SERVICE_URL: http://notes-service:8083
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set}
     healthcheck:
       test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8080/actuator/health || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 5
-      start_period: 30s
+      start_period: 360s
     networks:
       - caredesk
 
 volumes:
   auth-db-data:
   patient-db-data:
+  notes-db-data:
 
 networks:
   caredesk:

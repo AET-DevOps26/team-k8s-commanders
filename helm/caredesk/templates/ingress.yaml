@@ -1,6 +1,7 @@
 {{- if .Values.ingress.enabled -}}
 {{- $fullName := include "caredesk.fullname" . -}}
 {{- $host := include "caredesk.ingressHost" . -}}
+{{- $hosts := concat (list $host) .Values.ingress.hostAliases -}}
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -23,10 +24,11 @@ spec:
       secretName: {{ .Values.ingress.tls.secretName }}
   {{- end }}
   rules:
-    - host: {{ $host | quote }}
+    {{- range $ruleHost := $hosts }}
+    - host: {{ $ruleHost | quote }}
       http:
         paths:
-          {{- if .Values.gateway.enabled }}
+          {{- if $.Values.gateway.enabled }}
           # The /api prefix (covering all /api/v1/** routes) is forwarded
           # unchanged to the gateway — no nginx rewrite. The gateway owns the
           # /api/v1 routes and strips that prefix itself (StripPrefix=2) before
@@ -37,15 +39,16 @@ spec:
               service:
                 name: {{ $fullName }}-gateway
                 port:
-                  number: {{ .Values.gateway.service.port }}
+                  number: {{ $.Values.gateway.service.port }}
           {{- end }}
-          {{- if .Values.web.enabled }}
+          {{- if $.Values.web.enabled }}
           - path: /
             pathType: Prefix
             backend:
               service:
                 name: {{ $fullName }}-web
                 port:
-                  number: {{ .Values.web.service.port }}
+                  number: {{ $.Values.web.service.port }}
           {{- end }}
+    {{- end }}
 {{- end }}

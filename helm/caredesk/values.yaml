@@ -55,12 +55,24 @@ databases:
   notes-db:
     database: notes_db
 
+# ─── NetworkPolicy ─────────────────────────────────────────────────────────────
+# Enforces the trusted-header model: backend services (auth/patient/notes/ai)
+# trust gateway-injected X-User-* headers, so only the gateway may reach them.
+# Each Postgres is reachable only from its owning backend service.
+# Requires a CNI that enforces NetworkPolicy (AET = Calico ✓; kind/kindnet does
+# NOT enforce — policies are harmless no-ops locally).
+networkPolicy:
+  enabled: true
+
 # ─── Ingress ───────────────────────────────────────────────────────────────────
 ingress:
   enabled: true
   className: nginx
   # If empty, _helpers renders: caredesk-<tumId>.student.k8s.aet.cit.tum.de
   host: ""
+  # Extra DNS hosts render the same ingress rules. Useful for local aliases
+  # such as localhost without changing the canonical cluster host.
+  hostAliases: []
   annotations:
     nginx.ingress.kubernetes.io/proxy-body-size: "10m"
   tls:

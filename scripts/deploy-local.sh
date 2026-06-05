@@ -25,6 +25,7 @@ NAMESPACE="caredesk-local"
 RELEASE="caredesk"
 IMAGE_TAG="local"
 INGRESS_HOST="caredesk.localtest.me"   # resolves to 127.0.0.1
+LOCAL_WEB_HOST="localhost"             # avoids proxies that intercept *.localtest.me
 INGRESS_PORT="18080"                   # matches helm/caredesk/kind-config.yaml hostPort
 REGISTRY="ghcr.io/aet-devops26/team-k8s-commanders"
 
@@ -56,6 +57,18 @@ require_docker() {
   fi
 }
 
+ensure_ingress_host_network() {
+  # kind maps host port 18080 to port 80 on the control-plane container.
+  # Running ingress-nginx on the node network makes that mapping deterministic;
+  # the provider/kind HostPort setup can get stuck after Docker Desktop disk or
+  # pod-sandbox resets and then browser requests fail with ERR_CONNECTION_RESET.
+  kubectl -n ingress-nginx patch deployment ingress-nginx-controller \
+    --type=merge \
+    -p '{"spec":{"template":{"spec":{"hostNetwork":true,"dnsPolicy":"ClusterFirstWithHostNet"}}}}' \
+    >/dev/null
+  kubectl -n ingress-nginx rollout status deploy/ingress-nginx-controller --timeout=180s
+}
+
 # ─── 1. Prereqs ───────────────────────────────────────────────────────────────
 require_docker
 require_or_install kind
@@ -85,6 +98,7 @@ else
   done
   kubectl -n ingress-nginx rollout status deploy/ingress-nginx-controller --timeout=180s
 fi
+ensure_ingress_host_network
 
 # ─── 4. Build images ──────────────────────────────────────────────────────────
 build_image() {
@@ -143,13 +157,13 @@ SET_FLAGS=(
   --set "images.pullPolicy=Never"               # use kind-loaded images, never pull
   --set "images.pullSecret.create=false"        # no GHCR auth needed
   --set "ingress.host=${INGRESS_HOST}"
+  --set "ingress.hostAliases[0]=${LOCAL_WEB_HOST}"
   --set "ingress.tls.enabled=false"             # no cert-manager in kind
   --set "ai.secrets.llmApiKey=local-dummy"      # health probe ok; /ai/query needs real key
   --set "web.replicaCount=1"                    # save resources
-  # The kind ingress is published on host port ${INGRESS_PORT}; bake it into the
-  # SPA's API base so browser calls reach the gateway (the auto-derived host
-  # would otherwise omit the port and hit :80).
-  --set "web.env.publicApiUrl=http://${INGRESS_HOST}:${INGRESS_PORT}/api/v1"
+  # Relative API base — browser calls stay same-origin whether the user opens
+  # localhost:${INGRESS_PORT} or caredesk.localtest.me:${INGRESS_PORT}.
+  --set "web.env.publicApiUrl=/api/v1"
 )
 
 log "Helm upgrade --install ${RELEASE} -> ns/${NAMESPACE}"
@@ -159,12 +173,13 @@ helm upgrade --install "${RELEASE}" "${CHART_DIR}" \
   --wait --timeout 8m
 
 # ─── 7. Done ──────────────────────────────────────────────────────────────────
-URL="http://${INGRESS_HOST}:${INGRESS_PORT}"
+URL="http://${LOCAL_WEB_HOST}:${INGRESS_PORT}"
 log "Deployed."
 echo
 echo "  Web: ${URL}/"
 echo "  API: ${URL}/api/v1/   (via api-gateway)"
 echo "       e.g. POST ${URL}/api/v1/auth/register"
+echo "  Alt: http://${INGRESS_HOST}:${INGRESS_PORT}/"
 echo
 echo "Inspect:   kubectl -n ${NAMESPACE} get pods,svc,ingress"
 echo "Logs:      kubectl -n ${NAMESPACE} logs -l app.kubernetes.io/instance=${RELEASE} --tail=50"

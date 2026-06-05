@@ -81,6 +81,23 @@ The web-client calls the API at `https://<host>/api/v1` (injected at runtime via
 `PUBLIC_API_URL` → `window.__ENV__`). No `api-gateway` DNS dependency inside the
 image — the chart mounts a Kubernetes-only nginx config.
 
+### Network isolation (trusted-header model)
+
+The gateway is the only trusted entry point — it verifies the JWT and injects
+`X-User-*` identity headers that the backend services trust. To stop any other
+pod in the namespace from hitting `caredesk-patient:8082` etc. directly with
+forged headers, the chart ships **NetworkPolicies** (`networkPolicy.enabled=true`
+by default):
+
+- `auth`, `patient`, `notes`, `ai` accept pod-ingress **only from the gateway**
+  (`patient`/`notes` also from `ai`, for the upcoming ai→data integration).
+- each Postgres accepts connections **only from its owning backend service**.
+- `web-client` and `gateway` are left open so the ingress-controller path works.
+
+Requires a CNI that enforces NetworkPolicy — **AET (Calico) does**; kind/kindnet
+does **not**, so locally the policies are harmless no-ops. Disable with
+`--set networkPolicy.enabled=false` (e.g. if a cluster CNI blocks kubelet probes).
+
 ---
 
 ## 3 · Tear down

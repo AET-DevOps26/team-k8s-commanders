@@ -47,20 +47,22 @@ jobs:
       - name: Determine image tag
         id: tag
         run: |
-          # When triggered by workflow_run, use the head SHA of the upstream run;
-          # otherwise use the current commit SHA. The Publish Images workflow
-          # tags images as `sha-<short>` via docker/metadata-action's type=sha.
+          # Only pin an exact sha-<short> when this run follows a successful
+          # Publish Images run — that is the only path guaranteed to have built
+          # and pushed that tag. A push touching only helm/** (or a manual
+          # workflow_dispatch) does NOT rebuild images, so a sha pin would point
+          # at a tag GHCR never built → ImagePullBackOff. Fall back to `latest`
+          # (the last image published from main) for those paths.
           if [ "${{ github.event_name }}" = "workflow_run" ]; then
             SHA="${{ github.event.workflow_run.head_sha }}"
+            echo "tag=sha-${SHA::7}" >> "$GITHUB_OUTPUT"
           else
-            SHA="${{ github.sha }}"
+            echo "tag=latest" >> "$GITHUB_OUTPUT"
           fi
-          echo "tag=sha-${SHA::7}" >> "$GITHUB_OUTPUT"
 
       - name: Deploy with Helm
         env:
           TUM_ID: ${{ vars.TUM_ID }}
-          AUTH_ENABLED: ${{ vars.AUTH_ENABLED }}
           LLM_PROVIDER: ${{ vars.LLM_PROVIDER }}
           LLM_MODEL: ${{ vars.LLM_MODEL }}
           INGRESS_HOST: ${{ vars.INGRESS_HOST }}

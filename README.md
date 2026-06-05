@@ -52,6 +52,8 @@ docker compose up --build
 | Auth database (Postgres) | localhost:5432 |
 | Patient service | http://localhost:8082 |
 | Patient database (Postgres) | localhost:5433 |
+| Notes service | http://localhost:8083 |
+| Notes database (Postgres) | localhost:5434 |
 
 The web client reads `PUBLIC_API_URL` at runtime (default `/api/v1`) and sends API requests through the gateway. Use `http://localhost` for the full compose setup; nginx serves the frontend and forwards `/api/v1/**` to the API gateway without requiring CORS. Copy `services/ai-assistant/.env.example` to `services/ai-assistant/.env` before the first run if you use the AI assistant service.
 
@@ -64,6 +66,8 @@ If Ollama has not been used before on your machine, the first startup may take s
 The auth service uses a Postgres container declared in `docker-compose.yml` and ships with a dev-only `JWT_SECRET` baked into the compose file. Override it via the environment for any non-local use. To bring up just the auth stack run `docker compose up auth-service` (this also starts `auth-db`).
 
 The patient service is a scaffold for patient, doctor, appointment and clinic data. It sits behind the API gateway and trusts the `X-User-Email` / `X-User-Role` headers the gateway injects after JWT validation. It uses its own Postgres container (`patient-db`).
+
+The notes service is a scaffold for clinical notes — the structured visit notes and diagnoses a doctor records against an appointment (`/appointments/{appointmentId}/note`). It follows the same pattern as the patient service: it sits behind the API gateway, trusts the gateway-injected `X-User-Email` / `X-User-Role` headers, and uses its own Postgres container (`notes-db`). The gateway routes the clinical note sub-path to it while the rest of `/appointments/**` stays with the patient service.
 
 See [web-client/README.md](web-client/README.md) for standalone client image builds.
 

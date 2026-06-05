@@ -17,6 +17,15 @@ spring:
           filters:
             - StripPrefix=2
 
+        # User directory lives in auth-service (names/email/role). The doctor
+        # dashboard reads it to resolve patient names and to search patients.
+        - id: auth-service-users
+          uri: ${AUTH_SERVICE_URL:http://localhost:8081}
+          predicates:
+            - Path=/api/v1/users/**
+          filters:
+            - StripPrefix=2
+
         - id: ai-assistant
           uri: ${AI_ASSISTANT_URL:http://localhost:8000}
           predicates:

@@ -9,11 +9,29 @@ export type Appointment = components['schemas']['Appointment']
 export type VisitHistory = components['schemas']['VisitHistory']
 export type PaginatedAppointmentResponse =
   components['schemas']['PaginatedAppointmentResponse']
+export type PaginatedUserProfileResponse =
+  components['schemas']['PaginatedUserProfileResponse']
+export type ClinicalNote = components['schemas']['ClinicalNote']
+export type ClinicalNoteInput = components['schemas']['ClinicalNoteInput']
+export type Diagnosis = components['schemas']['Diagnosis']
+export type AIQueryRequest = components['schemas']['AIQueryRequest']
+export type AIQueryResponse = components['schemas']['AIQueryResponse']
 
 type RequestOptions = {
   method?: string
   token?: string
   body?: unknown
+}
+
+/** Error carrying the HTTP status so callers can branch on it (e.g. 404). */
+export class RequestError extends Error {
+  readonly status: number
+
+  constructor(status: number, message: string) {
+    super(message)
+    this.name = 'RequestError'
+    this.status = status
+  }
 }
 
 async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
@@ -28,7 +46,7 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
   })
 
   if (!response.ok) {
-    throw new Error(await getErrorMessage(response))
+    throw new RequestError(response.status, await getErrorMessage(response))
   }
 
   if (response.status === 204) {
@@ -91,6 +109,53 @@ export function getPatientAppointments(patientId: string, token: string) {
 
 export function getPatientVisitHistory(patientId: string, token: string) {
   return request<VisitHistory>(`/patients/${patientId}/visit-history`, {
+    token,
+  })
+}
+
+export function listUsers(token: string, size = 100) {
+  return request<PaginatedUserProfileResponse>(`/users?size=${size}`, { token })
+}
+
+export function getDoctorAppointments(token: string, size = 100) {
+  return request<PaginatedAppointmentResponse>(`/appointments?size=${size}`, {
+    token,
+  })
+}
+
+/**
+ * Reads the clinical note for an appointment. Returns null when none has been
+ * written yet (the API answers 404 in that case).
+ */
+export async function getAppointmentNote(appointmentId: string, token: string) {
+  try {
+    return await request<ClinicalNote>(`/appointments/${appointmentId}/note`, {
+      token,
+    })
+  } catch (error) {
+    if (error instanceof RequestError && error.status === 404) {
+      return null
+    }
+    throw error
+  }
+}
+
+export function upsertAppointmentNote(
+  appointmentId: string,
+  input: ClinicalNoteInput,
+  token: string,
+) {
+  return request<ClinicalNote>(`/appointments/${appointmentId}/note`, {
+    method: 'PUT',
+    body: input,
+    token,
+  })
+}
+
+export function queryAi(payload: AIQueryRequest, token: string) {
+  return request<AIQueryResponse>('/ai/query', {
+    method: 'POST',
+    body: payload,
     token,
   })
 }

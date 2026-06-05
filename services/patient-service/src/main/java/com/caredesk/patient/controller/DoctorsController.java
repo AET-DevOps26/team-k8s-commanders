@@ -13,6 +13,9 @@ import org.springframework.stereotype.Controller;
 @Controller
 public class DoctorsController implements DoctorsApi {
 
+    private static final int DEFAULT_PAGE = 0;
+    private static final int DEFAULT_SIZE = 20;
+
     private final DoctorService doctorService;
 
     public DoctorsController(DoctorService doctorService) {
@@ -34,6 +37,8 @@ public class DoctorsController implements DoctorsApi {
                                                                      @Nullable String specialization,
                                                                      Integer page,
                                                                      Integer size) {
-        return ResponseEntity.ok(doctorService.listDoctors(q, specialization, page, size));
+        int pageIndex = page != null ? page : DEFAULT_PAGE;
+        int pageSize = size != null ? size : DEFAULT_SIZE;
+        return ResponseEntity.ok(doctorService.listDoctors(q, specialization, pageIndex, pageSize));
     }
 }

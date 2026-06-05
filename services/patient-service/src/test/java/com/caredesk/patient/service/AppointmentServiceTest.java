@@ -22,6 +22,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -46,7 +47,8 @@ class AppointmentServiceTest {
         AppointmentCreate request = new AppointmentCreate(patientId, doctorId, when, 30);
         request.setReason("Check-up");
         DoctorSlot slot = slot(doctorId, when, 30, true);
-        when(doctorSlotRepository.findByDoctorId(doctorId)).thenReturn(List.of(slot));
+        when(doctorSlotRepository.findAndLockAvailableSlot(eq(doctorId), eq(when), eq(when.plusMinutes(30))))
+                .thenReturn(Optional.of(slot));
         when(doctorSlotRepository.save(any(DoctorSlot.class))).thenAnswer(inv -> inv.getArgument(0));
         when(repository.save(any(Appointment.class))).thenAnswer(inv -> {
             Appointment a = inv.getArgument(0);
@@ -76,7 +78,8 @@ class AppointmentServiceTest {
         UUID doctorId = UUID.randomUUID();
         OffsetDateTime when = OffsetDateTime.parse("2026-06-10T10:00:00Z");
         AppointmentCreate request = new AppointmentCreate(patientId, doctorId, when, 30);
-        when(doctorSlotRepository.findByDoctorId(doctorId)).thenReturn(List.of(slot(doctorId, when, 30, false)));
+        when(doctorSlotRepository.findAndLockAvailableSlot(eq(doctorId), eq(when), eq(when.plusMinutes(30))))
+                .thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.book(request))
                 .isInstanceOf(AppointmentStateConflictException.class);
@@ -123,7 +126,10 @@ class AppointmentServiceTest {
         DoctorSlot oldSlot = slot(a.getDoctorId(), a.getDateTime(), a.getDuration(), false);
         DoctorSlot newSlot = slot(a.getDoctorId(), newWhen, 45, true);
         when(repository.findById(a.getId())).thenReturn(Optional.of(a));
-        when(doctorSlotRepository.findByDoctorId(a.getDoctorId())).thenReturn(List.of(oldSlot, newSlot));
+        when(doctorSlotRepository.findAndLockAvailableSlot(eq(a.getDoctorId()), eq(newWhen), eq(newWhen.plusMinutes(45))))
+                .thenReturn(Optional.of(newSlot));
+        when(doctorSlotRepository.findSlotByTime(eq(a.getDoctorId()), eq(a.getDateTime()), eq(a.getDateTime().plusMinutes(a.getDuration()))))
+                .thenReturn(Optional.of(oldSlot));
         when(doctorSlotRepository.save(any(DoctorSlot.class))).thenAnswer(inv -> inv.getArgument(0));
         when(repository.save(any(Appointment.class))).thenAnswer(inv -> inv.getArgument(0));
 
@@ -146,7 +152,10 @@ class AppointmentServiceTest {
         DoctorSlot oldSlot = slot(a.getDoctorId(), a.getDateTime(), a.getDuration(), false);
         DoctorSlot newSlot = slot(a.getDoctorId(), newWhen, 30, true);
         when(repository.findById(a.getId())).thenReturn(Optional.of(a));
-        when(doctorSlotRepository.findByDoctorId(a.getDoctorId())).thenReturn(List.of(oldSlot, newSlot));
+        when(doctorSlotRepository.findAndLockAvailableSlot(eq(a.getDoctorId()), eq(newWhen), eq(newWhen.plusMinutes(30))))
+                .thenReturn(Optional.of(newSlot));
+        when(doctorSlotRepository.findSlotByTime(eq(a.getDoctorId()), eq(a.getDateTime()), eq(a.getDateTime().plusMinutes(a.getDuration()))))
+                .thenReturn(Optional.of(oldSlot));
         when(doctorSlotRepository.save(any(DoctorSlot.class))).thenAnswer(inv -> inv.getArgument(0));
         when(repository.save(any(Appointment.class))).thenAnswer(inv -> inv.getArgument(0));
 
@@ -173,7 +182,8 @@ class AppointmentServiceTest {
         Appointment a = appointment(AppointmentStatus.SCHEDULED);
         DoctorSlot slot = slot(a.getDoctorId(), a.getDateTime(), a.getDuration(), false);
         when(repository.findById(a.getId())).thenReturn(Optional.of(a));
-        when(doctorSlotRepository.findByDoctorId(a.getDoctorId())).thenReturn(List.of(slot));
+        when(doctorSlotRepository.findSlotByTime(eq(a.getDoctorId()), eq(a.getDateTime()), eq(a.getDateTime().plusMinutes(a.getDuration()))))
+                .thenReturn(Optional.of(slot));
         when(doctorSlotRepository.save(any(DoctorSlot.class))).thenAnswer(inv -> inv.getArgument(0));
         when(repository.save(any(Appointment.class))).thenAnswer(inv -> inv.getArgument(0));
 

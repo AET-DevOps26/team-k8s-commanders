@@ -870,7 +870,6 @@ function PatientProfilePage({
               <input
                 autoComplete="tel"
                 onChange={(event) => setProfile({ ...profile, phoneNumber: event.target.value })}
-                required
                 type="tel"
                 value={profile.phoneNumber ?? ''}
               />
@@ -879,7 +878,6 @@ function PatientProfilePage({
               Date of birth
               <input
                 onChange={(event) => setProfile({ ...profile, dateOfBirth: event.target.value })}
-                required
                 type="date"
                 value={profile.dateOfBirth ?? ''}
               />

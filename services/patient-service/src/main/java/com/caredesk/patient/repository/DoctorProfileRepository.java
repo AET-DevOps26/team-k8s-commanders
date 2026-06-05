@@ -14,7 +14,6 @@ public interface DoctorProfileRepository extends JpaRepository<DoctorProfile, UU
             select doctor from DoctorProfile doctor
             where (:q is null
                    or lower(doctor.name) like lower(concat('%', :q, '%'))
-                   or lower(doctor.email) like lower(concat('%', :q, '%'))
                    or lower(doctor.specialization) like lower(concat('%', :q, '%')))
               and (:specialization is null
                    or lower(doctor.specialization) like lower(concat('%', :specialization, '%')))

@@ -15,6 +15,7 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.List;
@@ -58,6 +59,24 @@ class UserAccountServiceTest {
     }
 
     @Test
+    void updateUser_preservesPhoneAndDateOfBirth_whenOmittedFromRequest() {
+        User user = user("patient@example.com", Role.PATIENT);
+        user.setPhoneNumber("+49 89 123456");
+        user.setDateOfBirth(LocalDate.parse("1990-04-12"));
+        authenticate(user);
+        UserProfile request = new UserProfile(user.getId(), "Updated Name", null, UserRole.PATIENT);
+        when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
+        when(userRepository.findByEmail(user.getEmail())).thenReturn(Optional.of(user));
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        UserProfile updated = service.updateUser(user.getId(), request);
+
+        assertThat(updated.getName()).isEqualTo("Updated Name");
+        assertThat(updated.getPhoneNumber()).isEqualTo("+49 89 123456");
+        assertThat(updated.getDateOfBirth()).isEqualTo(LocalDate.parse("1990-04-12"));
+    }
+
+    @Test
     void updateUser_rejectsDuplicateEmail() {
         User user = user("patient@example.com", Role.PATIENT);
         User existing = user("existing@example.com", Role.PATIENT);
@@ -70,6 +89,25 @@ class UserAccountServiceTest {
 
         assertThatThrownBy(() -> service.updateUser(user.getId(), request))
                 .isInstanceOf(DuplicateEmailException.class);
+    }
+
+    @Test
+    void updateUser_resolvesCurrentUserFromUserDetailsPrincipal() {
+        User user = user("patient@example.com", Role.PATIENT);
+        UserDetails userDetails = new org.springframework.security.core.userdetails.User(
+                user.getEmail(),
+                user.getPassword(),
+                List.of(new SimpleGrantedAuthority("ROLE_PATIENT")));
+        SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(
+                userDetails, null, userDetails.getAuthorities()));
+        UserProfile request = new UserProfile(user.getId(), "Updated Name", null, UserRole.PATIENT);
+        when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
+        when(userRepository.findByEmail(user.getEmail())).thenReturn(Optional.of(user));
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        UserProfile updated = service.updateUser(user.getId(), request);
+
+        assertThat(updated.getName()).isEqualTo("Updated Name");
     }
 
     @Test

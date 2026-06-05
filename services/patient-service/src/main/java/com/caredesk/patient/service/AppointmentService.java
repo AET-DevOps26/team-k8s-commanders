@@ -163,19 +163,12 @@ public class AppointmentService {
     }
 
     private DoctorSlot findAvailableSlot(UUID doctorId, java.time.OffsetDateTime startAt, int duration) {
-        return doctorSlotRepository.findByDoctorId(doctorId).stream()
-                .filter(candidate -> Boolean.TRUE.equals(candidate.getAvailable()))
-                .filter(candidate -> candidate.getStartAt().equals(startAt))
-                .filter(candidate -> candidate.getEndAt().equals(startAt.plusMinutes(duration)))
-                .findFirst()
+        return doctorSlotRepository.findAndLockAvailableSlot(doctorId, startAt, startAt.plusMinutes(duration))
                 .orElseThrow(() -> new AppointmentStateConflictException("Selected doctor slot is unavailable"));
     }
 
     private void releaseSlot(UUID doctorId, java.time.OffsetDateTime startAt, int duration) {
-        doctorSlotRepository.findByDoctorId(doctorId).stream()
-                .filter(candidate -> candidate.getStartAt().equals(startAt))
-                .filter(candidate -> candidate.getEndAt().equals(startAt.plusMinutes(duration)))
-                .findFirst()
+        doctorSlotRepository.findSlotByTime(doctorId, startAt, startAt.plusMinutes(duration))
                 .ifPresent(slot -> {
                     slot.setAvailable(true);
                     doctorSlotRepository.save(slot);

@@ -331,7 +331,7 @@ paths:
         - name: q
           in: query
           required: false
-          description: Case-insensitive search term for doctor name, email, or specialization.
+          description: Case-insensitive search term for doctor name or specialization.
           schema:
             type: string
         - name: specialization
@@ -1163,6 +1163,7 @@ components:
         password:
           type: string
           format: password
+          minLength: 8
         phoneNumber:
           type: string
         dateOfBirth:

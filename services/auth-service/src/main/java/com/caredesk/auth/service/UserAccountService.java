@@ -16,6 +16,7 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -64,8 +65,12 @@ public class UserAccountService {
         if (request.getName() != null) {
             user.setName(request.getName());
         }
-        user.setPhoneNumber(request.getPhoneNumber());
-        user.setDateOfBirth(request.getDateOfBirth());
+        if (request.getPhoneNumber() != null) {
+            user.setPhoneNumber(request.getPhoneNumber());
+        }
+        if (request.getDateOfBirth() != null) {
+            user.setDateOfBirth(request.getDateOfBirth());
+        }
         if (isAdmin()) {
             applyAdminFields(user, request);
         }
@@ -115,7 +120,15 @@ public class UserAccountService {
         if (authentication == null || authentication.getPrincipal() == null) {
             throw new BadCredentialsException("Authentication required");
         }
-        String email = authentication.getPrincipal().toString();
+        Object principal = authentication.getPrincipal();
+        String email;
+        if (principal instanceof UserDetails userDetails) {
+            email = userDetails.getUsername();
+        } else if (principal instanceof String username) {
+            email = username;
+        } else {
+            throw new BadCredentialsException("Authentication required");
+        }
         return userRepository.findByEmail(email)
                 .orElseThrow(() -> new BadCredentialsException("Authenticated user no longer exists"));
     }

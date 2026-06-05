@@ -162,6 +162,29 @@ def test_query_missing_context_raises_404(mock_build_context):
     assert "detail" in response.json()
 
 
+@patch("routes.query.get_llm")
+@patch("routes.query.build_context", new_callable=AsyncMock)
+def test_query_without_ids_answers_generally(mock_build_context, mock_get_llm):
+    """No patient/appointment id: answer as a general medical assistant, not 404."""
+    mock_build_context.return_value = []
+    mock_get_llm.return_value = _fake_llm(
+        "Metformin is a first-line oral medication for type 2 diabetes."
+    )
+
+    client = TestClient(app)
+    response = client.post(
+        "/ai/query",
+        headers=DOCTOR_HEADERS,
+        json={"query": "What is the first-line treatment for type 2 diabetes?"},
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["answer"] == "Metformin is a first-line oral medication for type 2 diabetes."
+    # No grounding documents, so no sources are cited.
+    assert data["sources"] == []
+
+
 @patch("routes.query.build_context", new_callable=AsyncMock)
 def test_query_upstream_failure_raises_502(mock_build_context):
     """An upstream service error while fetching context surfaces as 502."""

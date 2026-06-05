@@ -12,7 +12,7 @@ from models.user_role import UserRole
 from utils.auth import require_roles
 from utils.context import build_context
 from utils.llm import get_llm
-from utils.prompt_templates import QUERY_PROMPT
+from utils.prompt_templates import GENERAL_PROMPT, QUERY_PROMPT
 from utils.service_client import forwarded_headers
 
 logger = logging.getLogger(__name__)
@@ -30,13 +30,17 @@ async def query(
     http_request: Request,
     _role: UserRole = Depends(require_roles(UserRole.DOCTOR, UserRole.ADMIN)),
 ) -> AIQueryResponse:
-    """Query the AI Assistant with live patient/appointment context.
+    """Query the AI Assistant, optionally grounded in live patient/appointment context.
 
     Restricted to DOCTOR and ADMIN roles, authorized from the gateway-provided
-    ``X-User-Role`` header. Context is fetched from patient-service and
-    notes-service, forwarding the caller's gateway identity headers.
+    ``X-User-Role`` header. When a patient and/or appointment id is supplied, the
+    answer is grounded in data fetched from patient-service and notes-service
+    (forwarding the caller's gateway identity headers); supplying an id that
+    resolves to nothing is a 404. When no id is supplied, the assistant answers as
+    a general-purpose medical reference with no patient context.
     """
     headers = forwarded_headers(http_request.headers)
+    ids_supplied = bool(request.patient_id or request.appointment_id)
 
     try:
         docs = await build_context(
@@ -51,20 +55,26 @@ async def query(
             detail="Failed to retrieve patient context",
         )
 
-    if not docs:
+    # An id that resolves to no data is a client error; no id at all is a valid
+    # general-knowledge query that runs without grounding context.
+    if ids_supplied and not docs:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="No patient or appointment data found for the supplied IDs",
         )
 
     try:
-        chain = QUERY_PROMPT | get_llm() | StrOutputParser()
-        answer = await chain.ainvoke(
-            {
-                "context": _format_docs(docs),
-                "question": request.query,
-            }
-        )
+        if docs:
+            chain = QUERY_PROMPT | get_llm() | StrOutputParser()
+            answer = await chain.ainvoke(
+                {
+                    "context": _format_docs(docs),
+                    "question": request.query,
+                }
+            )
+        else:
+            chain = GENERAL_PROMPT | get_llm() | StrOutputParser()
+            answer = await chain.ainvoke({"question": request.query})
 
         return AIQueryResponse(
             answer=answer,

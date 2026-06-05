@@ -1,7 +1,9 @@
 package com.caredesk.patient.service;
 
 import com.caredesk.patient.model.Appointment;
+import com.caredesk.patient.model.DoctorSlot;
 import com.caredesk.patient.repository.AppointmentRepository;
+import com.caredesk.patient.repository.DoctorSlotRepository;
 import org.junit.jupiter.api.Test;
 import org.openapitools.model.AppointmentCreate;
 import org.openapitools.model.AppointmentRescheduleRequest;
@@ -32,8 +34,9 @@ import static org.mockito.Mockito.when;
 class AppointmentServiceTest {
 
     private final AppointmentRepository repository = mock(AppointmentRepository.class);
+    private final DoctorSlotRepository doctorSlotRepository = mock(DoctorSlotRepository.class);
     private final AppointmentMapper mapper = new AppointmentMapper();
-    private final AppointmentService service = new AppointmentService(repository, mapper);
+    private final AppointmentService service = new AppointmentService(repository, doctorSlotRepository, mapper);
 
     @Test
     void book_createsScheduledAppointment() {
@@ -42,6 +45,9 @@ class AppointmentServiceTest {
         OffsetDateTime when = OffsetDateTime.parse("2026-06-10T10:00:00Z");
         AppointmentCreate request = new AppointmentCreate(patientId, doctorId, when, 30);
         request.setReason("Check-up");
+        DoctorSlot slot = slot(doctorId, when, 30, true);
+        when(doctorSlotRepository.findByDoctorId(doctorId)).thenReturn(List.of(slot));
+        when(doctorSlotRepository.save(any(DoctorSlot.class))).thenAnswer(inv -> inv.getArgument(0));
         when(repository.save(any(Appointment.class))).thenAnswer(inv -> {
             Appointment a = inv.getArgument(0);
             a.setId(UUID.randomUUID());
@@ -59,8 +65,22 @@ class AppointmentServiceTest {
         assertThat(persisted.getDuration()).isEqualTo(30);
         assertThat(persisted.getReason()).isEqualTo("Check-up");
         assertThat(persisted.getStatus()).isEqualTo(AppointmentStatus.SCHEDULED);
+        assertThat(slot.getAvailable()).isFalse();
         assertThat(created.getId()).isNotNull();
         assertThat(created.getStatus()).isEqualTo(AppointmentStatus.SCHEDULED);
+    }
+
+    @Test
+    void book_rejectsUnavailableSlot() {
+        UUID patientId = UUID.randomUUID();
+        UUID doctorId = UUID.randomUUID();
+        OffsetDateTime when = OffsetDateTime.parse("2026-06-10T10:00:00Z");
+        AppointmentCreate request = new AppointmentCreate(patientId, doctorId, when, 30);
+        when(doctorSlotRepository.findByDoctorId(doctorId)).thenReturn(List.of(slot(doctorId, when, 30, false)));
+
+        assertThatThrownBy(() -> service.book(request))
+                .isInstanceOf(AppointmentStateConflictException.class);
+        verify(repository, never()).save(any());
     }
 
     @Test
@@ -100,7 +120,11 @@ class AppointmentServiceTest {
     void reschedule_updatesDateTimeAndMarksRescheduled() {
         Appointment a = appointment(AppointmentStatus.SCHEDULED);
         OffsetDateTime newWhen = OffsetDateTime.parse("2026-07-01T15:00:00Z");
+        DoctorSlot oldSlot = slot(a.getDoctorId(), a.getDateTime(), a.getDuration(), false);
+        DoctorSlot newSlot = slot(a.getDoctorId(), newWhen, 45, true);
         when(repository.findById(a.getId())).thenReturn(Optional.of(a));
+        when(doctorSlotRepository.findByDoctorId(a.getDoctorId())).thenReturn(List.of(oldSlot, newSlot));
+        when(doctorSlotRepository.save(any(DoctorSlot.class))).thenAnswer(inv -> inv.getArgument(0));
         when(repository.save(any(Appointment.class))).thenAnswer(inv -> inv.getArgument(0));
 
         AppointmentRescheduleRequest req = new AppointmentRescheduleRequest(newWhen);
@@ -110,17 +134,23 @@ class AppointmentServiceTest {
         assertThat(dto.getDateTime()).isEqualTo(newWhen);
         assertThat(dto.getDuration()).isEqualTo(45);
         assertThat(dto.getStatus()).isEqualTo(AppointmentStatus.RESCHEDULED);
+        assertThat(oldSlot.getAvailable()).isTrue();
+        assertThat(newSlot.getAvailable()).isFalse();
     }
 
     @Test
     void reschedule_leavesDurationUntouched_whenOmitted() {
         Appointment a = appointment(AppointmentStatus.SCHEDULED);
         a.setDuration(30);
+        OffsetDateTime newWhen = OffsetDateTime.parse("2026-07-01T15:00:00Z");
+        DoctorSlot oldSlot = slot(a.getDoctorId(), a.getDateTime(), a.getDuration(), false);
+        DoctorSlot newSlot = slot(a.getDoctorId(), newWhen, 30, true);
         when(repository.findById(a.getId())).thenReturn(Optional.of(a));
+        when(doctorSlotRepository.findByDoctorId(a.getDoctorId())).thenReturn(List.of(oldSlot, newSlot));
+        when(doctorSlotRepository.save(any(DoctorSlot.class))).thenAnswer(inv -> inv.getArgument(0));
         when(repository.save(any(Appointment.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        AppointmentRescheduleRequest req = new AppointmentRescheduleRequest(
-                OffsetDateTime.parse("2026-07-01T15:00:00Z"));
+        AppointmentRescheduleRequest req = new AppointmentRescheduleRequest(newWhen);
         org.openapitools.model.Appointment dto = service.reschedule(a.getId(), req);
 
         assertThat(dto.getDuration()).isEqualTo(30);
@@ -141,12 +171,16 @@ class AppointmentServiceTest {
     @Test
     void cancel_setsStatusToCancelled() {
         Appointment a = appointment(AppointmentStatus.SCHEDULED);
+        DoctorSlot slot = slot(a.getDoctorId(), a.getDateTime(), a.getDuration(), false);
         when(repository.findById(a.getId())).thenReturn(Optional.of(a));
+        when(doctorSlotRepository.findByDoctorId(a.getDoctorId())).thenReturn(List.of(slot));
+        when(doctorSlotRepository.save(any(DoctorSlot.class))).thenAnswer(inv -> inv.getArgument(0));
         when(repository.save(any(Appointment.class))).thenAnswer(inv -> inv.getArgument(0));
 
         org.openapitools.model.Appointment dto = service.cancel(a.getId());
 
         assertThat(dto.getStatus()).isEqualTo(AppointmentStatus.CANCELLED);
+        assertThat(slot.getAvailable()).isTrue();
     }
 
     @Test
@@ -179,5 +213,15 @@ class AppointmentServiceTest {
         a.setStatus(status);
         a.setDuration(30);
         return a;
+    }
+
+    private static DoctorSlot slot(UUID doctorId, OffsetDateTime startAt, int duration, boolean available) {
+        DoctorSlot slot = new DoctorSlot();
+        slot.setId(UUID.randomUUID());
+        slot.setDoctorId(doctorId);
+        slot.setStartAt(startAt);
+        slot.setEndAt(startAt.plusMinutes(duration));
+        slot.setAvailable(available);
+        return slot;
     }
 }

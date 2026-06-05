@@ -1,6 +1,7 @@
 package com.caredesk.patient;
 
 import com.caredesk.patient.repository.AppointmentRepository;
+import com.caredesk.patient.repository.DoctorProfileRepository;
 import com.caredesk.patient.repository.DoctorSlotRepository;
 import com.caredesk.patient.repository.PatientRepository;
 import org.junit.jupiter.api.Test;
@@ -33,6 +34,9 @@ class PatientServiceApplicationTests {
 
     @MockBean
     DoctorSlotRepository doctorSlotRepository;
+
+    @MockBean
+    DoctorProfileRepository doctorProfileRepository;
 
     /**
      * Boots the Spring context with the auto-configurations above excluded.

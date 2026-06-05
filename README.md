@@ -65,7 +65,31 @@ If Ollama has not been used before on your machine, the first startup may take s
 
 The auth service uses a Postgres container declared in `docker-compose.yml` and ships with a dev-only `JWT_SECRET` baked into the compose file. Override it via the environment for any non-local use. To bring up just the auth stack run `docker compose up auth-service` (this also starts `auth-db`).
 
-The patient service is a scaffold for patient, doctor, appointment and clinic data. It sits behind the API gateway and trusts the `X-User-Email` / `X-User-Role` headers the gateway injects after JWT validation. It uses its own Postgres container (`patient-db`).
+The patient service manages patient, doctor, appointment and clinic data. It sits behind the API gateway and trusts the `X-User-Email` / `X-User-Role` headers the gateway injects after JWT validation. It uses its own Postgres container (`patient-db`).
+
+### Patient profile and booking flows
+
+Public signup always creates a `PATIENT` account. Doctor and admin creation is intentionally out of scope for public registration and should be handled by admin tooling later.
+
+Patient signup requires:
+
+- full name
+- email
+- password
+- phone number
+- date of birth
+
+Authenticated patients can use the web client to open `/patient/profile`, update name, email, phone number and date of birth, and change their password with the current password. The gateway routes `/api/v1/users/**` to auth-service for these account operations.
+
+Patients can open `/patient/book`, search doctors via `/api/v1/doctors`, view available slots via `/api/v1/doctors/{doctorId}/schedule`, and book a selected slot via `/api/v1/appointments`. Booking consumes the selected `doctor_slots` row and marks it unavailable before creating the appointment.
+
+Dev compose seeds these local credentials:
+
+| Role | Email | Password |
+|------|-------|----------|
+| Patient | patient@patient.com | patient123 |
+| Doctor | doctor@doctor.com | doctor123 |
+| Admin | admin@admin.com | admin123 |
 
 The notes service is a scaffold for clinical notes — the structured visit notes and diagnoses a doctor records against an appointment (`/appointments/{appointmentId}/note`). It follows the same pattern as the patient service: it sits behind the API gateway, trusts the gateway-injected `X-User-Email` / `X-User-Role` headers, and uses its own Postgres container (`notes-db`). The gateway routes the clinical note sub-path to it while the rest of `/appointments/**` stays with the patient service.
 

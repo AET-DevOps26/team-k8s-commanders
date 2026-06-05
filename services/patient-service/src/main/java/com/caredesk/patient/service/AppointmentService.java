@@ -1,7 +1,9 @@
 package com.caredesk.patient.service;
 
 import com.caredesk.patient.model.Appointment;
+import com.caredesk.patient.model.DoctorSlot;
 import com.caredesk.patient.repository.AppointmentRepository;
+import com.caredesk.patient.repository.DoctorSlotRepository;
 import org.openapitools.model.AppointmentCreate;
 import org.openapitools.model.AppointmentRescheduleRequest;
 import org.openapitools.model.AppointmentStatus;
@@ -20,9 +22,8 @@ import java.util.UUID;
  * Appointment CRUD operations.
  *
  * <p>Implements the booking, listing, retrieval, rescheduling and
- * cancellation flows for the patient and appointment service. Slot conflict
- * checks against {@code DoctorSlot} are intentionally not done yet, that
- * needs the doctor availability work in issue #35 to land first.
+ * cancellation flows for the patient and appointment service. Booking and
+ * rescheduling consume doctor slots; cancellation releases the occupied slot.
  *
  * <p>Authorisation is currently the same as the rest of the patient service,
  * any authenticated caller may invoke any endpoint. Per-role ownership rules
@@ -34,6 +35,7 @@ import java.util.UUID;
 public class AppointmentService {
 
     private final AppointmentRepository appointmentRepository;
+    private final DoctorSlotRepository doctorSlotRepository;
     private final AppointmentMapper appointmentMapper;
 
     /**
@@ -41,8 +43,10 @@ public class AppointmentService {
      * @param appointmentMapper     converts JPA entities to API DTOs
      */
     public AppointmentService(AppointmentRepository appointmentRepository,
+                              DoctorSlotRepository doctorSlotRepository,
                               AppointmentMapper appointmentMapper) {
         this.appointmentRepository = appointmentRepository;
+        this.doctorSlotRepository = doctorSlotRepository;
         this.appointmentMapper = appointmentMapper;
     }
 
@@ -54,6 +58,10 @@ public class AppointmentService {
      * @return the persisted appointment as an API DTO
      */
     public org.openapitools.model.Appointment book(AppointmentCreate request) {
+        DoctorSlot slot = findAvailableSlot(request.getDoctorId(), request.getDateTime(), request.getDuration());
+        slot.setAvailable(false);
+        doctorSlotRepository.save(slot);
+
         Appointment entity = new Appointment();
         entity.setPatientId(request.getPatientId());
         entity.setDoctorId(request.getDoctorId());
@@ -120,10 +128,16 @@ public class AppointmentService {
         if (entity.getStatus() == AppointmentStatus.CANCELLED) {
             throw new AppointmentStateConflictException("Cancelled appointment cannot be rescheduled: " + id);
         }
-        entity.setDateTime(request.getDateTime());
-        if (request.getDuration() != null) {
-            entity.setDuration(request.getDuration());
+        if (entity.getStatus() == AppointmentStatus.COMPLETED) {
+            throw new AppointmentStateConflictException("Completed appointment cannot be rescheduled: " + id);
         }
+        int duration = request.getDuration() != null ? request.getDuration() : entity.getDuration();
+        DoctorSlot newSlot = findAvailableSlot(entity.getDoctorId(), request.getDateTime(), duration);
+        releaseSlot(entity.getDoctorId(), entity.getDateTime(), entity.getDuration());
+        newSlot.setAvailable(false);
+        doctorSlotRepository.save(newSlot);
+        entity.setDateTime(request.getDateTime());
+        entity.setDuration(duration);
         // Mark as RESCHEDULED so the patient and doctor dashboards can flag it.
         entity.setStatus(AppointmentStatus.RESCHEDULED);
         return appointmentMapper.toApi(appointmentRepository.save(entity));
@@ -141,9 +155,30 @@ public class AppointmentService {
         Appointment entity = appointmentRepository.findById(id)
                 .orElseThrow(() -> new AppointmentNotFoundException(id));
         if (entity.getStatus() != AppointmentStatus.CANCELLED) {
+            releaseSlot(entity.getDoctorId(), entity.getDateTime(), entity.getDuration());
             entity.setStatus(AppointmentStatus.CANCELLED);
             entity = appointmentRepository.save(entity);
         }
         return appointmentMapper.toApi(entity);
+    }
+
+    private DoctorSlot findAvailableSlot(UUID doctorId, java.time.OffsetDateTime startAt, int duration) {
+        return doctorSlotRepository.findByDoctorId(doctorId).stream()
+                .filter(candidate -> Boolean.TRUE.equals(candidate.getAvailable()))
+                .filter(candidate -> candidate.getStartAt().equals(startAt))
+                .filter(candidate -> candidate.getEndAt().equals(startAt.plusMinutes(duration)))
+                .findFirst()
+                .orElseThrow(() -> new AppointmentStateConflictException("Selected doctor slot is unavailable"));
+    }
+
+    private void releaseSlot(UUID doctorId, java.time.OffsetDateTime startAt, int duration) {
+        doctorSlotRepository.findByDoctorId(doctorId).stream()
+                .filter(candidate -> candidate.getStartAt().equals(startAt))
+                .filter(candidate -> candidate.getEndAt().equals(startAt.plusMinutes(duration)))
+                .findFirst()
+                .ifPresent(slot -> {
+                    slot.setAvailable(true);
+                    doctorSlotRepository.save(slot);
+                });
     }
 }

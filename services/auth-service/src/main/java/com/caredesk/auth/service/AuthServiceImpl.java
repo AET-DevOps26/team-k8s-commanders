@@ -42,6 +42,8 @@ public class AuthServiceImpl implements AuthService {
         user.setName(request.getName());
         user.setEmail(request.getEmail());
         user.setPassword(passwordEncoder.encode(request.getPassword()));
+        user.setPhoneNumber(request.getPhoneNumber());
+        user.setDateOfBirth(request.getDateOfBirth());
         // Public self-registration always creates a PATIENT — elevated roles are assigned by admins only.
         user.setRole(Role.PATIENT);
         userRepository.save(user);

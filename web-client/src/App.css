@@ -484,7 +484,9 @@ h2 {
 
 .auth-card input {
   width: 100%;
+  height: 3rem;
   min-height: 3rem;
+  max-height: 3rem;
   border: 1px solid rgba(19, 35, 34, 0.14);
   border-radius: 0.5rem;
   padding: 0 0.85rem;
@@ -500,6 +502,9 @@ h2 {
 
 .auth-card .primary-button {
   width: 100%;
+  height: 3.15rem;
+  min-height: 3.15rem;
+  max-height: 3.15rem;
   border: 0;
   cursor: pointer;
 }
@@ -519,8 +524,49 @@ h2 {
   line-height: 1.5;
 }
 
+.form-success {
+  margin: 0;
+  padding: 0.8rem;
+  border-radius: 0.5rem;
+  color: #145a36;
+  background: #daf0e3;
+  line-height: 1.5;
+}
+
 .dashboard-shell {
   padding: clamp(2rem, 5vw, 4.5rem) clamp(1rem, 4vw, 4rem);
+}
+
+.patient-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  margin-bottom: 1.5rem;
+}
+
+.patient-tabs button,
+.doctor-card,
+.slot-button {
+  border: 1px solid rgba(19, 35, 34, 0.12);
+  border-radius: 0.5rem;
+  color: #173331;
+  background: rgba(255, 255, 255, 0.72);
+  font: inherit;
+  cursor: pointer;
+}
+
+.patient-tabs button {
+  min-height: 2.65rem;
+  padding: 0 1rem;
+  font-weight: 900;
+}
+
+.patient-tabs button.active,
+.doctor-card.active,
+.slot-button.active {
+  color: #f8fbf8;
+  border-color: #14615b;
+  background: #14615b;
 }
 
 .patient-hero {
@@ -545,6 +591,19 @@ h2 {
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 1rem;
   margin-bottom: 1rem;
+}
+
+.quick-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.quick-actions .primary-button,
+.quick-actions .secondary-button {
+  border: 1px solid rgba(19, 35, 34, 0.12);
+  cursor: pointer;
 }
 
 .summary-card {
@@ -621,9 +680,8 @@ h2 {
 }
 
 .appointment-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   gap: 1rem;
 }
 
@@ -639,11 +697,83 @@ h2 {
   line-height: 1.5;
 }
 
+.appointment-item small {
+  display: block;
+  margin-top: 0.45rem;
+  color: #19726c;
+  font-weight: 800;
+}
+
 .appointment-item span {
   flex: 0 0 auto;
   padding: 0.32rem 0.48rem;
   border-radius: 0.35rem;
   background: #cfe9df;
+}
+
+.appointment-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.appointment-actions button,
+.move-slot-grid button {
+  min-height: 2.25rem;
+  border: 1px solid rgba(19, 35, 34, 0.12);
+  border-radius: 0.45rem;
+  padding: 0 0.7rem;
+  color: #173331;
+  background: rgba(255, 255, 255, 0.78);
+  font: inherit;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.appointment-actions button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.move-panel {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 0.75rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid rgba(19, 35, 34, 0.1);
+}
+
+.move-panel .primary-button {
+  width: fit-content;
+  border: 0;
+  cursor: pointer;
+}
+
+.move-slot-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  gap: 0.55rem;
+}
+
+.move-slot-grid button {
+  display: grid;
+  gap: 0.2rem;
+  min-height: 4rem;
+  padding: 0.65rem;
+  text-align: left;
+}
+
+.move-slot-grid button.active {
+  color: #f8fbf8;
+  border-color: #14615b;
+  background: #14615b;
+}
+
+.move-slot-grid button.active strong,
+.move-slot-grid button.active span {
+  color: #f8fbf8;
 }
 
 .profile-list {
@@ -655,6 +785,123 @@ h2 {
   color: #132322;
   font-weight: 800;
   overflow-wrap: anywhere;
+}
+
+.settings-grid,
+.booking-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 1rem;
+}
+
+.settings-card h2,
+.booking-search h2 {
+  font-size: clamp(1.6rem, 3vw, 2.2rem);
+}
+
+.settings-card {
+  align-content: start;
+}
+
+.settings-card input {
+  height: 3rem;
+  max-height: 3rem;
+}
+
+.settings-card .primary-button {
+  height: 3.15rem;
+  max-height: 3.15rem;
+  align-self: start;
+}
+
+.settings-card input[readonly] {
+  color: #5a6f6b;
+  background: rgba(226, 241, 235, 0.68);
+}
+
+.booking-grid {
+  align-items: start;
+  margin-bottom: 1rem;
+}
+
+.doctor-results {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.doctor-card {
+  display: grid;
+  gap: 0.35rem;
+  padding: 1rem;
+  text-align: left;
+}
+
+.doctor-card strong {
+  font-size: 1.05rem;
+}
+
+.doctor-card span {
+  color: #19726c;
+  font-weight: 900;
+}
+
+.doctor-card.active span,
+.doctor-card.active small {
+  color: #dff0ea;
+}
+
+.doctor-card small {
+  color: #5a6f6b;
+  overflow-wrap: anywhere;
+}
+
+.calendar-panel {
+  margin-top: 1rem;
+}
+
+.slot-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+  gap: 0.75rem;
+}
+
+.slot-button {
+  display: grid;
+  gap: 0.35rem;
+  min-height: 5.5rem;
+  padding: 0.9rem;
+  text-align: left;
+}
+
+.slot-button span {
+  color: #19726c;
+  font-size: 0.78rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.slot-button.active span {
+  color: #dff0ea;
+}
+
+.reason-field {
+  display: grid;
+  gap: 0.45rem;
+  margin: 1rem 0;
+  color: #415956;
+  font-size: 0.88rem;
+  font-weight: 800;
+}
+
+.reason-field textarea {
+  width: 100%;
+  border: 1px solid rgba(19, 35, 34, 0.14);
+  border-radius: 0.5rem;
+  padding: 0.85rem;
+  color: #132322;
+  background: rgba(255, 255, 255, 0.9);
+  font: inherit;
+  resize: vertical;
 }
 
 .empty-panel {
@@ -683,7 +930,9 @@ h2 {
   .hero-section,
   .split-section,
   .auth-shell,
-  .dashboard-grid {
+  .dashboard-grid,
+  .settings-grid,
+  .booking-grid {
     grid-template-columns: 1fr;
   }
 
@@ -739,5 +988,11 @@ h2 {
   .primary-button,
   .secondary-button {
     width: 100%;
+  }
+
+  .patient-tabs button,
+  .quick-actions .primary-button,
+  .quick-actions .secondary-button {
+    flex: 1 1 100%;
   }
 }

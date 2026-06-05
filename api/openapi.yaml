@@ -172,6 +172,32 @@ paths:
           $ref: '#/components/responses/NotFound'
         '500':
           $ref: '#/components/responses/InternalServerError'
+  /users/{userId}/password:
+    put:
+      tags: [Users]
+      summary: Change a user's password
+      operationId: changeUserPassword
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PasswordChangeRequest'
+      responses:
+        '204':
+          description: Password changed
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
   /clinics/{clinicId}:
     get:
       tags: [Clinics]
@@ -294,6 +320,41 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /doctors:
+    get:
+      tags: [Doctors]
+      summary: Search doctors
+      operationId: listDoctors
+      parameters:
+        - name: q
+          in: query
+          required: false
+          description: Case-insensitive search term for doctor name, email, or specialization.
+          schema:
+            type: string
+        - name: specialization
+          in: query
+          required: false
+          description: Case-insensitive specialization filter.
+          schema:
+            type: string
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/SizeParam'
+      responses:
+        '200':
+          description: Paginated doctor list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedUserProfileResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
         '500':
           $ref: '#/components/responses/InternalServerError'
   /doctors/{doctorId}:
@@ -1092,7 +1153,7 @@ components:
           format: float
     RegisterRequest:
       type: object
-      required: [name, email, password]
+      required: [name, email, password, phoneNumber, dateOfBirth]
       properties:
         name:
           type: string
@@ -1102,8 +1163,24 @@ components:
         password:
           type: string
           format: password
+        phoneNumber:
+          type: string
+        dateOfBirth:
+          type: string
+          format: date
         role:
           $ref: '#/components/schemas/UserRole'
+    PasswordChangeRequest:
+      type: object
+      required: [currentPassword, newPassword]
+      properties:
+        currentPassword:
+          type: string
+          format: password
+        newPassword:
+          type: string
+          format: password
+          minLength: 8
     LoginRequest:
       type: object
       required: [email, password]

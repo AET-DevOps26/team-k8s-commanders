@@ -3,14 +3,22 @@ import './App.css'
 import {
   AuthSession,
   Appointment,
+  ScheduleSlot,
   UserProfile,
   VisitHistory,
+  bookAppointment,
+  cancelAppointment,
+  changeUserPassword,
+  getDoctorSchedule,
   getPatientAppointments,
-  getPatientProfile,
   getPatientVisitHistory,
+  getUserProfile,
+  listDoctors,
   login,
   logout,
   registerPatient,
+  rescheduleAppointment,
+  updateUserProfile,
 } from './clientApi'
 
 const SESSION_KEY = 'caredesk.authSession'
@@ -39,7 +47,7 @@ const workflowStats = [
   ['1 view', 'Schedules, notes, history'],
 ]
 
-type Route = '/' | '/login' | '/register' | '/patient'
+type Route = '/' | '/login' | '/register' | '/patient' | '/patient/profile' | '/patient/book'
 
 type AuthFormProps = {
   mode: 'login' | 'register'
@@ -53,6 +61,10 @@ type PatientDashboardProps = {
   onNavigate: (path: Route) => void
 }
 
+type PatientProfileProps = PatientDashboardProps & {
+  onSessionUpdated: (session: AuthSession) => void
+}
+
 type PatientData = {
   profile: UserProfile
   appointments: Appointment[]
@@ -62,7 +74,13 @@ type PatientData = {
 function getInitialRoute(): Route {
   const path = window.location.pathname
 
-  if (path === '/login' || path === '/register' || path === '/patient') {
+  if (
+    path === '/login' ||
+    path === '/register' ||
+    path === '/patient' ||
+    path === '/patient/profile' ||
+    path === '/patient/book'
+  ) {
     return path
   }
 
@@ -95,6 +113,10 @@ function saveSession(session: AuthSession) {
 
 function clearSession() {
   window.localStorage.removeItem(SESSION_KEY)
+}
+
+function userMessage(fallback: string) {
+  return fallback
 }
 
 function FeatureIcon({ type }: { type: string }) {
@@ -187,6 +209,35 @@ function ShellNav({
         )}
       </div>
     </nav>
+  )
+}
+
+function PatientSubNav({
+  active,
+  onNavigate,
+}: {
+  active: 'dashboard' | 'profile' | 'book'
+  onNavigate: (path: Route) => void
+}) {
+  const items: Array<{ key: typeof active; label: string; route: Route }> = [
+    { key: 'dashboard', label: 'Dashboard', route: '/patient' },
+    { key: 'profile', label: 'Profile', route: '/patient/profile' },
+    { key: 'book', label: 'Book appointment', route: '/patient/book' },
+  ]
+
+  return (
+    <div className="patient-tabs" role="navigation" aria-label="Patient navigation">
+      {items.map((item) => (
+        <button
+          className={active === item.key ? 'active' : ''}
+          key={item.key}
+          onClick={() => onNavigate(item.route)}
+          type="button"
+        >
+          {item.label}
+        </button>
+      ))}
+    </div>
   )
 }
 
@@ -319,6 +370,8 @@ function AuthForm({ mode, onAuthenticated, onNavigate }: AuthFormProps) {
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [phoneNumber, setPhoneNumber] = useState('')
+  const [dateOfBirth, setDateOfBirth] = useState('')
   const [error, setError] = useState('')
   const [isSubmitting, setSubmitting] = useState(false)
   const isRegister = mode === 'register'
@@ -330,15 +383,15 @@ function AuthForm({ mode, onAuthenticated, onNavigate }: AuthFormProps) {
 
     try {
       const session = isRegister
-        ? await registerPatient({ name, email, password })
+        ? await registerPatient({ name, email, password, phoneNumber, dateOfBirth })
         : await login({ email, password })
 
       onAuthenticated(session)
     } catch (submitError) {
       setError(
         submitError instanceof Error
-          ? submitError.message
-          : 'Authentication failed',
+          ? userMessage(isRegister ? 'Account could not be created. Please check your details and try again.' : 'Login failed. Please check your email and password.')
+          : userMessage('Something went wrong. Please try again.'),
       )
     } finally {
       setSubmitting(false)
@@ -361,16 +414,37 @@ function AuthForm({ mode, onAuthenticated, onNavigate }: AuthFormProps) {
         <form className="auth-card" onSubmit={handleSubmit}>
           <h2>{isRegister ? 'Sign up' : 'Login'}</h2>
           {isRegister && (
-            <label>
-              Full name
-              <input
-                autoComplete="name"
-                onChange={(event) => setName(event.target.value)}
-                required
-                type="text"
-                value={name}
-              />
-            </label>
+            <>
+              <label>
+                Full name
+                <input
+                  autoComplete="name"
+                  onChange={(event) => setName(event.target.value)}
+                  required
+                  type="text"
+                  value={name}
+                />
+              </label>
+              <label>
+                Phone number
+                <input
+                  autoComplete="tel"
+                  onChange={(event) => setPhoneNumber(event.target.value)}
+                  required
+                  type="tel"
+                  value={phoneNumber}
+                />
+              </label>
+              <label>
+                Date of birth
+                <input
+                  onChange={(event) => setDateOfBirth(event.target.value)}
+                  required
+                  type="date"
+                  value={dateOfBirth}
+                />
+              </label>
+            </>
           )}
           <label>
             Email
@@ -418,21 +492,43 @@ function PatientDashboard({
   const [patientData, setPatientData] = useState<PatientData | null>(null)
   const [error, setError] = useState('')
   const [isLoading, setLoading] = useState(true)
+  const [reloadKey, setReloadKey] = useState(0)
   const patientId = session.user.id
 
-  const nextAppointment = useMemo(() => {
+  const upcomingAppointments = useMemo(() => {
     if (!patientData) {
-      return null
+      return []
     }
+
+    const now = Date.now()
 
     return patientData.appointments
       .filter((appointment) => appointment.status !== 'CANCELLED')
+      .filter((appointment) => new Date(appointment.dateTime).getTime() >= now)
       .sort(
         (first, second) =>
           new Date(first.dateTime).getTime() -
           new Date(second.dateTime).getTime(),
-      )[0]
+      )
   }, [patientData])
+
+  const pastVisits = useMemo(() => {
+    if (!patientData) {
+      return []
+    }
+
+    const now = Date.now()
+
+    return patientData.visitHistory.appointments.filter(
+      (appointment) =>
+        appointment.status === 'COMPLETED' ||
+        new Date(appointment.dateTime).getTime() < now,
+    )
+  }, [patientData])
+
+  const nextAppointment = useMemo(() => {
+    return upcomingAppointments[0] ?? null
+  }, [upcomingAppointments])
 
   useEffect(() => {
     let isActive = true
@@ -443,7 +539,7 @@ function PatientDashboard({
 
       try {
         const [profile, appointmentsResponse, visitHistory] = await Promise.all([
-          getPatientProfile(patientId, session.accessToken),
+          getUserProfile(patientId, session.accessToken),
           getPatientAppointments(patientId, session.accessToken),
           getPatientVisitHistory(patientId, session.accessToken),
         ])
@@ -459,8 +555,8 @@ function PatientDashboard({
         if (isActive) {
           setError(
             loadError instanceof Error
-              ? loadError.message
-              : 'Patient data could not be loaded',
+              ? userMessage('Your dashboard could not be loaded. Please try again in a moment.')
+              : userMessage('Your dashboard could not be loaded. Please try again in a moment.'),
           )
           setPatientData(null)
         }
@@ -476,7 +572,7 @@ function PatientDashboard({
     return () => {
       isActive = false
     }
-  }, [patientId, session.accessToken])
+  }, [patientId, session.accessToken, reloadKey])
 
   if (session.user.role !== 'PATIENT') {
     return (
@@ -489,7 +585,7 @@ function PatientDashboard({
         <section className="empty-state">
           <p className="eyebrow">Patient dashboard</p>
           <h1>Patient account required.</h1>
-          <p>This dashboard only uses patient-scoped API endpoints.</p>
+          <p>Please sign in with a patient account to view this area.</p>
           <button className="primary-button" onClick={onLogout} type="button">
             Logout
           </button>
@@ -502,13 +598,13 @@ function PatientDashboard({
     <main className="landing-page app-page">
       <ShellNav session={session} onNavigate={onNavigate} onLogout={onLogout} />
       <section className="dashboard-shell">
+        <PatientSubNav active="dashboard" onNavigate={onNavigate} />
         <header className="patient-hero">
           <div>
             <p className="eyebrow">Patient dashboard</p>
             <h1>{patientData?.profile.name ?? session.user.name}</h1>
             <p>
-              Appointment overview, visit history, and profile details loaded
-              from CareDesk API.
+              View upcoming appointments, recent visits, and your account details.
             </p>
           </div>
           <button
@@ -521,31 +617,48 @@ function PatientDashboard({
           </button>
         </header>
 
-        {isLoading && <StatusPanel title="Loading patient data" />}
-        {error && <StatusPanel title="Patient API unavailable" text={error} />}
+        {isLoading && <StatusPanel title="Loading your dashboard" />}
+        {error && <StatusPanel title="We could not load your dashboard" text={error} />}
 
         {patientData && (
           <>
             <section className="patient-summary">
               <SummaryCard
                 label="Upcoming"
-                value={nextAppointment ? '1' : '0'}
+                value={String(upcomingAppointments.length)}
                 text={
                   nextAppointment
                     ? formatAppointmentDate(nextAppointment.dateTime)
-                    : 'No scheduled appointment returned'
+                    : 'No upcoming appointment'
                 }
               />
               <SummaryCard
                 label="Appointments"
                 value={String(patientData.appointments.length)}
-                text="Loaded from patient appointments endpoint"
+                text="Your booked visits"
               />
               <SummaryCard
                 label="Visit history"
-                value={String(patientData.visitHistory.appointments.length)}
-                text="Loaded from visit-history endpoint"
+                value={String(pastVisits.length)}
+                text="Past care activity"
               />
+            </section>
+
+            <section className="quick-actions" aria-label="Patient actions">
+              <button
+                className="secondary-button"
+                onClick={() => onNavigate('/patient/profile')}
+                type="button"
+              >
+                Edit profile
+              </button>
+              <button
+                className="primary-button"
+                onClick={() => onNavigate('/patient/book')}
+                type="button"
+              >
+                Book appointment
+              </button>
             </section>
 
             <section className="dashboard-grid">
@@ -562,11 +675,13 @@ function PatientDashboard({
                       <AppointmentRow
                         appointment={appointment}
                         key={appointment.id}
+                        onChanged={() => setReloadKey((current) => current + 1)}
+                        token={session.accessToken}
                       />
                     ))}
                   </div>
                 ) : (
-                  <EmptyPanel text="No appointments returned by API." />
+                  <EmptyPanel text="No appointments booked yet." />
                 )}
               </article>
 
@@ -619,11 +734,400 @@ function PatientDashboard({
                     ))}
                   </div>
                 ) : (
-                  <EmptyPanel text="No clinical notes returned by API." />
+                  <EmptyPanel text="No visit notes available yet." />
                 )}
               </article>
             </section>
           </>
+        )}
+      </section>
+    </main>
+  )
+}
+
+function PatientProfilePage({
+  session,
+  onLogout,
+  onNavigate,
+  onSessionUpdated,
+}: PatientProfileProps) {
+  const [profile, setProfile] = useState<UserProfile>(session.user)
+  const [currentPassword, setCurrentPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [profileStatus, setProfileStatus] = useState('')
+  const [passwordStatus, setPasswordStatus] = useState('')
+  const [error, setError] = useState('')
+  const [isLoading, setLoading] = useState(true)
+  const userId = session.user.id
+
+  useEffect(() => {
+    let isActive = true
+
+    async function loadProfile() {
+      setLoading(true)
+      setError('')
+
+      try {
+        const loadedProfile = await getUserProfile(userId, session.accessToken)
+
+        if (isActive) {
+          setProfile(loadedProfile)
+        }
+      } catch {
+        if (isActive) {
+          setError(userMessage('Your profile could not be loaded. Please try again in a moment.'))
+        }
+      } finally {
+        if (isActive) {
+          setLoading(false)
+        }
+      }
+    }
+
+    loadProfile()
+
+    return () => {
+      isActive = false
+    }
+  }, [session.accessToken, userId])
+
+  async function handleProfileSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    setError('')
+    setProfileStatus('')
+
+    try {
+      const updatedProfile = await updateUserProfile(userId, session.accessToken, profile)
+      const updatedSession = { ...session, user: updatedProfile }
+      saveSession(updatedSession)
+      onSessionUpdated(updatedSession)
+      setProfile(updatedProfile)
+      setProfileStatus('Profile updated')
+    } catch {
+      setError(userMessage('Your changes could not be saved. Please check your details and try again.'))
+    }
+  }
+
+  async function handlePasswordSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    setError('')
+    setPasswordStatus('')
+
+    try {
+      await changeUserPassword(userId, session.accessToken, {
+        currentPassword,
+        newPassword,
+      })
+      setCurrentPassword('')
+      setNewPassword('')
+      setPasswordStatus('Password changed')
+    } catch {
+      setError(userMessage('Your password could not be changed. Please check your current password.'))
+    }
+  }
+
+  return (
+    <main className="landing-page app-page">
+      <ShellNav session={session} onNavigate={onNavigate} onLogout={onLogout} />
+      <section className="dashboard-shell">
+        <PatientSubNav active="profile" onNavigate={onNavigate} />
+        <header className="patient-hero">
+          <div>
+            <p className="eyebrow">Profile</p>
+            <h1>Account settings</h1>
+            <p>Manage personal data, email, and password for your CareDesk account.</p>
+          </div>
+        </header>
+
+        {isLoading && <StatusPanel title="Loading your profile" />}
+        {error && <StatusPanel title="We could not update your account" text={error} />}
+
+        <section className="settings-grid">
+          <form className="auth-card settings-card" onSubmit={handleProfileSubmit}>
+            <h2>Personal data</h2>
+            <label>
+              Full name
+              <input
+                autoComplete="name"
+                onChange={(event) => setProfile({ ...profile, name: event.target.value })}
+                required
+                type="text"
+                value={profile.name}
+              />
+            </label>
+            <label>
+              Email
+              <input
+                autoComplete="email"
+                onChange={(event) => setProfile({ ...profile, email: event.target.value })}
+                required
+                type="email"
+                value={profile.email}
+              />
+            </label>
+            <label>
+              Phone number
+              <input
+                autoComplete="tel"
+                onChange={(event) => setProfile({ ...profile, phoneNumber: event.target.value })}
+                required
+                type="tel"
+                value={profile.phoneNumber ?? ''}
+              />
+            </label>
+            <label>
+              Date of birth
+              <input
+                onChange={(event) => setProfile({ ...profile, dateOfBirth: event.target.value })}
+                required
+                type="date"
+                value={profile.dateOfBirth ?? ''}
+              />
+            </label>
+            <label>
+              Role
+              <input readOnly type="text" value={profile.role} />
+            </label>
+            {profileStatus && <p className="form-success">{profileStatus}</p>}
+            <button className="primary-button" type="submit">
+              Save profile
+            </button>
+          </form>
+
+          <form className="auth-card settings-card" onSubmit={handlePasswordSubmit}>
+            <h2>Password</h2>
+            <label>
+              Current password
+              <input
+                autoComplete="current-password"
+                minLength={8}
+                onChange={(event) => setCurrentPassword(event.target.value)}
+                required
+                type="password"
+                value={currentPassword}
+              />
+            </label>
+            <label>
+              New password
+              <input
+                autoComplete="new-password"
+                minLength={8}
+                onChange={(event) => setNewPassword(event.target.value)}
+                required
+                type="password"
+                value={newPassword}
+              />
+            </label>
+            {passwordStatus && <p className="form-success">{passwordStatus}</p>}
+            <button className="primary-button" type="submit">
+              Change password
+            </button>
+          </form>
+        </section>
+      </section>
+    </main>
+  )
+}
+
+function PatientBookingPage({
+  session,
+  onLogout,
+  onNavigate,
+}: PatientDashboardProps) {
+  const [query, setQuery] = useState('')
+  const [specialization, setSpecialization] = useState('')
+  const [doctors, setDoctors] = useState<UserProfile[]>([])
+  const [selectedDoctor, setSelectedDoctor] = useState<UserProfile | null>(null)
+  const [slots, setSlots] = useState<ScheduleSlot[]>([])
+  const [selectedSlot, setSelectedSlot] = useState<ScheduleSlot | null>(null)
+  const [reason, setReason] = useState('')
+  const [status, setStatus] = useState('')
+  const [error, setError] = useState('')
+  const [isLoading, setLoading] = useState(false)
+
+  async function searchDoctors(event?: FormEvent<HTMLFormElement>) {
+    event?.preventDefault()
+    setLoading(true)
+    setError('')
+    setStatus('')
+
+    try {
+      const response = await listDoctors(session.accessToken, {
+        q: query,
+        specialization,
+        size: 12,
+      })
+      setDoctors(response.content)
+      if (!response.content.some((doctor) => doctor.id === selectedDoctor?.id)) {
+        setSelectedDoctor(null)
+        setSlots([])
+        setSelectedSlot(null)
+      }
+    } catch {
+      setError(userMessage('Doctors could not be loaded. Please try again in a moment.'))
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function selectDoctor(doctor: UserProfile) {
+    setSelectedDoctor(doctor)
+    setSelectedSlot(null)
+    setError('')
+    setStatus('')
+
+    try {
+      const schedule = await getDoctorSchedule(doctor.id, session.accessToken)
+      setSlots(schedule.slots)
+    } catch {
+      setSlots([])
+      setError(userMessage('Available times could not be loaded. Please choose another doctor or try again.'))
+    }
+  }
+
+  async function handleBooking() {
+    if (!selectedDoctor || !selectedSlot) {
+      setError('Please select a doctor and time slot')
+      return
+    }
+
+    setError('')
+    setStatus('')
+
+    try {
+      const duration = Math.round(
+        (new Date(selectedSlot.endAt).getTime() - new Date(selectedSlot.startAt).getTime()) / 60000,
+      )
+      await bookAppointment(session.accessToken, {
+        patientId: session.user.id,
+        doctorId: selectedDoctor.id,
+        dateTime: selectedSlot.startAt,
+        duration,
+        reason: reason || undefined,
+      })
+      setStatus('Appointment booked')
+      setReason('')
+      await selectDoctor(selectedDoctor)
+    } catch {
+      setError(userMessage('This appointment could not be booked. Please choose another time or try again.'))
+    }
+  }
+
+  useEffect(() => {
+    searchDoctors()
+    // Initial doctor list should load once for the active session.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session.accessToken])
+
+  return (
+    <main className="landing-page app-page">
+      <ShellNav session={session} onNavigate={onNavigate} onLogout={onLogout} />
+      <section className="dashboard-shell">
+        <PatientSubNav active="book" onNavigate={onNavigate} />
+        <header className="patient-hero">
+          <div>
+            <p className="eyebrow">Booking</p>
+            <h1>Find a doctor</h1>
+            <p>Search CareDesk doctors, choose an available slot, and book directly.</p>
+          </div>
+        </header>
+
+        {error && <StatusPanel title="We could not complete your booking" text={error} />}
+        {status && <StatusPanel title={status} text="Your appointment is now listed in your dashboard." />}
+
+        <section className="booking-grid">
+          <form className="auth-card booking-search" onSubmit={searchDoctors}>
+            <h2>Doctor search</h2>
+            <label>
+              Search
+              <input
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Name or specialization"
+                type="search"
+                value={query}
+              />
+            </label>
+            <label>
+              Specialization
+              <input
+                onChange={(event) => setSpecialization(event.target.value)}
+                placeholder="General Medicine"
+                type="text"
+                value={specialization}
+              />
+            </label>
+            <button className="primary-button" disabled={isLoading} type="submit">
+              {isLoading ? 'Searching' : 'Search doctors'}
+            </button>
+          </form>
+
+          <div className="doctor-results">
+            {doctors.length ? (
+              doctors.map((doctor) => (
+                <button
+                  className={selectedDoctor?.id === doctor.id ? 'doctor-card active' : 'doctor-card'}
+                  key={doctor.id}
+                  onClick={() => selectDoctor(doctor)}
+                  type="button"
+                >
+                  <strong>{doctor.name}</strong>
+                  <span>{doctor.specialization ?? 'CareDesk doctor'}</span>
+                  <small>{doctor.email}</small>
+                </button>
+              ))
+            ) : (
+              <EmptyPanel text="No doctors found. Try another search." />
+            )}
+          </div>
+        </section>
+
+        {selectedDoctor && (
+          <section className="calendar-panel dashboard-panel">
+            <div className="panel-header">
+              <div>
+                <p className="eyebrow">Calendar</p>
+                <h2>{selectedDoctor.name}</h2>
+              </div>
+            </div>
+            <div className="slot-grid">
+              {slots.length ? (
+                slots.map((slot) => (
+                  <button
+                    className={selectedSlot?.startAt === slot.startAt ? 'slot-button active' : 'slot-button'}
+                    key={`${slot.startAt}-${slot.endAt}`}
+                    onClick={() => setSelectedSlot(slot)}
+                    type="button"
+                  >
+                    <span>{formatAppointmentDate(slot.startAt)}</span>
+                    <strong>{formatTimeRange(slot)}</strong>
+                  </button>
+                ))
+              ) : (
+                <EmptyPanel text="No available times right now." />
+              )}
+            </div>
+            <label className="reason-field">
+              Reason
+              <textarea
+                onChange={(event) => setReason(event.target.value)}
+                placeholder="Short reason for the visit"
+                rows={3}
+                value={reason}
+              />
+            </label>
+            <div className="quick-actions">
+              <button
+                className="secondary-button"
+                onClick={() => onNavigate('/patient')}
+                type="button"
+              >
+                Back to dashboard
+              </button>
+              <button className="primary-button" onClick={handleBooking} type="button">
+                Book selected slot
+              </button>
+            </div>
+          </section>
         )}
       </section>
     </main>
@@ -648,14 +1152,137 @@ function SummaryCard({
   )
 }
 
-function AppointmentRow({ appointment }: { appointment: Appointment }) {
+function AppointmentRow({
+  appointment,
+  onChanged,
+  token,
+}: {
+  appointment: Appointment
+  onChanged: () => void
+  token: string
+}) {
+  const [availableSlots, setAvailableSlots] = useState<ScheduleSlot[]>([])
+  const [selectedSlot, setSelectedSlot] = useState<ScheduleSlot | null>(null)
+  const [isMoving, setMoving] = useState(false)
+  const [message, setMessage] = useState('')
+  const [isBusy, setBusy] = useState(false)
+  const canChange = appointment.status !== 'CANCELLED' && appointment.status !== 'COMPLETED'
+
+  async function handleCancel() {
+    if (!canChange) {
+      return
+    }
+
+    setBusy(true)
+    setMessage('')
+
+    try {
+      await cancelAppointment(token, appointment.id)
+      setMessage('Appointment cancelled')
+      onChanged()
+    } catch {
+      setMessage('Appointment could not be cancelled. Please try again.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function openMoveOptions() {
+    setMoving((current) => !current)
+    setMessage('')
+
+    if (availableSlots.length) {
+      return
+    }
+
+    setBusy(true)
+
+    try {
+      const schedule = await getDoctorSchedule(appointment.doctorId, token)
+      setAvailableSlots(schedule.slots)
+    } catch {
+      setMessage('Available times could not be loaded. Please try again.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function handleReschedule() {
+    if (!selectedSlot) {
+      setMessage('Please choose a new time.')
+      return
+    }
+
+    setBusy(true)
+    setMessage('')
+
+    try {
+      await rescheduleAppointment(token, appointment.id, {
+        dateTime: selectedSlot.startAt,
+        duration: slotDuration(selectedSlot),
+      })
+      setMessage('Appointment moved')
+      setMoving(false)
+      setSelectedSlot(null)
+      onChanged()
+    } catch {
+      setMessage('Appointment could not be moved. Please choose another time.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
   return (
     <div className="appointment-item">
       <div>
         <strong>{formatAppointmentDate(appointment.dateTime)}</strong>
         <p>{appointment.reason ?? 'No reason provided'}</p>
+        {message && <small>{message}</small>}
       </div>
-      <span>{appointment.status}</span>
+      <div className="appointment-actions">
+        <span>{appointment.status}</span>
+        {canChange && (
+          <>
+            <button disabled={isBusy} onClick={openMoveOptions} type="button">
+              Move
+            </button>
+            <button disabled={isBusy} onClick={handleCancel} type="button">
+              Cancel
+            </button>
+          </>
+        )}
+      </div>
+      {isMoving && (
+        <div className="move-panel">
+          {availableSlots.length ? (
+            <>
+              <div className="move-slot-grid">
+                {availableSlots.map((slot) => (
+                  <button
+                    className={selectedSlot?.startAt === slot.startAt ? 'active' : ''}
+                    key={`${appointment.id}-${slot.startAt}`}
+                    onClick={() => setSelectedSlot(slot)}
+                    type="button"
+                  >
+                    <strong>{formatAppointmentDate(slot.startAt)}</strong>
+                    <span>{formatTimeRange(slot)}</span>
+                  </button>
+                ))}
+              </div>
+              <button
+                className="primary-button"
+                disabled={isBusy}
+                onClick={handleReschedule}
+                type="button"
+              >
+                Confirm new time
+              </button>
+            </>
+          ) : (
+            <EmptyPanel text="No other times available right now." />
+          )}
+        </div>
+      )}
     </div>
   )
 }
@@ -678,6 +1305,21 @@ function formatAppointmentDate(value: string) {
     dateStyle: 'medium',
     timeStyle: 'short',
   }).format(new Date(value))
+}
+
+function formatTimeRange(slot: ScheduleSlot) {
+  const formatter = new Intl.DateTimeFormat('de-DE', {
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+
+  return `${formatter.format(new Date(slot.startAt))} - ${formatter.format(new Date(slot.endAt))}`
+}
+
+function slotDuration(slot: ScheduleSlot) {
+  return Math.round(
+    (new Date(slot.endAt).getTime() - new Date(slot.startAt).getTime()) / 60000,
+  )
 }
 
 export default function App() {
@@ -707,6 +1349,10 @@ export default function App() {
     navigate('/patient')
   }
 
+  function handleSessionUpdated(nextSession: AuthSession) {
+    setSession(nextSession)
+  }
+
   async function handleLogout() {
     if (session) {
       logout(session.accessToken).catch(() => {
@@ -729,12 +1375,33 @@ export default function App() {
     )
   }
 
-  if (route === '/patient') {
+  if (route === '/patient' || route === '/patient/profile' || route === '/patient/book') {
     if (!session) {
       return (
         <AuthForm
           mode="login"
           onAuthenticated={handleAuthenticated}
+          onNavigate={navigate}
+        />
+      )
+    }
+
+    if (route === '/patient/profile') {
+      return (
+        <PatientProfilePage
+          session={session}
+          onLogout={handleLogout}
+          onNavigate={navigate}
+          onSessionUpdated={handleSessionUpdated}
+        />
+      )
+    }
+
+    if (route === '/patient/book') {
+      return (
+        <PatientBookingPage
+          session={session}
+          onLogout={handleLogout}
           onNavigate={navigate}
         />
       )

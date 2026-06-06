@@ -9,6 +9,11 @@ export type Appointment = components['schemas']['Appointment']
 export type VisitHistory = components['schemas']['VisitHistory']
 export type PaginatedAppointmentResponse =
   components['schemas']['PaginatedAppointmentResponse']
+export type PaginatedUserProfileResponse =
+  components['schemas']['PaginatedUserProfileResponse']
+export type UserCreate = components['schemas']['UserCreate']
+export type UserStats = components['schemas']['UserStats']
+export type UserRole = components['schemas']['UserRole']
 
 type RequestOptions = {
   method?: string
@@ -91,6 +96,46 @@ export function getPatientAppointments(patientId: string, token: string) {
 
 export function getPatientVisitHistory(patientId: string, token: string) {
   return request<VisitHistory>(`/patients/${patientId}/visit-history`, {
+    token,
+  })
+}
+
+// --- Admin user management (ADMIN role only) ---
+
+export function listUsers(token: string, page = 0, size = 20) {
+  return request<PaginatedUserProfileResponse>(
+    `/users?page=${page}&size=${size}`,
+    { token },
+  )
+}
+
+export function getUserStats(token: string) {
+  return request<UserStats>('/users/stats', { token })
+}
+
+export function createUser(payload: UserCreate, token: string) {
+  return request<UserProfile>('/users', {
+    method: 'POST',
+    body: payload,
+    token,
+  })
+}
+
+export function replaceUser(
+  userId: string,
+  payload: UserProfile,
+  token: string,
+) {
+  return request<UserProfile>(`/users/${userId}`, {
+    method: 'PUT',
+    body: payload,
+    token,
+  })
+}
+
+export function deactivateUser(userId: string, token: string) {
+  return request<void>(`/users/${userId}`, {
+    method: 'DELETE',
     token,
   })
 }

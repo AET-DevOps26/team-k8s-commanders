@@ -1,5 +1,6 @@
-import { FormEvent, ReactNode, useEffect, useMemo, useState } from 'react'
+import { FormEvent, useEffect, useMemo, useState } from 'react'
 import './App.css'
+import { AdminDashboard } from './admin'
 import {
   AuthSession,
   Appointment,
@@ -12,6 +13,15 @@ import {
   logout,
   registerPatient,
 } from './clientApi'
+import { AppLink } from './components/AppLink'
+import { ShellNav } from './components/ShellNav'
+import { StatusPanel } from './components/StatusPanel'
+import { SummaryCard } from './components/SummaryCard'
+import {
+  Route,
+  dashboardPath,
+  getInitialRoute,
+} from './routing'
 
 const SESSION_KEY = 'caredesk.authSession'
 
@@ -39,8 +49,6 @@ const workflowStats = [
   ['1 view', 'Schedules, notes, history'],
 ]
 
-type Route = '/' | '/login' | '/register' | '/patient'
-
 type AuthFormProps = {
   mode: 'login' | 'register'
   onAuthenticated: (session: AuthSession) => void
@@ -57,16 +65,6 @@ type PatientData = {
   profile: UserProfile
   appointments: Appointment[]
   visitHistory: VisitHistory
-}
-
-function getInitialRoute(): Route {
-  const path = window.location.pathname
-
-  if (path === '/login' || path === '/register' || path === '/patient') {
-    return path
-  }
-
-  return '/'
 }
 
 function getStoredSession() {
@@ -124,72 +122,6 @@ function FeatureIcon({ type }: { type: string }) {
   )
 }
 
-function AppLink({
-  to,
-  className,
-  children,
-  onNavigate,
-}: {
-  to: Route
-  className?: string
-  children: ReactNode
-  onNavigate: (path: Route) => void
-}) {
-  return (
-    <a
-      className={className}
-      href={to}
-      onClick={(event) => {
-        event.preventDefault()
-        onNavigate(to)
-      }}
-    >
-      {children}
-    </a>
-  )
-}
-
-function ShellNav({
-  session,
-  onNavigate,
-  onLogout,
-}: {
-  session: AuthSession | null
-  onNavigate: (path: Route) => void
-  onLogout?: () => void
-}) {
-  return (
-    <nav className="site-nav" aria-label="Primary navigation">
-      <AppLink className="brand" to="/" onNavigate={onNavigate}>
-        <span className="brand-mark">+</span>
-        <span>CareDesk</span>
-      </AppLink>
-      <div className="nav-links">
-        <a href="/#features">Features</a>
-        {session ? (
-          <>
-            <AppLink to="/patient" onNavigate={onNavigate}>
-              Patient dashboard
-            </AppLink>
-            <button className="link-button" type="button" onClick={onLogout}>
-              Logout
-            </button>
-          </>
-        ) : (
-          <>
-            <AppLink to="/login" onNavigate={onNavigate}>
-              Login
-            </AppLink>
-            <AppLink className="nav-cta" to="/register" onNavigate={onNavigate}>
-              Sign up
-            </AppLink>
-          </>
-        )}
-      </div>
-    </nav>
-  )
-}
-
 function LandingPage({
   session,
   onNavigate,
@@ -219,17 +151,17 @@ function LandingPage({
           <div className="hero-actions">
             <AppLink
               className="primary-button"
-              to={session ? '/patient' : '/register'}
+              to={session ? dashboardPath(session.user.role) : '/register'}
               onNavigate={onNavigate}
             >
               {session ? 'Open dashboard' : 'Start with CareDesk'}
             </AppLink>
             <AppLink
               className="secondary-button"
-              to={session ? '/patient' : '/login'}
+              to={session ? dashboardPath(session.user.role) : '/login'}
               onNavigate={onNavigate}
             >
-              {session ? 'Patient area' : 'Log in'}
+              {session ? (session.user.role === 'ADMIN' ? 'Admin area' : 'Patient area') : 'Log in'}
             </AppLink>
           </div>
         </div>
@@ -630,24 +562,6 @@ function PatientDashboard({
   )
 }
 
-function SummaryCard({
-  label,
-  value,
-  text,
-}: {
-  label: string
-  value: string
-  text: string
-}) {
-  return (
-    <article className="summary-card">
-      <span>{label}</span>
-      <strong>{value}</strong>
-      <p>{text}</p>
-    </article>
-  )
-}
-
 function AppointmentRow({ appointment }: { appointment: Appointment }) {
   return (
     <div className="appointment-item">
@@ -662,15 +576,6 @@ function AppointmentRow({ appointment }: { appointment: Appointment }) {
 
 function EmptyPanel({ text }: { text: string }) {
   return <p className="empty-panel">{text}</p>
-}
-
-function StatusPanel({ title, text }: { title: string; text?: string }) {
-  return (
-    <section className="status-panel">
-      <strong>{title}</strong>
-      {text && <p>{text}</p>}
-    </section>
-  )
 }
 
 function formatAppointmentDate(value: string) {
@@ -704,7 +609,7 @@ export default function App() {
   function handleAuthenticated(nextSession: AuthSession) {
     saveSession(nextSession)
     setSession(nextSession)
-    navigate('/patient')
+    navigate(nextSession.user.role === 'ADMIN' ? '/admin' : '/patient')
   }
 
   async function handleLogout() {
@@ -729,7 +634,7 @@ export default function App() {
     )
   }
 
-  if (route === '/patient') {
+  if (route === '/patient' || route === '/admin') {
     if (!session) {
       return (
         <AuthForm
@@ -740,7 +645,16 @@ export default function App() {
       )
     }
 
-    return (
+    // Always render the dashboard matching the user's role, regardless of which
+    // dashboard route was hit. This keeps admins out of the patient view (which
+    // only uses patient-scoped endpoints) and vice versa.
+    return session.user.role === 'ADMIN' ? (
+      <AdminDashboard
+        session={session}
+        onLogout={handleLogout}
+        onNavigate={navigate}
+      />
+    ) : (
       <PatientDashboard
         session={session}
         onLogout={handleLogout}

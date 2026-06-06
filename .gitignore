@@ -7,6 +7,9 @@ node_modules/
 # Python client output
 services/*/client/
 
+# Generated stubs build output
+services/springboot/generated/target/
+
 # Generated TypeScript API
 web-client/src/api.ts
 

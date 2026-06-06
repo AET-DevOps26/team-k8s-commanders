@@ -254,6 +254,7 @@ public interface AppointmentsApi {
      *
      * @param appointmentId  (required)
      * @return Clinical note deleted (status code 204)
+     *         or The request is malformed or fails validation. (status code 400)
      *         or Authentication is required or has failed. (status code 401)
      *         or The caller is authenticated but not allowed to access the resource. (status code 403)
      *         or The requested resource does not exist. (status code 404)
@@ -265,6 +266,9 @@ public interface AppointmentsApi {
         tags = { "Appointments" },
         responses = {
             @ApiResponse(responseCode = "204", description = "Clinical note deleted"),
+            @ApiResponse(responseCode = "400", description = "The request is malformed or fails validation.", content = {
+                @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class))
+            }),
             @ApiResponse(responseCode = "401", description = "Authentication is required or has failed.", content = {
                 @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class))
             }),
@@ -292,6 +296,11 @@ public interface AppointmentsApi {
     ) {
         getRequest().ifPresent(request -> {
             for (MediaType mediaType: MediaType.parseMediaTypes(request.getHeader("Accept"))) {
+                if (mediaType.isCompatibleWith(MediaType.valueOf("application/problem+json"))) {
+                    String exampleString = "Custom MIME type example not yet supported: application/problem+json";
+                    ApiUtil.setExampleResponse(request, "application/problem+json", exampleString);
+                    break;
+                }
                 if (mediaType.isCompatibleWith(MediaType.valueOf("application/problem+json"))) {
                     String exampleString = "Custom MIME type example not yet supported: application/problem+json";
                     ApiUtil.setExampleResponse(request, "application/problem+json", exampleString);

@@ -1,16 +1,13 @@
 package com.caredesk.auth.service;
 
 import com.caredesk.auth.config.JwtUtil;
+import com.caredesk.auth.exception.LoginFailedException;
 import com.caredesk.auth.model.Role;
 import com.caredesk.auth.model.User;
 import com.caredesk.auth.repository.UserRepository;
 import org.openapitools.model.AuthSession;
 import org.openapitools.model.LoginRequest;
 import org.openapitools.model.RegisterRequest;
-import org.openapitools.model.UserProfile;
-import org.openapitools.model.UserRole;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -20,16 +17,16 @@ public class AuthServiceImpl implements AuthService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
-    private final AuthenticationManager authenticationManager;
+    private final UserProfileMapper userProfileMapper;
 
     public AuthServiceImpl(UserRepository userRepository,
                            PasswordEncoder passwordEncoder,
                            JwtUtil jwtUtil,
-                           AuthenticationManager authenticationManager) {
+                           UserProfileMapper userProfileMapper) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtUtil = jwtUtil;
-        this.authenticationManager = authenticationManager;
+        this.userProfileMapper = userProfileMapper;
     }
 
     @Override
@@ -47,37 +44,29 @@ public class AuthServiceImpl implements AuthService {
         userRepository.save(user);
 
         String token = jwtUtil.generateToken(user.getId().toString(), user.getEmail(), user.getRole().name());
-        return new AuthSession(token, toUserProfile(user));
+        return new AuthSession(token, userProfileMapper.toProfile(user));
     }
 
     @Override
     public AuthSession login(LoginRequest request) {
-        authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
-        );
         User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+                .orElseThrow(() -> new LoginFailedException("User does not exist"));
+
+        if (!user.isEnabled()) {
+            throw new LoginFailedException("Account deactivated");
+        }
+
+        if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
+            throw new LoginFailedException("Wrong password");
+        }
 
         String token = jwtUtil.generateToken(user.getId().toString(), user.getEmail(), user.getRole().name());
-        return new AuthSession(token, toUserProfile(user));
+        return new AuthSession(token, userProfileMapper.toProfile(user));
     }
 
     @Override
     public void logout() {
         // JWT is stateless — logout is handled client-side by discarding the token.
         // A token blacklist can be added here later if needed.
-    }
-
-    // Maps a User entity to the generated UserProfile model expected by the API contract.
-    // Converts the internal Role enum to the API-layer UserRole at the boundary.
-    private UserProfile toUserProfile(User user) {
-        UserRole apiRole = UserRole.valueOf(user.getRole().name());
-        UserProfile profile = new UserProfile(user.getId(), user.getName(), user.getEmail(), apiRole);
-        profile.setPhoneNumber(user.getPhoneNumber());
-        profile.setDateOfBirth(user.getDateOfBirth());
-        profile.setSpecialization(user.getSpecialization());
-        profile.setLicenseNumber(user.getLicenseNumber());
-        profile.setClinicId(user.getClinicId());
-        return profile;
     }
 }

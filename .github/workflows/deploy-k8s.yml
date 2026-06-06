@@ -67,6 +67,7 @@ jobs:
           LLM_PROVIDER: ${{ vars.LLM_PROVIDER }}
           LLM_MODEL: ${{ vars.LLM_MODEL }}
           INGRESS_HOST: ${{ vars.INGRESS_HOST }}
+          OPENWEBUI_BASE_URL: ${{ vars.OPENWEBUI_BASE_URL }}
         run: |
           NS="${TUM_ID}-devops26-team-k8s-commanders"
           kubectl get ns "${NS}" >/dev/null 2>&1 || kubectl create namespace "${NS}"
@@ -78,6 +79,10 @@ jobs:
             --set "ai.env.llmProvider=${LLM_PROVIDER}"
             --set "ai.env.llmModel=${LLM_MODEL}"
           )
+
+          if [ -n "${OPENWEBUI_BASE_URL}" ]; then
+            SET_FLAGS+=(--set "ai.env.openwebuiBaseUrl=${OPENWEBUI_BASE_URL}")
+          fi
 
           if [ -n "${INGRESS_HOST}" ]; then
             SET_FLAGS+=(--set "ingress.host=${INGRESS_HOST}")

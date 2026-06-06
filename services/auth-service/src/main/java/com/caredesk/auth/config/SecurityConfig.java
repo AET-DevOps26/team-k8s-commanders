@@ -35,6 +35,11 @@ public class SecurityConfig {
                         // Health endpoint must be reachable for the Docker healthcheck.
                         // Both forms needed: Spring Security 6 `/**` doesn't match the exact path without trailing slash.
                         .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
+                        // Spring forwards unhandled exceptions to /error. Without permitting
+                        // it, error pages come back as 403 instead of the intended status.
+                        .requestMatchers("/error").permitAll()
+                        // Admin user management. Role comes from the JWT (set by JwtAuthFilter).
+                        .requestMatchers("/users/**").hasRole("ADMIN")
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)

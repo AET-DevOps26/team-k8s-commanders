@@ -33,6 +33,12 @@ public class User {
     @Column(nullable = false)
     private Role role;
 
+    // Soft-delete flag. Disabled accounts are retained but cannot authenticate.
+    // columnDefinition gives existing rows a default when the column is added by
+    // Hibernate ddl-auto=update against a non-empty dev database.
+    @Column(nullable = false, columnDefinition = "boolean default true")
+    private boolean enabled = true;
+
     // Optional — relevant for PATIENT
     private LocalDate dateOfBirth;
     private String phoneNumber;
@@ -56,6 +62,9 @@ public class User {
 
     public Role getRole() { return role; }
     public void setRole(Role role) { this.role = role; }
+
+    public boolean isEnabled() { return enabled; }
+    public void setEnabled(boolean enabled) { this.enabled = enabled; }
 
     public LocalDate getDateOfBirth() { return dateOfBirth; }
     public void setDateOfBirth(LocalDate dateOfBirth) { this.dateOfBirth = dateOfBirth; }

@@ -6,6 +6,19 @@ spring:
     name: api-gateway
   cloud:
     gateway:
+      # CORS for browser clients served from a different origin than the API
+      # (e.g. the web-client when PUBLIC_API_URL points straight at the gateway,
+      # or split hosts behind a k8s ingress). Without this, the browser's
+      # preflight (OPTIONS) for PUT/DELETE/POST fails and the request is blocked.
+      # Auth uses a Bearer header (not cookies), so credentials are not required.
+      globalcors:
+        cors-configurations:
+          '[/**]':
+            allowedOriginPatterns: "${CORS_ALLOWED_ORIGINS:*}"
+            allowedMethods: [GET, POST, PUT, PATCH, DELETE, OPTIONS]
+            allowedHeaders: "*"
+            allowCredentials: false
+            maxAge: 3600
       # The /api/v1 prefix is owned by the gateway (per the OpenAPI spec's server base path).
       # StripPrefix=2 removes /api and /v1 before forwarding to downstream services,
       # so the auth-service receives /auth/register, not /api/v1/auth/register.
@@ -13,7 +26,10 @@ spring:
         - id: auth-service
           uri: ${AUTH_SERVICE_URL:http://localhost:8081}
           predicates:
-            - Path=/api/v1/auth/**
+            # auth-service owns both /auth/** (login/register) and /users/**
+            # (admin user management). Admin-only access is enforced inside
+            # auth-service via the JWT role, not at the gateway.
+            - Path=/api/v1/auth/**,/api/v1/users/**
           filters:
             - StripPrefix=2
 

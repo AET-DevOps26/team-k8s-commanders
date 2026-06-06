@@ -9,23 +9,32 @@ import com.caredesk.auth.repository.UserRepository;
 import org.openapitools.model.AuthSession;
 import org.openapitools.model.LoginRequest;
 import org.openapitools.model.RegisterRequest;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 @Service
 public class AuthServiceImpl implements AuthService {
 
+    private static final String INVALID_CREDENTIALS = "Invalid credentials";
+
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final AuthenticationManager authenticationManager;
     private final JwtUtil jwtUtil;
     private final UserProfileMapper userProfileMapper;
 
     public AuthServiceImpl(UserRepository userRepository,
                            PasswordEncoder passwordEncoder,
+                           AuthenticationManager authenticationManager,
                            JwtUtil jwtUtil,
                            UserProfileMapper userProfileMapper) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
+        this.authenticationManager = authenticationManager;
         this.jwtUtil = jwtUtil;
         this.userProfileMapper = userProfileMapper;
     }
@@ -50,19 +59,17 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public AuthSession login(LoginRequest request) {
-        User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new LoginFailedException("User does not exist"));
-
-        if (!user.isEnabled()) {
-            throw new LoginFailedException("Account deactivated");
+        try {
+            Authentication authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
+            );
+            User user = userRepository.findByEmail(authentication.getName())
+                    .orElseThrow(() -> new LoginFailedException(INVALID_CREDENTIALS));
+            String token = jwtUtil.generateToken(user.getId().toString(), user.getEmail(), user.getRole().name());
+            return new AuthSession(token, userProfileMapper.toProfile(user));
+        } catch (AuthenticationException ex) {
+            throw new LoginFailedException(INVALID_CREDENTIALS);
         }
-
-        if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
-            throw new LoginFailedException("Wrong password");
-        }
-
-        String token = jwtUtil.generateToken(user.getId().toString(), user.getEmail(), user.getRole().name());
-        return new AuthSession(token, userProfileMapper.toProfile(user));
     }
 
     @Override

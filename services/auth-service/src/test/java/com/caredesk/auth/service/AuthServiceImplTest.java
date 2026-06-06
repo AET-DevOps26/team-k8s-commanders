@@ -9,50 +9,73 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.openapitools.model.LoginRequest;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.DisabledException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class AuthServiceImplTest {
 
+    private static final String INVALID_CREDENTIALS = "Invalid credentials";
+
     private final UserRepository userRepository = mock(UserRepository.class);
+    private final AuthenticationManager authenticationManager = mock(AuthenticationManager.class);
     private final JwtUtil jwtUtil = mock(JwtUtil.class);
     private final AuthServiceImpl service =
-            new AuthServiceImpl(userRepository, new org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder(), jwtUtil, new UserProfileMapper());
+            new AuthServiceImpl(userRepository, new BCryptPasswordEncoder(), authenticationManager, jwtUtil, new UserProfileMapper());
 
     @Test
     void loginRejectsUnknownUser() {
-        when(userRepository.findByEmail("missing@clinic.com")).thenReturn(Optional.empty());
+        when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
+                .thenThrow(new BadCredentialsException("bad credentials"));
 
         assertThatThrownBy(() -> service.login(new LoginRequest("missing@clinic.com", "secret123")))
                 .isInstanceOf(LoginFailedException.class)
-                .hasMessage("User does not exist");
+                .hasMessage(INVALID_CREDENTIALS);
     }
 
     @Test
     void loginRejectsDeactivatedAccount() {
-        User user = activeUser("inactive@clinic.com", "encoded");
-        user.setEnabled(false);
-        when(userRepository.findByEmail("inactive@clinic.com")).thenReturn(Optional.of(user));
+        when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
+                .thenThrow(new DisabledException("disabled"));
 
         assertThatThrownBy(() -> service.login(new LoginRequest("inactive@clinic.com", "secret123")))
                 .isInstanceOf(LoginFailedException.class)
-                .hasMessage("Account deactivated");
+                .hasMessage(INVALID_CREDENTIALS);
     }
 
     @Test
     void loginRejectsWrongPassword() {
-        User user = activeUser("patient@clinic.com", new org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder().encode("correct"));
-        when(userRepository.findByEmail("patient@clinic.com")).thenReturn(Optional.of(user));
+        when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
+                .thenThrow(new BadCredentialsException("bad credentials"));
 
         assertThatThrownBy(() -> service.login(new LoginRequest("patient@clinic.com", "wrong")))
                 .isInstanceOf(LoginFailedException.class)
-                .hasMessage("Wrong password");
+                .hasMessage(INVALID_CREDENTIALS);
+    }
+
+    @Test
+    void loginReturnsSessionWhenAuthenticationSucceeds() {
+        User user = activeUser("patient@clinic.com", "encoded");
+        when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
+                .thenReturn(new UsernamePasswordAuthenticationToken(user.getEmail(), null));
+        when(userRepository.findByEmail("patient@clinic.com")).thenReturn(Optional.of(user));
+        when(jwtUtil.generateToken(user.getId().toString(), user.getEmail(), user.getRole().name()))
+                .thenReturn("jwt-token");
+
+        var session = service.login(new LoginRequest("patient@clinic.com", "correct"));
+
+        org.assertj.core.api.Assertions.assertThat(session.getAccessToken()).isEqualTo("jwt-token");
     }
 
     private static User activeUser(String email, String encodedPassword) {

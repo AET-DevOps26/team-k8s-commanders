@@ -39,7 +39,11 @@ export function CreateUserDialog({ onCancel, onCreate }: CreateUserDialogProps) 
     try {
       await onCreate(payload)
     } catch (err) {
-      console.error('Create user failed', err)
+      if (import.meta.env.DEV && err instanceof Error) {
+        console.error('Create user failed:', err.message)
+      } else {
+        console.error('Create user failed')
+      }
     } finally {
       setSubmitting(false)
     }

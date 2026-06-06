@@ -42,7 +42,11 @@ export function EditUserDialog({
     try {
       await onSave(payload)
     } catch (err) {
-      console.error('Update user failed', err)
+      if (import.meta.env.DEV && err instanceof Error) {
+        console.error('Update user failed:', err.message)
+      } else {
+        console.error('Update user failed')
+      }
     } finally {
       setSubmitting(false)
     }

@@ -13,8 +13,8 @@ public class ApiExceptionHandler {
         return ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED, ex.getMessage());
     }
 
-    @ExceptionHandler(IllegalArgumentException.class)
-    public ProblemDetail handleIllegalArgument(IllegalArgumentException ex) {
+    @ExceptionHandler(ValidationException.class)
+    public ProblemDetail handleValidation(ValidationException ex) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
     }
 }

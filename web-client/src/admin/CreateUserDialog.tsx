@@ -38,8 +38,8 @@ export function CreateUserDialog({ onCancel, onCreate }: CreateUserDialogProps) 
 
     try {
       await onCreate(payload)
-    } catch {
-      // Error surfaced by the parent via actionError.
+    } catch (err) {
+      console.error('Create user failed', err)
     } finally {
       setSubmitting(false)
     }
@@ -81,7 +81,12 @@ export function CreateUserDialog({ onCancel, onCreate }: CreateUserDialogProps) 
         <label>
           Role
           <select
-            onChange={(event) => setRole(event.target.value as UserRole)}
+            onChange={(event) => {
+              const value = event.currentTarget.value
+              if ((ROLE_OPTIONS as readonly string[]).includes(value)) {
+                setRole(value as UserRole)
+              }
+            }}
             value={role}
           >
             {ROLE_OPTIONS.map((option) => (

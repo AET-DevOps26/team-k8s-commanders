@@ -2,6 +2,7 @@ package com.caredesk.auth.service;
 
 import com.caredesk.auth.config.JwtUtil;
 import com.caredesk.auth.exception.LoginFailedException;
+import com.caredesk.auth.exception.ValidationException;
 import com.caredesk.auth.model.Role;
 import com.caredesk.auth.model.User;
 import com.caredesk.auth.repository.UserRepository;
@@ -32,7 +33,7 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public AuthSession register(RegisterRequest request) {
         if (userRepository.existsByEmail(request.getEmail())) {
-            throw new IllegalArgumentException("Email already registered");
+            throw new ValidationException("Email already in use");
         }
 
         User user = new User();

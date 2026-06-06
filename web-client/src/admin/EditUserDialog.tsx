@@ -6,7 +6,7 @@ type EditUserDialogProps = {
   user: UserProfile
   busy: boolean
   onCancel: () => void
-  onSave: (updated: UserProfile) => void
+  onSave: (updated: UserProfile) => Promise<void>
 }
 
 export function EditUserDialog({
@@ -17,18 +17,35 @@ export function EditUserDialog({
 }: EditUserDialogProps) {
   const [form, setForm] = useState<UserProfile>({ ...user })
   const [password, setPassword] = useState('')
+  const [isSubmitting, setSubmitting] = useState(false)
+  const isDoctor = form.role === 'DOCTOR'
 
   function update<K extends keyof UserProfile>(key: K, value: UserProfile[K]) {
     setForm((current) => ({ ...current, [key]: value }))
   }
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    const payload: UserProfile = { ...form }
-    if (password.trim()) {
-      payload.password = password
+
+    const newPassword = password.trim()
+    if (newPassword.length > 0 && newPassword.length < 8) {
+      return
     }
-    onSave(payload)
+
+    setSubmitting(true)
+
+    const payload: UserProfile = { ...form }
+    if (newPassword) {
+      payload.password = newPassword
+    }
+
+    try {
+      await onSave(payload)
+    } catch (err) {
+      console.error('Update user failed', err)
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   return (
@@ -56,7 +73,12 @@ export function EditUserDialog({
         <label>
           Role
           <select
-            onChange={(event) => update('role', event.target.value as UserRole)}
+            onChange={(event) => {
+              const value = event.currentTarget.value
+              if ((ROLE_OPTIONS as readonly string[]).includes(value)) {
+                update('role', value as UserRole)
+              }
+            }}
             value={form.role}
           >
             {ROLE_OPTIONS.map((role) => (
@@ -74,26 +96,31 @@ export function EditUserDialog({
             value={form.phoneNumber ?? ''}
           />
         </label>
-        <label>
-          Specialization
-          <input
-            onChange={(event) => update('specialization', event.target.value)}
-            type="text"
-            value={form.specialization ?? ''}
-          />
-        </label>
-        <label>
-          License number
-          <input
-            onChange={(event) => update('licenseNumber', event.target.value)}
-            type="text"
-            value={form.licenseNumber ?? ''}
-          />
-        </label>
+        {isDoctor && (
+          <>
+            <label>
+              Specialization
+              <input
+                onChange={(event) => update('specialization', event.target.value)}
+                type="text"
+                value={form.specialization ?? ''}
+              />
+            </label>
+            <label>
+              License number
+              <input
+                onChange={(event) => update('licenseNumber', event.target.value)}
+                type="text"
+                value={form.licenseNumber ?? ''}
+              />
+            </label>
+          </>
+        )}
         <label>
           Reset password (optional)
           <input
             autoComplete="new-password"
+            minLength={8}
             onChange={(event) => setPassword(event.target.value)}
             placeholder="Leave blank to keep current"
             type="password"
@@ -112,8 +139,12 @@ export function EditUserDialog({
           <button className="secondary-button" onClick={onCancel} type="button">
             Cancel
           </button>
-          <button className="primary-button" disabled={busy} type="submit">
-            {busy ? 'Saving' : 'Save changes'}
+          <button
+            className="primary-button"
+            disabled={busy || isSubmitting}
+            type="submit"
+          >
+            {busy || isSubmitting ? 'Saving' : 'Save changes'}
           </button>
         </div>
       </form>

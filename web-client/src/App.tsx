@@ -270,7 +270,9 @@ function AuthForm({ mode, onAuthenticated, onNavigate }: AuthFormProps) {
       setError(
         submitError instanceof Error
           ? submitError.message
-          : 'Authentication failed',
+          : isRegister
+            ? 'Sign up failed'
+            : 'Login failed',
       )
     } finally {
       setSubmitting(false)

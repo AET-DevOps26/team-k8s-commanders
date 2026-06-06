@@ -51,9 +51,10 @@ async function getErrorMessage(response: Response) {
       title?: string
       detail?: string
       message?: string
+      error?: string
     }
 
-    return payload.detail ?? payload.message ?? payload.title ?? fallback
+    return payload.detail ?? payload.message ?? payload.error ?? payload.title ?? fallback
   } catch {
     return fallback
   }

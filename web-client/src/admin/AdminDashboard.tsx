@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { UserCreate, UserProfile, UserRole, UserStats } from '../clientApi'
 import {
   createUser,
@@ -33,13 +33,23 @@ export function AdminDashboard({
   const [showCreate, setShowCreate] = useState(false)
   const [confirmingDeactivate, setConfirmingDeactivate] =
     useState<UserProfile | null>(null)
+  const mountedRef = useRef(true)
 
   const token = session.accessToken
   const isAdmin = session.user.role === 'ADMIN'
 
+  useEffect(() => {
+    mountedRef.current = true
+    return () => {
+      mountedRef.current = false
+    }
+  }, [])
+
   async function reload() {
-    setLoading(true)
-    setError('')
+    if (mountedRef.current) {
+      setLoading(true)
+      setError('')
+    }
 
     try {
       const [usersResponse, statsResponse] = await Promise.all([
@@ -47,22 +57,28 @@ export function AdminDashboard({
         getUserStats(token),
       ])
 
-      setData({
-        users: usersResponse.content,
-        total: usersResponse.page.totalElements,
-        page: usersResponse.page.page,
-        totalPages: usersResponse.page.totalPages,
-      })
-      setStats(statsResponse)
+      if (mountedRef.current) {
+        setData({
+          users: usersResponse.content,
+          total: usersResponse.page.totalElements,
+          page: usersResponse.page.page,
+          totalPages: usersResponse.page.totalPages,
+        })
+        setStats(statsResponse)
+      }
     } catch (loadError) {
-      setError(
-        loadError instanceof Error
-          ? loadError.message
-          : 'Admin data could not be loaded',
-      )
-      setData(null)
+      if (mountedRef.current) {
+        setError(
+          loadError instanceof Error
+            ? loadError.message
+            : 'Admin data could not be loaded',
+        )
+        setData(null)
+      }
     } finally {
-      setLoading(false)
+      if (mountedRef.current) {
+        setLoading(false)
+      }
     }
   }
 

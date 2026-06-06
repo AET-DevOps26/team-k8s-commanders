@@ -8,12 +8,14 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.access.AccessDeniedException;
 
 import java.time.OffsetDateTime;
 import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
@@ -57,12 +59,11 @@ class NotesServiceTest {
     void upsertReplacesExistingNoteAndPreservesIdentityAndCreatedAt() {
         UUID existingId = UUID.randomUUID();
         OffsetDateTime originalCreatedAt = OffsetDateTime.now().minusDays(3);
-        UUID originalDoctor = UUID.randomUUID();
 
         ClinicalNote existing = new ClinicalNote();
         existing.setId(existingId);
         existing.setAppointmentId(appointmentId);
-        existing.setDoctorId(originalDoctor);
+        existing.setDoctorId(doctorId); // same doctor updates their own note
         existing.setContent("Old content");
         existing.setCreatedAt(originalCreatedAt);
 
@@ -81,6 +82,22 @@ class NotesServiceTest {
         assertThat(saved.getContent()).isEqualTo("Updated content");
         assertThat(saved.getDoctorId()).isEqualTo(doctorId);
         assertThat(saved.getDiagnosis()).isNull();
+    }
+
+    @Test
+    void upsertThrowsWhenCallerIsNotNoteAuthor() {
+        UUID otherDoctorId = UUID.randomUUID();
+
+        ClinicalNote existing = new ClinicalNote();
+        existing.setAppointmentId(appointmentId);
+        existing.setDoctorId(otherDoctorId);
+        existing.setContent("Original content");
+        existing.setCreatedAt(OffsetDateTime.now().minusDays(1));
+
+        when(repository.findByAppointmentId(appointmentId)).thenReturn(Optional.of(existing));
+
+        assertThatThrownBy(() -> notesService.upsert(appointmentId, doctorId, "New content", null))
+                .isInstanceOf(AccessDeniedException.class);
     }
 
     @Test

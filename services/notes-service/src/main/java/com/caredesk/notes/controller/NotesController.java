@@ -51,12 +51,15 @@ public class NotesController implements AppointmentsApi {
      */
     @Override
     public ResponseEntity<ClinicalNote> getAppointmentNote(UUID appointmentId) {
-        return notesService.getByAppointment(appointmentId)
-                .map(NoteMapper::toModel)
-                .map(ResponseEntity::ok)
+        UUID doctorId = currentDoctorId();
+        com.caredesk.notes.model.ClinicalNote note = notesService.getByAppointment(appointmentId)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND,
                         "No clinical note exists for appointment " + appointmentId));
+        if (!note.getDoctorId().equals(doctorId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Not your appointment");
+        }
+        return ResponseEntity.ok(NoteMapper.toModel(note));
     }
 
     /**

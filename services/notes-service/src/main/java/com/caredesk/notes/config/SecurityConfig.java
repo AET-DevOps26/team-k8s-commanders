@@ -2,6 +2,7 @@ package com.caredesk.notes.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -52,10 +53,14 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        // Health endpoint must be reachable for the Docker healthcheck.
                         .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
-                        // Everything else requires an authenticated principal, which
-                        // NotesHeaderAuthFilter sets from the gateway-injected headers.
+                        // Spring forwards errors internally to /error — must be reachable
+                        // without authentication or the real status code is swallowed by 401.
+                        .requestMatchers("/error").permitAll()
+                        // Note endpoints are restricted to doctors; ownership is enforced
+                        // per-request in the controller and service.
+                        .requestMatchers(HttpMethod.GET, "/appointments/*/note").hasRole("DOCTOR")
+                        .requestMatchers(HttpMethod.PUT, "/appointments/*/note").hasRole("DOCTOR")
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(headerAuthFilter, UsernamePasswordAuthenticationFilter.class)

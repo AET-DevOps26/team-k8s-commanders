@@ -3,6 +3,7 @@ package com.caredesk.notes.service;
 import com.caredesk.notes.model.ClinicalNote;
 import com.caredesk.notes.model.Diagnosis;
 import com.caredesk.notes.repository.ClinicalNoteRepository;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -63,6 +64,8 @@ public class NotesService {
         if (created) {
             note.setAppointmentId(appointmentId);
             note.setCreatedAt(OffsetDateTime.now());
+        } else if (!note.getDoctorId().equals(doctorId)) {
+            throw new AccessDeniedException("Not your appointment");
         }
         note.setDoctorId(doctorId);
         note.setContent(content);

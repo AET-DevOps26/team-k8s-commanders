@@ -11,7 +11,7 @@
 #   - helm v3 + kubectl on PATH
 #   - kubeconfig at ~/.kube/config (download stud.yaml from https://rancher.ase.cit.tum.de)
 #
-# Optional overrides (env or .env.k8s at repo root): TUM_ID, NAMESPACE, RELEASE,
+# Optional overrides (env or .env.k8s at repo root): TUM_ID, RELEASE,
 # IMAGE_TAG, LLM_API_KEY, LLM_PROVIDER, LLM_MODEL, OPENWEBUI_BASE_URL,
 # JWT_SECRET, POSTGRES_PASSWORD, INGRESS_HOST, INGRESS_TLS_ENABLED,
 # GHCR_USER, GHCR_PAT.
@@ -48,7 +48,7 @@ fi
 
 # Defaults make the script runnable with no config at all.
 TUM_ID="${TUM_ID:-ge38yuc}"
-NAMESPACE="${NAMESPACE:-${TUM_ID}-devops26}"
+NAMESPACE="${TUM_ID}-devops26-team-k8s-commanders"
 RELEASE="${RELEASE:-caredesk}"
 IMAGE_TAG="${IMAGE_TAG:-latest}"
 

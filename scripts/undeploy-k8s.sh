@@ -19,7 +19,7 @@ if [[ -f "${ENV_FILE}" ]]; then
   set -a; source "${ENV_FILE}"; set +a
 fi
 TUM_ID="${TUM_ID:-ge38yuc}"
-NAMESPACE="${NAMESPACE:-${TUM_ID}-devops26}"
+NAMESPACE="${TUM_ID}-devops26-team-k8s-commanders"
 RELEASE="${RELEASE:-caredesk}"
 
 log "Uninstalling release ${RELEASE} from ns/${NAMESPACE}"

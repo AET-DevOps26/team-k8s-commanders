@@ -23,7 +23,7 @@
 SHELL         := /usr/bin/env bash
 CHART         := helm/caredesk
 TUM_ID       ?= ge38yuc
-NS            := $(TUM_ID)-devops26
+NS            := $(TUM_ID)-devops26-team-k8s-commanders
 RELEASE      ?= caredesk
 DEPLOY_TARGET ?= aet
 

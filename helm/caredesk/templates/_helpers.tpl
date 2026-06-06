@@ -40,9 +40,9 @@ app.kubernetes.io/instance: {{ .root.Release.Name }}
 app.kubernetes.io/component: {{ .component }}
 {{- end -}}
 
-{{/* Namespace name (tumId-devops26) — informational only; Helm uses --namespace */}}
+{{/* Namespace name — informational only; Helm uses --namespace */}}
 {{- define "caredesk.namespace" -}}
-{{- printf "%s-devops26" .Values.tumId -}}
+{{- printf "%s-devops26-team-k8s-commanders" .Values.tumId -}}
 {{- end -}}
 
 {{/* Ingress host — user value if set, else default suffix */}}

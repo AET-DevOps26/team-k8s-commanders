@@ -22,9 +22,13 @@ public class JwtUtil {
         return Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
     }
 
-    public String generateToken(String email, String role) {
+    public String generateToken(String userId, String email, String role) {
         return Jwts.builder()
                 .subject(email)
+                // uid lets downstream services attribute actions to a user (e.g. the
+                // authoring doctor of a clinical note) without a second lookup. The
+                // gateway forwards it as the trusted X-User-Id header.
+                .claim("uid", userId)
                 .claim("role", role)
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + expirationMs))

@@ -25,6 +25,7 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
     // must be stripped first to prevent header spoofing.
     static final String USER_EMAIL_HEADER = "X-User-Email";
     static final String USER_ROLE_HEADER = "X-User-Role";
+    static final String USER_ID_HEADER = "X-User-Id";
 
     // Public paths that bypass JWT validation. /auth is where you obtain the token,
     // so it cannot require one. Paths match the external URL (before StripPrefix).
@@ -48,6 +49,7 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
                 .headers(h -> {
                     h.remove(USER_EMAIL_HEADER);
                     h.remove(USER_ROLE_HEADER);
+                    h.remove(USER_ID_HEADER);
                 })
                 .build();
         ServerWebExchange sanitisedExchange = exchange.mutate().request(sanitised).build();
@@ -76,10 +78,19 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
             return unauthorized(sanitisedExchange);
         }
 
-        ServerHttpRequest mutated = sanitised.mutate()
+        ServerHttpRequest.Builder mutatedBuilder = sanitised.mutate()
                 .header(USER_EMAIL_HEADER, email)
-                .header(USER_ROLE_HEADER, role)
-                .build();
+                .header(USER_ROLE_HEADER, role);
+
+        // uid is optional: tokens issued before it was introduced still authenticate
+        // on every route. Forward it only when present so downstream services that
+        // need the user id (e.g. notes-service) can read it.
+        String uid = claims.get("uid", String.class);
+        if (uid != null && !uid.isBlank()) {
+            mutatedBuilder.header(USER_ID_HEADER, uid);
+        }
+
+        ServerHttpRequest mutated = mutatedBuilder.build();
 
         return chain.filter(sanitisedExchange.mutate().request(mutated).build());
     }

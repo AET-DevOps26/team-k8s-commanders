@@ -1,0 +1,217 @@
+.dashboard-shell {
+  padding: clamp(2rem, 5vw, 4.5rem) clamp(1rem, 4vw, 4rem);
+}
+
+.patient-hero {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: clamp(1.5rem, 4vw, 3rem);
+}
+
+.patient-hero > div {
+  max-width: 48rem;
+}
+
+.patient-hero .secondary-button {
+  border: 1px solid rgba(19, 35, 34, 0.12);
+  cursor: pointer;
+}
+
+.patient-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(18rem, 0.7fr);
+  gap: 1rem;
+}
+
+.dashboard-panel {
+  padding: clamp(1rem, 2.5vw, 1.5rem);
+}
+
+.wide-panel {
+  grid-column: span 1;
+}
+
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.panel-header h2 {
+  margin: 0;
+  font-size: clamp(1.6rem, 3vw, 2.3rem);
+}
+
+.appointment-list,
+.note-list,
+.profile-list {
+  display: grid;
+  gap: 0.8rem;
+}
+
+.appointment-item,
+.note-item,
+.profile-list div {
+  padding: 0.95rem;
+  border-radius: 0.5rem;
+  background: rgba(226, 241, 235, 0.68);
+}
+
+.appointment-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 1rem;
+}
+
+.appointment-item strong,
+.note-item strong {
+  color: #132322;
+}
+
+.appointment-item p,
+.note-item p {
+  margin: 0.35rem 0 0;
+  color: #5a6f6b;
+  line-height: 1.5;
+}
+
+.appointment-item small {
+  display: block;
+  margin-top: 0.45rem;
+  color: #19726c;
+  font-weight: 800;
+}
+
+.appointment-item span {
+  flex: 0 0 auto;
+  padding: 0.32rem 0.48rem;
+  border-radius: 0.35rem;
+  background: #cfe9df;
+}
+
+.appointment-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.move-panel {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 0.75rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid rgba(19, 35, 34, 0.1);
+}
+
+.move-slot-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  gap: 0.55rem;
+}
+
+.move-slot-grid button {
+  display: grid;
+  gap: 0.2rem;
+  min-height: 4rem;
+  padding: 0.65rem;
+  text-align: left;
+}
+
+.move-slot-grid button.active {
+  color: #f8fbf8;
+  border-color: #14615b;
+  background: #14615b;
+}
+
+.move-slot-grid button.active strong,
+.move-slot-grid button.active span {
+  color: #f8fbf8;
+}
+
+.profile-list {
+  margin: 0;
+}
+
+.profile-list dd {
+  margin: 0.25rem 0 0;
+  color: #132322;
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
+.booking-grid {
+  align-items: start;
+  margin-bottom: 1rem;
+}
+
+.doctor-results {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.doctor-card {
+  display: grid;
+  gap: 0.35rem;
+  padding: 1rem;
+  text-align: left;
+}
+
+.doctor-card strong {
+  font-size: 1.05rem;
+}
+
+.doctor-card span {
+  color: #19726c;
+  font-weight: 900;
+}
+
+.doctor-card.active span,
+.doctor-card.active small {
+  color: #dff0ea;
+}
+
+.doctor-card small {
+  color: #5a6f6b;
+  overflow-wrap: anywhere;
+}
+
+.calendar-panel {
+  margin-top: 1rem;
+}
+
+.slot-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+  gap: 0.75rem;
+}
+
+.slot-button {
+  display: grid;
+  gap: 0.35rem;
+  min-height: 5.5rem;
+  padding: 0.9rem;
+  text-align: left;
+}
+
+.slot-button span {
+  color: #19726c;
+  font-size: 0.78rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.slot-button.active span {
+  color: #dff0ea;
+}

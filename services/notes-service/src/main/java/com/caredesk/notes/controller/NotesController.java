@@ -91,6 +91,19 @@ public class NotesController implements AppointmentsApi {
     }
 
     /**
+     * Deletes the clinical note for an appointment. Only the authoring doctor
+     * may delete their own note.
+     *
+     * @param appointmentId the appointment whose note should be deleted
+     * @return 204 No Content on success, 404 if no note exists, 403 if not the author
+     */
+    @Override
+    public ResponseEntity<Void> deleteAppointmentNote(UUID appointmentId) {
+        notesService.delete(appointmentId, currentDoctorId());
+        return ResponseEntity.noContent().build();
+    }
+
+    /**
      * Reads the authoring doctor's id from the trusted gateway header.
      *
      * @return the doctor's user id

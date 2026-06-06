@@ -3,9 +3,11 @@ package com.caredesk.notes.service;
 import com.caredesk.notes.model.ClinicalNote;
 import com.caredesk.notes.model.Diagnosis;
 import com.caredesk.notes.repository.ClinicalNoteRepository;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.OffsetDateTime;
 import java.util.Optional;
@@ -72,6 +74,25 @@ public class NotesService {
         note.setDiagnosis(diagnosis);
 
         return new UpsertResult(repository.save(note), created);
+    }
+
+    /**
+     * Deletes the note for an appointment. Only the authoring doctor may delete it.
+     *
+     * @param appointmentId the appointment whose note should be deleted
+     * @param doctorId      the caller's user id (from the gateway)
+     * @throws AccessDeniedException   if the caller is not the note's author
+     * @throws jakarta.persistence.EntityNotFoundException if no note exists
+     */
+    @Transactional
+    public void delete(UUID appointmentId, UUID doctorId) {
+        ClinicalNote note = repository.findByAppointmentId(appointmentId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "No clinical note exists for appointment " + appointmentId));
+        if (!note.getDoctorId().equals(doctorId)) {
+            throw new AccessDeniedException("Not your appointment");
+        }
+        repository.delete(note);
     }
 
     /**

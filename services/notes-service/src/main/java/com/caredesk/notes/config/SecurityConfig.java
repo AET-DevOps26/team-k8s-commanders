@@ -61,6 +61,7 @@ public class SecurityConfig {
                         // per-request in the controller and service.
                         .requestMatchers(HttpMethod.GET, "/appointments/*/note").hasRole("DOCTOR")
                         .requestMatchers(HttpMethod.PUT, "/appointments/*/note").hasRole("DOCTOR")
+                        .requestMatchers(HttpMethod.DELETE, "/appointments/*/note").hasRole("DOCTOR")
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(headerAuthFilter, UsernamePasswordAuthenticationFilter.class)

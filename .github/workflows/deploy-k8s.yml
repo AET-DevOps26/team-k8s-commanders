@@ -6,7 +6,7 @@ on:
     types: [completed]
     branches: [main]
   push:
-    branches: [main, 65-setup-kubernetes-and-helm-charts]
+    branches: [main]
     paths:
       - "helm/**"
       - "scripts/deploy-k8s.sh"
@@ -24,6 +24,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: AET
+      url: "https://caredesk-${{ vars.TUM_ID }}.student.k8s.aet.cit.tum.de"
 
     steps:
       - uses: actions/checkout@v4

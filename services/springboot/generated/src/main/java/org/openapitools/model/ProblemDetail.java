@@ -25,7 +25,7 @@ import jakarta.annotation.Generated;
  */
 
 @Schema(name = "ProblemDetail", description = "Problem Details object as defined by RFC 9457 (https://www.rfc-editor.org/rfc/rfc9457). ")
-@Generated(value = "org.openapitools.codegen.languages.SpringCodegen", date = "2026-06-06T19:28:09.954288002+02:00[Europe/Berlin]", comments = "Generator version: 7.22.0")
+@Generated(value = "org.openapitools.codegen.languages.SpringCodegen", date = "2026-06-06T19:57:29.113214737+02:00[Europe/Berlin]", comments = "Generator version: 7.22.0")
 public class ProblemDetail {
 
   private URI type = URI.create("about:blank");

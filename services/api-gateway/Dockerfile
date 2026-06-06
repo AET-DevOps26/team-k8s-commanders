@@ -1,4 +1,3 @@
-# syntax=docker/dockerfile:1
 #
 # Multi-stage build for the api-gateway.
 # Build from services/api-gateway as context:

@@ -25,7 +25,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  generate-stubs:
+  check-generated-sync:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -43,14 +43,16 @@ jobs:
 
       - run: ./api/scripts/gen-all.sh
 
-      - uses: actions/upload-artifact@v4
-        with:
-          name: springboot-generated
-          path: services/springboot/generated/
-          retention-days: 1
+      - name: Fail if generated stubs are out of sync with the spec
+        run: |
+          if ! git diff --exit-code services/springboot/generated/src/; then
+            echo "services/springboot/generated/src/ is out of sync with api/openapi.yaml."
+            echo "Run ./api/scripts/gen-all.sh locally and commit the result."
+            exit 1
+          fi
 
   build:
-    needs: generate-stubs
+    needs: check-generated-sync
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -91,12 +93,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v6
-
-      - name: Download generated Spring stubs
-        uses: actions/download-artifact@v4
-        with:
-          name: springboot-generated
-          path: services/springboot/generated/
 
       - name: Generate image tags
         id: meta

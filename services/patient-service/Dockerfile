@@ -3,36 +3,22 @@
 # Multi-stage build for the patient-service.
 #
 # Depends on the OpenAPI-generated stubs JAR (org.openapitools:openapi-spring)
-# which is not in Maven Central. Same pattern as auth-service: compile the
-# stubs project, strip its application.properties so it does not shadow our
-# application.yml, install it as a plain library JAR, then build the service
-# against it.
+# which is not in Maven Central. The stubs live in services/springboot/generated/
+# (committed to the repo). Same pattern as auth-service and notes-service:
+# compile the stubs project, strip its application.properties so it does not
+# shadow our application.yml, install it as a plain library JAR, then build the
+# service against it.
 #
 # Build from the REPO ROOT (not from services/patient-service):
 #     docker build -f services/patient-service/Dockerfile -t caredesk-patient-service .
 
 # ---------------------------------------------------------------------------
-# Stage 1 — generate the OpenAPI Spring stubs from the API spec
-# ---------------------------------------------------------------------------
-FROM node:24-alpine AS stubs-generator
-RUN apk add --no-cache openjdk21-jre
-WORKDIR /repo
-COPY package.json package-lock.json* ./
-RUN npm ci
-COPY api/openapi.yaml api/openapi.yaml
-RUN npx openapi-generator-cli generate \
-    -i api/openapi.yaml \
-    -g spring \
-    -o services/springboot/generated \
-    -p interfaceOnly=true,useSpringBoot3=true
-
-# ---------------------------------------------------------------------------
-# Stage 2 — build & install the OpenAPI stubs into a shared local Maven repo
+# Stage 1 — build & install the OpenAPI stubs into a shared local Maven repo
 # ---------------------------------------------------------------------------
 FROM maven:3.9-eclipse-temurin-21 AS stubs-builder
 WORKDIR /stubs
-COPY --from=stubs-generator /repo/services/springboot/generated/pom.xml .
-COPY --from=stubs-generator /repo/services/springboot/generated/src ./src
+COPY services/springboot/generated/pom.xml .
+COPY services/springboot/generated/src ./src
 RUN mvn compile -q
 RUN rm -f target/classes/application.properties
 RUN cd target/classes && jar cf /tmp/openapi-spring-1.0.0.jar . \
@@ -45,7 +31,7 @@ RUN cd target/classes && jar cf /tmp/openapi-spring-1.0.0.jar . \
         -q
 
 # ---------------------------------------------------------------------------
-# Stage 3 — build the patient-service JAR
+# Stage 2 — build the patient-service JAR
 # ---------------------------------------------------------------------------
 FROM maven:3.9-eclipse-temurin-21 AS app-builder
 WORKDIR /app
@@ -56,7 +42,7 @@ COPY services/patient-service/src ./src
 RUN mvn package -DskipTests -q
 
 # ---------------------------------------------------------------------------
-# Stage 4 — slim runtime image
+# Stage 3 — slim runtime image
 # ---------------------------------------------------------------------------
 FROM eclipse-temurin:21-jre-alpine
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup

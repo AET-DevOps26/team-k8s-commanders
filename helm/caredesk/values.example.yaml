@@ -1,0 +1,30 @@
+# Copy to values.local.yaml (gitignored) and edit, then:
+#   helm upgrade --install caredesk helm/caredesk -n <NS> -f values.local.yaml
+#
+# All keys below override defaults in values.yaml.
+
+tumId: ge38yuc                  # your TUM ID
+
+images:
+  pullSecret:
+    username: <your-github-username>
+    password: <ghcr-pat-with-read:packages>
+
+ingress:
+  # If the AET cluster uses a different suffix than student.k8s.aet.cit.tum.de
+  # (check Rancher → Ingresses after first deploy), set the real host here.
+  host: ""
+  tls:
+    enabled: true               # set false if cluster has no cert-manager
+
+ai:
+  secrets:
+    llmApiKey: sk-...           # OpenAI / OpenWebUI key
+
+# Shared JWT secret (auth-service signs, api-gateway verifies). >= 32 chars.
+backend:
+  jwtSecret: <64-byte-hex>      # `openssl rand -hex 64`
+
+# Password for every per-service Postgres (auth-db / patient-db / notes-db).
+postgres:
+  password: <strong-password>

@@ -1,0 +1,55 @@
+{{- if .Values.ai.enabled -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "caredesk.fullname" . }}-ai
+  labels:
+    {{- include "caredesk.labels" . | nindent 4 }}
+    app.kubernetes.io/component: ai
+spec:
+  replicas: {{ .Values.ai.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "caredesk.selectorLabels" (dict "root" . "component" "ai") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "caredesk.selectorLabels" (dict "root" . "component" "ai") | nindent 8 }}
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        checksum/secret: {{ include (print $.Template.BasePath "/secret-app.yaml") . | sha256sum }}
+    spec:
+      {{- include "caredesk.imagePullSecrets" . | nindent 6 }}
+      containers:
+        - name: ai-assistant
+          image: {{ include "caredesk.image" (dict "root" $ "image" .Values.ai.image) | quote }}
+          imagePullPolicy: {{ .Values.images.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.ai.service.port }}
+          envFrom:
+            - configMapRef:
+                name: {{ include "caredesk.fullname" . }}-config
+          env:
+            {{- if .Values.ai.secrets.llmApiKey }}
+            - name: LLM_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "caredesk.fullname" . }}-app
+                  key: LLM_API_KEY
+            {{- end }}
+          readinessProbe:
+            httpGet:
+              path: /ai/health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /ai/health
+              port: http
+            initialDelaySeconds: 20
+            periodSeconds: 30
+          resources:
+            {{- toYaml .Values.ai.resources | nindent 12 }}
+{{- end }}

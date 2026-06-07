@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "caredesk.fullname" . }}-config
+  labels:
+    {{- include "caredesk.labels" . | nindent 4 }}
+data:
+  # web-client (runtime-injected into window.__ENV__)
+  PUBLIC_API_URL: {{ include "caredesk.publicApiUrl" . | quote }}
+
+  # ai-assistant
+  AI_BASE_URL: {{ printf "http://%s-ai:%d" (include "caredesk.fullname" .) (int .Values.ai.service.port) | quote }}
+  LLM_PROVIDER: {{ .Values.ai.env.llmProvider | quote }}
+  LLM_MODEL: {{ .Values.ai.env.llmModel | quote }}
+  OPENWEBUI_BASE_URL: {{ .Values.ai.env.openwebuiBaseUrl | quote }}

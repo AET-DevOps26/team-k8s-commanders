@@ -22,21 +22,34 @@ class DoctorServiceTest {
 
     private final DoctorSlotRepository repository = mock(DoctorSlotRepository.class);
     private final ScheduleSlotMapper mapper = new ScheduleSlotMapper();
-    private final DoctorService service = new DoctorService(repository, mapper);
+    private final AuthServiceClient authServiceClient = mock(AuthServiceClient.class);
+    private final DoctorService service = new DoctorService(repository, mapper, authServiceClient);
 
     @Test
-    void getProfile_returnsIdOnly() {
+    void getProfile_returnsAuthServiceProfile_whenFound() {
         UUID doctorId = UUID.randomUUID();
+        UserProfile authProfile = new UserProfile(doctorId, "Dr Who", "who@tardis.com",
+                org.openapitools.model.UserRole.DOCTOR);
+        when(authServiceClient.getUserById(doctorId)).thenReturn(authProfile);
 
         UserProfile profile = service.getProfile(doctorId);
 
         assertThat(profile.getId()).isEqualTo(doctorId);
-        // Identity fields live in auth-service and stay null in the patient-service response.
+        assertThat(profile.getName()).isEqualTo("Dr Who");
+        assertThat(profile.getEmail()).isEqualTo("who@tardis.com");
+        assertThat(profile.getRole()).isEqualTo(org.openapitools.model.UserRole.DOCTOR);
+    }
+
+    @Test
+    void getProfile_fallsBackToIdOnly_whenAuthServiceMisses() {
+        UUID doctorId = UUID.randomUUID();
+        when(authServiceClient.getUserById(doctorId)).thenReturn(null);
+
+        UserProfile profile = service.getProfile(doctorId);
+
+        assertThat(profile.getId()).isEqualTo(doctorId);
         assertThat(profile.getName()).isNull();
         assertThat(profile.getEmail()).isNull();
-        assertThat(profile.getRole()).isNull();
-        assertThat(profile.getSpecialization()).isNull();
-        assertThat(profile.getLicenseNumber()).isNull();
     }
 
     @Test

@@ -34,12 +34,17 @@ class PatientServiceTest {
     private final PatientRepository patientRepository = mock(PatientRepository.class);
     private final AppointmentRepository appointmentRepository = mock(AppointmentRepository.class);
     private final AppointmentMapper appointmentMapper = new AppointmentMapper();
+    private final AuthServiceClient authServiceClient = mock(AuthServiceClient.class);
     private final PatientService service = new PatientService(
-            patientRepository, appointmentRepository, appointmentMapper);
+            patientRepository, appointmentRepository, appointmentMapper, authServiceClient);
 
     @Test
-    void getProfile_returnsLocalFields_whenPatientExists() {
+    void getProfile_mergesAuthIdentityWithLocalFields() {
         UUID id = UUID.randomUUID();
+        UserProfile authProfile = new UserProfile(id, "Alice", "alice@x.com",
+                org.openapitools.model.UserRole.PATIENT);
+        when(authServiceClient.getUserById(id)).thenReturn(authProfile);
+
         Patient patient = new Patient();
         patient.setId(id);
         patient.setDateOfBirth(LocalDate.of(1990, 1, 15));
@@ -49,24 +54,38 @@ class PatientServiceTest {
         UserProfile profile = service.getProfile(id);
 
         assertThat(profile.getId()).isEqualTo(id);
+        assertThat(profile.getName()).isEqualTo("Alice");
+        assertThat(profile.getEmail()).isEqualTo("alice@x.com");
+        assertThat(profile.getRole()).isEqualTo(org.openapitools.model.UserRole.PATIENT);
         assertThat(profile.getDateOfBirth()).isEqualTo(LocalDate.of(1990, 1, 15));
         assertThat(profile.getPhoneNumber()).isEqualTo("+44 20 1234 5678");
-        // Identity fields live in auth-service and stay null in the patient-service response.
-        assertThat(profile.getName()).isNull();
-        assertThat(profile.getEmail()).isNull();
-        assertThat(profile.getRole()).isNull();
     }
 
     @Test
-    void getProfile_returnsIdOnly_whenPatientMissing() {
+    void getProfile_returnsAuthIdentityOnly_whenNoLocalPatientRow() {
         UUID id = UUID.randomUUID();
+        UserProfile authProfile = new UserProfile(id, "Bob", "bob@x.com",
+                org.openapitools.model.UserRole.PATIENT);
+        when(authServiceClient.getUserById(id)).thenReturn(authProfile);
+        when(patientRepository.findById(id)).thenReturn(Optional.empty());
+
+        UserProfile profile = service.getProfile(id);
+
+        assertThat(profile.getName()).isEqualTo("Bob");
+        assertThat(profile.getDateOfBirth()).isNull();
+        assertThat(profile.getPhoneNumber()).isNull();
+    }
+
+    @Test
+    void getProfile_fallsBackToIdOnly_whenAuthServiceMisses() {
+        UUID id = UUID.randomUUID();
+        when(authServiceClient.getUserById(id)).thenReturn(null);
         when(patientRepository.findById(id)).thenReturn(Optional.empty());
 
         UserProfile profile = service.getProfile(id);
 
         assertThat(profile.getId()).isEqualTo(id);
-        assertThat(profile.getDateOfBirth()).isNull();
-        assertThat(profile.getPhoneNumber()).isNull();
+        assertThat(profile.getName()).isNull();
     }
 
     @Test

@@ -13,12 +13,11 @@ import java.util.UUID;
 /**
  * Read-only profile and schedule queries for a doctor.
  *
- * <p>Like {@link PatientService}, this service deliberately does not call out
- * to auth-service for the doctor's name / email / role. Those identity fields
- * live in the auth-service domain. The web client already has the booked
- * doctor's basic profile from earlier login or registration flows, and the
- * cross-service composition can be layered on later without changing this
- * API shape.
+ * <p>{@code getProfile} fetches the doctor's identity fields from
+ * auth-service via {@link AuthServiceClient} so the response is contract
+ * compliant. If the auth-service lookup fails (404 or transport error) the
+ * service falls back to an id-only response rather than failing the whole
+ * request.
  */
 @Service
 @Transactional(readOnly = true)
@@ -26,29 +25,36 @@ public class DoctorService {
 
     private final DoctorSlotRepository doctorSlotRepository;
     private final ScheduleSlotMapper scheduleSlotMapper;
+    private final AuthServiceClient authServiceClient;
 
     /**
      * @param doctorSlotRepository read access to the local doctor_slots table
      * @param scheduleSlotMapper   converts JPA slots into API DTOs
+     * @param authServiceClient    fetches identity fields from auth-service
      */
     public DoctorService(DoctorSlotRepository doctorSlotRepository,
-                         ScheduleSlotMapper scheduleSlotMapper) {
+                         ScheduleSlotMapper scheduleSlotMapper,
+                         AuthServiceClient authServiceClient) {
         this.doctorSlotRepository = doctorSlotRepository;
         this.scheduleSlotMapper = scheduleSlotMapper;
+        this.authServiceClient = authServiceClient;
     }
 
     /**
-     * Builds the doctor's profile view. Patient-service does not own the
-     * identity fields ({@code name}, {@code email}, {@code role},
-     * {@code specialization}, {@code licenseNumber}), so the response carries
-     * only the requested id. A future cross-service lookup against
-     * auth-service can populate the rest.
+     * Builds the doctor's profile view by combining the auth-service identity
+     * fields ({@code name}, {@code email}, {@code role}, etc.) with any
+     * doctor-specific data held locally. Falls back to an id-only profile if
+     * auth-service does not have the user or cannot be reached.
      *
      * @param doctorId the doctor's user id from auth-service
-     * @return a {@link UserProfile} with just the id field set
+     * @return a populated {@link UserProfile}
      */
     public UserProfile getProfile(UUID doctorId) {
-        return new UserProfile().id(doctorId);
+        UserProfile profile = authServiceClient.getUserById(doctorId);
+        if (profile == null) {
+            profile = new UserProfile().id(doctorId);
+        }
+        return profile;
     }
 
     /**

@@ -13,6 +13,7 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 import java.util.Optional;
@@ -26,7 +27,9 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class AuthServiceImplTest {
 
-    private static final String INVALID_CREDENTIALS = "Invalid credentials";
+    private static final String USER_DOES_NOT_EXIST = "User does not exist";
+    private static final String WRONG_PASSWORD = "Wrong password";
+    private static final String ACCOUNT_DEACTIVATED = "Account deactivated";
 
     private final UserRepository userRepository = mock(UserRepository.class);
     private final AuthenticationManager authenticationManager = mock(AuthenticationManager.class);
@@ -37,11 +40,11 @@ class AuthServiceImplTest {
     @Test
     void loginRejectsUnknownUser() {
         when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
-                .thenThrow(new BadCredentialsException("bad credentials"));
+                .thenThrow(new UsernameNotFoundException("User not found"));
 
         assertThatThrownBy(() -> service.login(new LoginRequest("missing@clinic.com", "secret123")))
                 .isInstanceOf(LoginFailedException.class)
-                .hasMessage(INVALID_CREDENTIALS);
+                .hasMessage(USER_DOES_NOT_EXIST);
     }
 
     @Test
@@ -51,7 +54,7 @@ class AuthServiceImplTest {
 
         assertThatThrownBy(() -> service.login(new LoginRequest("inactive@clinic.com", "secret123")))
                 .isInstanceOf(LoginFailedException.class)
-                .hasMessage(INVALID_CREDENTIALS);
+                .hasMessage(ACCOUNT_DEACTIVATED);
     }
 
     @Test
@@ -61,7 +64,7 @@ class AuthServiceImplTest {
 
         assertThatThrownBy(() -> service.login(new LoginRequest("patient@clinic.com", "wrong")))
                 .isInstanceOf(LoginFailedException.class)
-                .hasMessage(INVALID_CREDENTIALS);
+                .hasMessage(WRONG_PASSWORD);
     }
 
     @Test

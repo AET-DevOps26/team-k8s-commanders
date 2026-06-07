@@ -10,16 +10,20 @@ import org.openapitools.model.AuthSession;
 import org.openapitools.model.LoginRequest;
 import org.openapitools.model.RegisterRequest;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 @Service
 public class AuthServiceImpl implements AuthService {
 
-    private static final String INVALID_CREDENTIALS = "Invalid credentials";
+    private static final String USER_DOES_NOT_EXIST = "User does not exist";
+    private static final String WRONG_PASSWORD = "Wrong password";
+    private static final String ACCOUNT_DEACTIVATED = "Account deactivated";
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
@@ -64,11 +68,15 @@ public class AuthServiceImpl implements AuthService {
                     new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
             );
             User user = userRepository.findByEmail(authentication.getName())
-                    .orElseThrow(() -> new LoginFailedException(INVALID_CREDENTIALS));
+                    .orElseThrow(() -> new LoginFailedException(USER_DOES_NOT_EXIST));
             String token = jwtUtil.generateToken(user.getId().toString(), user.getEmail(), user.getRole().name());
             return new AuthSession(token, userProfileMapper.toProfile(user));
-        } catch (AuthenticationException ex) {
-            throw new LoginFailedException(INVALID_CREDENTIALS);
+        } catch (DisabledException ex) {
+            throw new LoginFailedException(ACCOUNT_DEACTIVATED);
+        } catch (UsernameNotFoundException ex) {
+            throw new LoginFailedException(USER_DOES_NOT_EXIST);
+        } catch (BadCredentialsException ex) {
+            throw new LoginFailedException(WRONG_PASSWORD);
         }
     }
 

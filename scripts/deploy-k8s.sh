@@ -64,6 +64,8 @@ log "Ensuring namespace ${NAMESPACE}"
 kubectl get ns "${NAMESPACE}" >/dev/null 2>&1 || \
   kubectl create namespace "${NAMESPACE}"
 
+bash "${SCRIPT_DIR}/check-k8s-quota.sh" "${NAMESPACE}"
+
 # ─── Compose --set flags ───────────────────────────────────────────────────────
 # The full stack (web, gateway, auth, patient, notes, ai + one Postgres each)
 # is enabled by chart defaults. Everything below is an OPTIONAL override.

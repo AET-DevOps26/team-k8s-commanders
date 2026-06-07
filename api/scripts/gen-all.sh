@@ -13,11 +13,11 @@ rm -rf "$spring_gen_dir/src" "$spring_gen_dir/target"
 if [ -x "$openapi_gen_bin" ]; then
   "$openapi_gen_bin" generate -i api/openapi.yaml -g spring \
     -o services/springboot/generated \
-    -p interfaceOnly=true,useSpringBoot3=true
+    -p interfaceOnly=true,useSpringBoot3=true,hideGenerationTimestamp=true
 else
   openapi-generator-cli generate -i api/openapi.yaml -g spring \
     -o services/springboot/generated \
-    -p interfaceOnly=true,useSpringBoot3=true
+    -p interfaceOnly=true,useSpringBoot3=true,hideGenerationTimestamp=true
 fi
 
 ## Generate only the FastAPI model objects needed by the AI query endpoint.

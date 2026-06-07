@@ -5,7 +5,9 @@ import java.util.Objects;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
+import java.time.LocalDate;
 import org.openapitools.model.UserRole;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.lang.Nullable;
 import org.openapitools.jackson.nullable.JsonNullable;
 import java.time.OffsetDateTime;
@@ -30,6 +32,11 @@ public class RegisterRequest {
 
   private String password;
 
+  private String phoneNumber;
+
+  @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+  private LocalDate dateOfBirth;
+
   private @Nullable UserRole role;
 
   public RegisterRequest() {
@@ -39,10 +46,12 @@ public class RegisterRequest {
   /**
    * Constructor with only required parameters
    */
-  public RegisterRequest(String name, String email, String password) {
+  public RegisterRequest(String name, String email, String password, String phoneNumber, LocalDate dateOfBirth) {
     this.name = name;
     this.email = email;
     this.password = password;
+    this.phoneNumber = phoneNumber;
+    this.dateOfBirth = dateOfBirth;
   }
 
   public RegisterRequest name(String name) {
@@ -96,7 +105,7 @@ public class RegisterRequest {
    * Get password
    * @return password
    */
-  @NotNull 
+  @NotNull @Size(min = 8) 
   @Schema(name = "password", requiredMode = Schema.RequiredMode.REQUIRED)
   @JsonProperty("password")
   public String getPassword() {
@@ -106,6 +115,48 @@ public class RegisterRequest {
   @JsonProperty("password")
   public void setPassword(String password) {
     this.password = password;
+  }
+
+  public RegisterRequest phoneNumber(String phoneNumber) {
+    this.phoneNumber = phoneNumber;
+    return this;
+  }
+
+  /**
+   * Get phoneNumber
+   * @return phoneNumber
+   */
+  @NotNull 
+  @Schema(name = "phoneNumber", requiredMode = Schema.RequiredMode.REQUIRED)
+  @JsonProperty("phoneNumber")
+  public String getPhoneNumber() {
+    return phoneNumber;
+  }
+
+  @JsonProperty("phoneNumber")
+  public void setPhoneNumber(String phoneNumber) {
+    this.phoneNumber = phoneNumber;
+  }
+
+  public RegisterRequest dateOfBirth(LocalDate dateOfBirth) {
+    this.dateOfBirth = dateOfBirth;
+    return this;
+  }
+
+  /**
+   * Get dateOfBirth
+   * @return dateOfBirth
+   */
+  @NotNull @Valid 
+  @Schema(name = "dateOfBirth", requiredMode = Schema.RequiredMode.REQUIRED)
+  @JsonProperty("dateOfBirth")
+  public LocalDate getDateOfBirth() {
+    return dateOfBirth;
+  }
+
+  @JsonProperty("dateOfBirth")
+  public void setDateOfBirth(LocalDate dateOfBirth) {
+    this.dateOfBirth = dateOfBirth;
   }
 
   public RegisterRequest role(@Nullable UserRole role) {
@@ -141,12 +192,14 @@ public class RegisterRequest {
     return Objects.equals(this.name, registerRequest.name) &&
         Objects.equals(this.email, registerRequest.email) &&
         Objects.equals(this.password, registerRequest.password) &&
+        Objects.equals(this.phoneNumber, registerRequest.phoneNumber) &&
+        Objects.equals(this.dateOfBirth, registerRequest.dateOfBirth) &&
         Objects.equals(this.role, registerRequest.role);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(name, email, password, role);
+    return Objects.hash(name, email, password, phoneNumber, dateOfBirth, role);
   }
 
   @Override
@@ -156,6 +209,8 @@ public class RegisterRequest {
     sb.append("    name: ").append(toIndentedString(name)).append("\n");
     sb.append("    email: ").append(toIndentedString(email)).append("\n");
     sb.append("    password: ").append("*").append("\n");
+    sb.append("    phoneNumber: ").append(toIndentedString(phoneNumber)).append("\n");
+    sb.append("    dateOfBirth: ").append(toIndentedString(dateOfBirth)).append("\n");
     sb.append("    role: ").append(toIndentedString(role)).append("\n");
     sb.append("}");
     return sb.toString();

@@ -1,0 +1,52 @@
+{{- if .Values.patient.enabled -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "caredesk.fullname" . }}-patient
+  labels:
+    {{- include "caredesk.labels" . | nindent 4 }}
+    app.kubernetes.io/component: patient
+spec:
+  replicas: {{ .Values.patient.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "caredesk.selectorLabels" (dict "root" . "component" "patient") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "caredesk.selectorLabels" (dict "root" . "component" "patient") | nindent 8 }}
+    spec:
+      {{- include "caredesk.imagePullSecrets" . | nindent 6 }}
+      containers:
+        - name: patient-service
+          image: {{ include "caredesk.image" (dict "root" $ "image" .Values.patient.image) | quote }}
+          imagePullPolicy: {{ .Values.images.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.patient.service.port }}
+          env:
+            - name: SERVER_PORT
+              value: {{ .Values.patient.service.port | quote }}
+            {{- include "caredesk.dbEnv" (dict "root" $ "host" .Values.patient.dbHost "name" .Values.patient.dbName) | nindent 12 }}
+          startupProbe:
+            httpGet:
+              path: /actuator/health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            failureThreshold: 40
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: http
+            periodSeconds: 10
+            failureThreshold: 6
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: http
+            periodSeconds: 15
+            failureThreshold: 3
+          resources:
+            {{- toYaml .Values.patient.resources | nindent 12 }}
+{{- end }}

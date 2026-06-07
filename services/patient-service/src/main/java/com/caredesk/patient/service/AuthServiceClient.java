@@ -2,7 +2,6 @@ package com.caredesk.patient.service;
 
 import org.openapitools.model.UserProfile;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpStatusCode;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClient;
@@ -47,11 +46,6 @@ public class AuthServiceClient {
             return restClient.get()
                     .uri("/users/{id}", userId)
                     .retrieve()
-                    .onStatus(HttpStatusCode::isError, (req, resp) -> {
-                        // Swallow errors so the caller can fall back gracefully. The
-                        // patient or doctor row still exists in our DB even if the
-                        // auth-service lookup fails.
-                    })
                     .body(UserProfile.class);
         } catch (HttpClientErrorException.NotFound e) {
             return null;

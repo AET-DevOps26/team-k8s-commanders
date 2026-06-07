@@ -8,7 +8,7 @@
 #   make deploy
 #
 # Prerequisites:
-#   - helm v3 + kubectl on PATH
+#   - helm v3 + kubectl + python3 on PATH
 #   - kubeconfig at ~/.kube/config (download stud.yaml from https://rancher.ase.cit.tum.de)
 #
 # Optional overrides (env or .env.k8s at repo root): TUM_ID, RELEASE,
@@ -36,6 +36,7 @@ require() {
 # ─── Preflight ─────────────────────────────────────────────────────────────────
 require helm
 require kubectl
+require python3
 
 # .env.k8s is OPTIONAL — load it only if present (overrides defaults below).
 if [[ -f "${ENV_FILE}" ]]; then

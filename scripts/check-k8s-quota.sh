@@ -22,28 +22,39 @@ cpu_to_m() {
 }
 
 RQ_JSON="$(kubectl -n "${NS}" get resourcequota -o json 2>/dev/null || true)"
-if [[ -z "${RQ_JSON}" || "${RQ_JSON}" == '{"items":[]}' ]]; then
+if [[ -z "${RQ_JSON}" ]]; then
   echo "[quota] No ResourceQuota in namespace ${NS} — skipping check."
   exit 0
 fi
 
-HARD_RAW="$(echo "${RQ_JSON}" | python3 -c "
+QUOTA_OUT="$(echo "${RQ_JSON}" | python3 -c "
 import json, sys
+
 data = json.load(sys.stdin)
-hard = data['items'][0]['status'].get('hard', {})
-print(hard.get('limits.cpu', ''))
-")"
-USED_RAW="$(echo "${RQ_JSON}" | python3 -c "
-import json, sys
-data = json.load(sys.stdin)
-used = data['items'][0]['status'].get('used', {})
+items = data.get('items') or []
+if not items:
+    print('__SKIP__')
+    sys.exit(0)
+
+status = items[0].get('status') or {}
+hard = status.get('hard') or {}
+used = status.get('used') or {}
+cpu_hard = hard.get('limits.cpu', '')
+if not cpu_hard:
+    print('__SKIP__')
+    sys.exit(0)
+
+print(cpu_hard)
 print(used.get('limits.cpu', '0'))
 ")"
 
-if [[ -z "${HARD_RAW}" ]]; then
-  echo "[quota] ResourceQuota has no limits.cpu — skipping check."
+if [[ "${QUOTA_OUT}" == "__SKIP__" ]]; then
+  echo "[quota] No ResourceQuota in namespace ${NS} — skipping check."
   exit 0
 fi
+
+HARD_RAW="$(printf '%s\n' "${QUOTA_OUT}" | sed -n '1p')"
+USED_RAW="$(printf '%s\n' "${QUOTA_OUT}" | sed -n '2p')"
 
 HARD_M="$(cpu_to_m "${HARD_RAW}")"
 USED_M="$(cpu_to_m "${USED_RAW}")"

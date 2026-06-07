@@ -1,0 +1,9 @@
+apiVersion: v2
+name: caredesk
+description: CareDesk unified clinic management platform — web client, API gateway, auth / patient / notes services, AI assistant, and PostgreSQL.
+type: application
+version: 0.2.0
+appVersion: "0.2.0"
+home: https://github.com/AET-DevOps26/team-k8s-commanders
+maintainers:
+  - name: team-k8s-commanders

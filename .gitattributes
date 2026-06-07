@@ -9,3 +9,7 @@ git/hooks/* text eol=lf
 *.md text=auto
 *.yaml text=auto
 *.yml text=auto
+
+# Generated Spring stubs — always store and check out as LF so the generator
+# (which always writes LF) doesn't produce a spurious diff on Windows/WSL.
+services/springboot/generated/src/**/*.java text eol=lf

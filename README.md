@@ -95,6 +95,65 @@ The notes service is a scaffold for clinical notes — the structured visit note
 
 See [web-client/README.md](web-client/README.md) for standalone client image builds.
 
+## Kubernetes deployment
+
+The whole stack — web-client, api-gateway, auth/patient/notes services,
+ai-assistant and one PostgreSQL per service — deploys with **a single command and
+no pre-created env files or secrets**. The chart ships working dev defaults and
+the GHCR images are public.
+
+### One command (no env file)
+
+```bash
+helm upgrade --install caredesk helm/caredesk \
+  --namespace <your-namespace> --create-namespace \
+  --set tumId=<your-tum-id>
+```
+
+Example:
+
+```bash
+helm upgrade --install caredesk helm/caredesk \
+  --namespace ge38yuc-devops26-team-k8s-commanders --create-namespace \
+  --set tumId=ge38yuc
+```
+
+Open `https://caredesk-<tumId>.student.k8s.aet.cit.tum.de/`. cert-manager issues
+the TLS cert on first deploy (~30 s). The AI assistant deploys healthy without a
+key; add one with `--set ai.secrets.llmApiKey=sk-...`. Full chart docs and
+routing: [`helm/caredesk/README.md`](helm/caredesk/README.md).
+
+**For the AET cluster** you only need the kubeconfig (context `stud`):
+
+```bash
+cp ~/Downloads/stud.yaml ~/.kube/config
+kubectl config current-context   # should print: stud
+```
+
+**For a local kind cluster**, the `make` wrapper builds + loads images:
+
+```bash
+make deploy DEPLOY_TARGET=local   # kind + ingress + helm, optional .env.k8s
+```
+
+The `make deploy` / `.env.k8s` path still exists for CI parity and local kind,
+but is **optional** — the `helm upgrade --install` above is self-contained.
+
+### Tear down
+
+```bash
+helm uninstall caredesk -n <your-namespace>   # removes all resources incl. DB PVCs
+make local-clean                              # delete the local kind cluster
+```
+
+### Chart utilities (no live cluster needed)
+
+```bash
+make lint       # helm lint
+make template   # render manifests to stdout
+make dry-run    # helm upgrade --dry-run against the current cluster
+```
+
 ## Useful commands
 
 Re-run generator setup only (no hooks):

@@ -1,0 +1,18 @@
+{{- if .Values.auth.enabled -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "caredesk.fullname" . }}-auth
+  labels:
+    {{- include "caredesk.labels" . | nindent 4 }}
+    app.kubernetes.io/component: auth
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: {{ .Values.auth.service.port }}
+      targetPort: http
+      protocol: TCP
+  selector:
+    {{- include "caredesk.selectorLabels" (dict "root" . "component" "auth") | nindent 4 }}
+{{- end }}

@@ -1,0 +1,102 @@
+{{- /*
+One lightweight PostgreSQL instance per backend service. Iterates over
+.Values.databases and emits a Service + PVC + Deployment for each, named
+caredesk-<key> (e.g. caredesk-auth-db). Credentials come from the shared
+caredesk-db secret; the database name is per-entry.
+*/ -}}
+{{- $root := . -}}
+{{- range $key, $db := .Values.databases }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "caredesk.fullname" $root }}-{{ $key }}
+  labels:
+    {{- include "caredesk.labels" $root | nindent 4 }}
+    app.kubernetes.io/component: {{ $key }}
+spec:
+  type: ClusterIP
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: postgres
+      protocol: TCP
+  selector:
+    {{- include "caredesk.selectorLabels" (dict "root" $root "component" $key) | nindent 4 }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "caredesk.fullname" $root }}-{{ $key }}
+  labels:
+    {{- include "caredesk.labels" $root | nindent 4 }}
+    app.kubernetes.io/component: {{ $key }}
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: {{ $root.Values.postgres.storage | quote }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "caredesk.fullname" $root }}-{{ $key }}
+  labels:
+    {{- include "caredesk.labels" $root | nindent 4 }}
+    app.kubernetes.io/component: {{ $key }}
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate            # single RWO volume — never run two pods at once
+  selector:
+    matchLabels:
+      {{- include "caredesk.selectorLabels" (dict "root" $root "component" $key) | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "caredesk.selectorLabels" (dict "root" $root "component" $key) | nindent 8 }}
+    spec:
+      containers:
+        - name: postgres
+          image: {{ $root.Values.postgres.image | quote }}
+          imagePullPolicy: {{ $root.Values.images.pullPolicy }}
+          ports:
+            - name: postgres
+              containerPort: 5432
+          env:
+            - name: POSTGRES_DB
+              value: {{ $db.database | quote }}
+            - name: POSTGRES_USER
+              value: {{ $root.Values.postgres.username | quote }}
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "caredesk.fullname" $root }}-db
+                  key: password
+            # Postgres writes its data here; PGDATA points at a subdir so the
+            # mount's lost+found does not collide with initdb.
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+          readinessProbe:
+            exec:
+              command: ["pg_isready", "-U", {{ $root.Values.postgres.username | quote }}, "-d", {{ $db.database | quote }}]
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            failureThreshold: 6
+          livenessProbe:
+            exec:
+              command: ["pg_isready", "-U", {{ $root.Values.postgres.username | quote }}]
+            initialDelaySeconds: 20
+            periodSeconds: 15
+            failureThreshold: 3
+          resources:
+            {{- toYaml $root.Values.postgres.resources | nindent 12 }}
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: {{ include "caredesk.fullname" $root }}-{{ $key }}
+---
+{{- end }}

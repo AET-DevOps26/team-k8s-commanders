@@ -1,0 +1,83 @@
+{{- if .Values.networkPolicy.enabled -}}
+{{- $root := . -}}
+{{- $rel := .Release.Name -}}
+{{- /*
+Trusted-header hardening.
+
+The api-gateway is the single trusted entry point: it verifies the JWT and
+injects X-User-* identity headers. The backend services downstream trust those
+headers blindly. Without a NetworkPolicy + ClusterIP-only services, any pod in
+the namespace could hit e.g. caredesk-patient:8082 directly with forged headers.
+
+These policies restrict pod-ingress to the sensitive backends so only the
+gateway (and, for patient/notes, the ai-assistant — prepping the ai→data
+integration) can reach them. web-client and gateway are intentionally NOT
+restricted here so the ingress-controller path stays open.
+
+Each database accepts connections only from its owning backend service.
+*/ -}}
+
+{{- /* Backend services: allowed callers per component */ -}}
+{{- $backends := dict
+  "auth"    (list "gateway")
+  "patient" (list "gateway" "ai")
+  "notes"   (list "gateway" "ai")
+  "ai"      (list "gateway")
+-}}
+{{- range $svc, $callers := $backends }}
+{{- $cfg := index $root.Values $svc }}
+{{- if $cfg.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "caredesk.fullname" $root }}-{{ $svc }}
+  labels:
+    {{- include "caredesk.labels" $root | nindent 4 }}
+    app.kubernetes.io/component: {{ $svc }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "caredesk.selectorLabels" (dict "root" $root "component" $svc) | nindent 6 }}
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        {{- range $caller := $callers }}
+        - podSelector:
+            matchLabels:
+              {{- include "caredesk.selectorLabels" (dict "root" $root "component" $caller) | nindent 14 }}
+        {{- end }}
+      ports:
+        - protocol: TCP
+          port: {{ $cfg.service.port }}
+---
+{{- end }}
+{{- end }}
+
+{{- /* Databases: each reachable only from its owning service (key minus -db) */ -}}
+{{- range $key, $db := .Values.databases }}
+{{- $owner := trimSuffix "-db" $key }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "caredesk.fullname" $root }}-{{ $key }}
+  labels:
+    {{- include "caredesk.labels" $root | nindent 4 }}
+    app.kubernetes.io/component: {{ $key }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "caredesk.selectorLabels" (dict "root" $root "component" $key) | nindent 6 }}
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              {{- include "caredesk.selectorLabels" (dict "root" $root "component" $owner) | nindent 14 }}
+      ports:
+        - protocol: TCP
+          port: 5432
+---
+{{- end }}
+{{- end }}

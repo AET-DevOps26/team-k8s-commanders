@@ -1,0 +1,26 @@
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  CareDesk deployed (release: {{ .Release.Name }}, namespace: {{ .Release.Namespace }})
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+{{- $proto := ternary "https" "http" .Values.ingress.tls.enabled }}
+{{- $host := include "caredesk.ingressHost" . }}
+
+URLs:
+  Web:  {{ $proto }}://{{ $host }}/
+  API:  {{ $proto }}://{{ $host }}/api/v1   (via api-gateway)
+
+Components: web-client, api-gateway, auth-service, patient-service,
+            notes-service, ai-assistant + one PostgreSQL per backend service.
+
+Inspect:
+  kubectl -n {{ .Release.Namespace }} get pods,svc,ingress
+  kubectl -n {{ .Release.Namespace }} logs -l app.kubernetes.io/instance={{ .Release.Name }} --tail=50
+
+Smoke test the gateway (expect HTTP 200/401, never 502):
+  curl -i {{ $proto }}://{{ $host }}/api/v1/auth/health || true
+
+If the URL above does not resolve, look up the actual host in Rancher UI:
+  https://rancher.ase.cit.tum.de → Cluster → Namespace {{ .Release.Namespace }} → Ingresses
+Then override:
+  helm upgrade {{ .Release.Name }} helm/caredesk -n {{ .Release.Namespace }} \
+    --reuse-values --set ingress.host=<actual-host>

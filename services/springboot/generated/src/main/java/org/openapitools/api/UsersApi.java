@@ -9,7 +9,9 @@ import org.springframework.lang.Nullable;
 import org.openapitools.model.PaginatedUserProfileResponse;
 import org.openapitools.model.ProblemDetail;
 import java.util.UUID;
+import org.openapitools.model.UserCreate;
 import org.openapitools.model.UserProfile;
+import org.openapitools.model.UserStats;
 import io.swagger.v3.oas.annotations.ExternalDocumentation;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -45,6 +47,175 @@ public interface UsersApi {
     default Optional<NativeWebRequest> getRequest() {
         return Optional.empty();
     }
+
+    String PATH_CREATE_USER = "/users";
+    /**
+     * POST /users : Create a user (admin only)
+     * Creates a user with an explicit role. Unlike public self-registration (which always yields a PATIENT), an admin may create DOCTOR or ADMIN accounts and set role-specific fields.
+     *
+     * @param userCreate  (required)
+     * @return User created (status code 201)
+     *         or The request is malformed or fails validation. (status code 400)
+     *         or Authentication is required or has failed. (status code 401)
+     *         or The caller is authenticated but not allowed to access the resource. (status code 403)
+     *         or The request conflicts with the current state of the resource. (status code 409)
+     *         or An unexpected error occurred while processing the request. (status code 500)
+     */
+    @Operation(
+        operationId = "createUser",
+        summary = "Create a user (admin only)",
+        description = "Creates a user with an explicit role. Unlike public self-registration (which always yields a PATIENT), an admin may create DOCTOR or ADMIN accounts and set role-specific fields.",
+        tags = { "Users" },
+        responses = {
+            @ApiResponse(responseCode = "201", description = "User created", content = {
+                @Content(mediaType = "application/json", schema = @Schema(implementation = UserProfile.class)),
+                @Content(mediaType = "application/problem+json", schema = @Schema(implementation = UserProfile.class))
+            }),
+            @ApiResponse(responseCode = "400", description = "The request is malformed or fails validation.", content = {
+                @Content(mediaType = "application/json", schema = @Schema(implementation = ProblemDetail.class)),
+                @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class))
+            }),
+            @ApiResponse(responseCode = "401", description = "Authentication is required or has failed.", content = {
+                @Content(mediaType = "application/json", schema = @Schema(implementation = ProblemDetail.class)),
+                @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class))
+            }),
+            @ApiResponse(responseCode = "403", description = "The caller is authenticated but not allowed to access the resource.", content = {
+                @Content(mediaType = "application/json", schema = @Schema(implementation = ProblemDetail.class)),
+                @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class))
+            }),
+            @ApiResponse(responseCode = "409", description = "The request conflicts with the current state of the resource.", content = {
+                @Content(mediaType = "application/json", schema = @Schema(implementation = ProblemDetail.class)),
+                @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class))
+            }),
+            @ApiResponse(responseCode = "500", description = "An unexpected error occurred while processing the request.", content = {
+                @Content(mediaType = "application/json", schema = @Schema(implementation = ProblemDetail.class)),
+                @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class))
+            })
+        },
+        security = {
+            @SecurityRequirement(name = "bearerAuth")
+        }
+    )
+    @RequestMapping(
+        method = RequestMethod.POST,
+        value = UsersApi.PATH_CREATE_USER,
+        produces = { "application/json", "application/problem+json" },
+        consumes = { "application/json" }
+    )
+    default ResponseEntity<UserProfile> createUser(
+        @Parameter(name = "UserCreate", description = "", required = true) @Valid @RequestBody UserCreate userCreate
+    ) {
+        getRequest().ifPresent(request -> {
+            for (MediaType mediaType: MediaType.parseMediaTypes(request.getHeader("Accept"))) {
+                if (mediaType.isCompatibleWith(MediaType.valueOf("application/json"))) {
+                    String exampleString = "{ \"clinicId\" : \"046b6c7f-0b8a-43b9-b35d-6489e6daee91\", \"password\" : \"password\", \"role\" : \"PATIENT\", \"phoneNumber\" : \"phoneNumber\", \"name\" : \"name\", \"specialization\" : \"specialization\", \"dateOfBirth\" : \"2000-01-23\", \"licenseNumber\" : \"licenseNumber\", \"id\" : \"046b6c7f-0b8a-43b9-b35d-6489e6daee91\", \"email\" : \"email\", \"enabled\" : true }";
+                    ApiUtil.setExampleResponse(request, "application/json", exampleString);
+                    break;
+                }
+                if (mediaType.isCompatibleWith(MediaType.valueOf("application/problem+json"))) {
+                    String exampleString = "Custom MIME type example not yet supported: application/problem+json";
+                    ApiUtil.setExampleResponse(request, "application/problem+json", exampleString);
+                    break;
+                }
+                if (mediaType.isCompatibleWith(MediaType.valueOf("application/problem+json"))) {
+                    String exampleString = "Custom MIME type example not yet supported: application/problem+json";
+                    ApiUtil.setExampleResponse(request, "application/problem+json", exampleString);
+                    break;
+                }
+                if (mediaType.isCompatibleWith(MediaType.valueOf("application/problem+json"))) {
+                    String exampleString = "Custom MIME type example not yet supported: application/problem+json";
+                    ApiUtil.setExampleResponse(request, "application/problem+json", exampleString);
+                    break;
+                }
+                if (mediaType.isCompatibleWith(MediaType.valueOf("application/problem+json"))) {
+                    String exampleString = "Custom MIME type example not yet supported: application/problem+json";
+                    ApiUtil.setExampleResponse(request, "application/problem+json", exampleString);
+                    break;
+                }
+                if (mediaType.isCompatibleWith(MediaType.valueOf("application/problem+json"))) {
+                    String exampleString = "Custom MIME type example not yet supported: application/problem+json";
+                    ApiUtil.setExampleResponse(request, "application/problem+json", exampleString);
+                    break;
+                }
+            }
+        });
+        return new ResponseEntity<>(HttpStatus.NOT_IMPLEMENTED);
+
+    }
+
+
+    String PATH_DELETE_USER = "/users/{userId}";
+    /**
+     * DELETE /users/{userId} : Deactivate a user (admin only)
+     * Soft-deletes a user by disabling the account. A disabled user can no longer authenticate but their records are retained.
+     *
+     * @param userId  (required)
+     * @return User deactivated (status code 204)
+     *         or Authentication is required or has failed. (status code 401)
+     *         or The caller is authenticated but not allowed to access the resource. (status code 403)
+     *         or The requested resource does not exist. (status code 404)
+     *         or An unexpected error occurred while processing the request. (status code 500)
+     */
+    @Operation(
+        operationId = "deleteUser",
+        summary = "Deactivate a user (admin only)",
+        description = "Soft-deletes a user by disabling the account. A disabled user can no longer authenticate but their records are retained.",
+        tags = { "Users" },
+        responses = {
+            @ApiResponse(responseCode = "204", description = "User deactivated"),
+            @ApiResponse(responseCode = "401", description = "Authentication is required or has failed.", content = {
+                @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class))
+            }),
+            @ApiResponse(responseCode = "403", description = "The caller is authenticated but not allowed to access the resource.", content = {
+                @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class))
+            }),
+            @ApiResponse(responseCode = "404", description = "The requested resource does not exist.", content = {
+                @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class))
+            }),
+            @ApiResponse(responseCode = "500", description = "An unexpected error occurred while processing the request.", content = {
+                @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class))
+            })
+        },
+        security = {
+            @SecurityRequirement(name = "bearerAuth")
+        }
+    )
+    @RequestMapping(
+        method = RequestMethod.DELETE,
+        value = UsersApi.PATH_DELETE_USER,
+        produces = { "application/problem+json" }
+    )
+    default ResponseEntity<Void> deleteUser(
+        @Parameter(name = "userId", description = "", required = true, in = ParameterIn.PATH) @PathVariable("userId") UUID userId
+    ) {
+        getRequest().ifPresent(request -> {
+            for (MediaType mediaType: MediaType.parseMediaTypes(request.getHeader("Accept"))) {
+                if (mediaType.isCompatibleWith(MediaType.valueOf("application/problem+json"))) {
+                    String exampleString = "Custom MIME type example not yet supported: application/problem+json";
+                    ApiUtil.setExampleResponse(request, "application/problem+json", exampleString);
+                    break;
+                }
+                if (mediaType.isCompatibleWith(MediaType.valueOf("application/problem+json"))) {
+                    String exampleString = "Custom MIME type example not yet supported: application/problem+json";
+                    ApiUtil.setExampleResponse(request, "application/problem+json", exampleString);
+                    break;
+                }
+                if (mediaType.isCompatibleWith(MediaType.valueOf("application/problem+json"))) {
+                    String exampleString = "Custom MIME type example not yet supported: application/problem+json";
+                    ApiUtil.setExampleResponse(request, "application/problem+json", exampleString);
+                    break;
+                }
+                if (mediaType.isCompatibleWith(MediaType.valueOf("application/problem+json"))) {
+                    String exampleString = "Custom MIME type example not yet supported: application/problem+json";
+                    ApiUtil.setExampleResponse(request, "application/problem+json", exampleString);
+                    break;
+                }
+            }
+        });
+        return new ResponseEntity<>(HttpStatus.NOT_IMPLEMENTED);
+
+    }
+
 
     String PATH_GET_USER_BY_ID = "/users/{userId}";
     /**
@@ -103,7 +274,7 @@ public interface UsersApi {
         getRequest().ifPresent(request -> {
             for (MediaType mediaType: MediaType.parseMediaTypes(request.getHeader("Accept"))) {
                 if (mediaType.isCompatibleWith(MediaType.valueOf("application/json"))) {
-                    String exampleString = "{ \"clinicId\" : \"046b6c7f-0b8a-43b9-b35d-6489e6daee91\", \"password\" : \"password\", \"role\" : \"PATIENT\", \"phoneNumber\" : \"phoneNumber\", \"name\" : \"name\", \"specialization\" : \"specialization\", \"dateOfBirth\" : \"2000-01-23\", \"licenseNumber\" : \"licenseNumber\", \"id\" : \"046b6c7f-0b8a-43b9-b35d-6489e6daee91\", \"email\" : \"email\" }";
+                    String exampleString = "{ \"clinicId\" : \"046b6c7f-0b8a-43b9-b35d-6489e6daee91\", \"password\" : \"password\", \"role\" : \"PATIENT\", \"phoneNumber\" : \"phoneNumber\", \"name\" : \"name\", \"specialization\" : \"specialization\", \"dateOfBirth\" : \"2000-01-23\", \"licenseNumber\" : \"licenseNumber\", \"id\" : \"046b6c7f-0b8a-43b9-b35d-6489e6daee91\", \"email\" : \"email\", \"enabled\" : true }";
                     ApiUtil.setExampleResponse(request, "application/json", exampleString);
                     break;
                 }
@@ -115,6 +286,80 @@ public interface UsersApi {
                 if (mediaType.isCompatibleWith(MediaType.valueOf("application/problem+json"))) {
                     String exampleString = "Custom MIME type example not yet supported: application/problem+json";
                     ApiUtil.setExampleResponse(request, "application/problem+json", exampleString);
+                    break;
+                }
+                if (mediaType.isCompatibleWith(MediaType.valueOf("application/problem+json"))) {
+                    String exampleString = "Custom MIME type example not yet supported: application/problem+json";
+                    ApiUtil.setExampleResponse(request, "application/problem+json", exampleString);
+                    break;
+                }
+                if (mediaType.isCompatibleWith(MediaType.valueOf("application/problem+json"))) {
+                    String exampleString = "Custom MIME type example not yet supported: application/problem+json";
+                    ApiUtil.setExampleResponse(request, "application/problem+json", exampleString);
+                    break;
+                }
+                if (mediaType.isCompatibleWith(MediaType.valueOf("application/problem+json"))) {
+                    String exampleString = "Custom MIME type example not yet supported: application/problem+json";
+                    ApiUtil.setExampleResponse(request, "application/problem+json", exampleString);
+                    break;
+                }
+            }
+        });
+        return new ResponseEntity<>(HttpStatus.NOT_IMPLEMENTED);
+
+    }
+
+
+    String PATH_GET_USER_STATS = "/users/stats";
+    /**
+     * GET /users/stats : Aggregate user statistics (admin only)
+     * Counts of users grouped by role and account status, for the admin dashboard.
+     *
+     * @return User statistics (status code 200)
+     *         or Authentication is required or has failed. (status code 401)
+     *         or The caller is authenticated but not allowed to access the resource. (status code 403)
+     *         or An unexpected error occurred while processing the request. (status code 500)
+     */
+    @Operation(
+        operationId = "getUserStats",
+        summary = "Aggregate user statistics (admin only)",
+        description = "Counts of users grouped by role and account status, for the admin dashboard.",
+        tags = { "Users" },
+        responses = {
+            @ApiResponse(responseCode = "200", description = "User statistics", content = {
+                @Content(mediaType = "application/json", schema = @Schema(implementation = UserStats.class)),
+                @Content(mediaType = "application/problem+json", schema = @Schema(implementation = UserStats.class))
+            }),
+            @ApiResponse(responseCode = "401", description = "Authentication is required or has failed.", content = {
+                @Content(mediaType = "application/json", schema = @Schema(implementation = ProblemDetail.class)),
+                @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class))
+            }),
+            @ApiResponse(responseCode = "403", description = "The caller is authenticated but not allowed to access the resource.", content = {
+                @Content(mediaType = "application/json", schema = @Schema(implementation = ProblemDetail.class)),
+                @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class))
+            }),
+            @ApiResponse(responseCode = "500", description = "An unexpected error occurred while processing the request.", content = {
+                @Content(mediaType = "application/json", schema = @Schema(implementation = ProblemDetail.class)),
+                @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class))
+            })
+        },
+        security = {
+            @SecurityRequirement(name = "bearerAuth")
+        }
+    )
+    @RequestMapping(
+        method = RequestMethod.GET,
+        value = UsersApi.PATH_GET_USER_STATS,
+        produces = { "application/json", "application/problem+json" }
+    )
+    default ResponseEntity<UserStats> getUserStats(
+        
+    ) {
+        getRequest().ifPresent(request -> {
+            for (MediaType mediaType: MediaType.parseMediaTypes(request.getHeader("Accept"))) {
+                if (mediaType.isCompatibleWith(MediaType.valueOf("application/json"))) {
+                    String exampleString = "{ \"total\" : 0, \"doctors\" : 1, \"patients\" : 6, \"active\" : 5, \"disabled\" : 2, \"admins\" : 5 }";
+                    ApiUtil.setExampleResponse(request, "application/json", exampleString);
                     break;
                 }
                 if (mediaType.isCompatibleWith(MediaType.valueOf("application/problem+json"))) {
@@ -193,7 +438,7 @@ public interface UsersApi {
         getRequest().ifPresent(request -> {
             for (MediaType mediaType: MediaType.parseMediaTypes(request.getHeader("Accept"))) {
                 if (mediaType.isCompatibleWith(MediaType.valueOf("application/json"))) {
-                    String exampleString = "{ \"page\" : { \"size\" : 1, \"totalPages\" : 0, \"page\" : 0, \"totalElements\" : 0 }, \"content\" : [ { \"clinicId\" : \"046b6c7f-0b8a-43b9-b35d-6489e6daee91\", \"password\" : \"password\", \"role\" : \"PATIENT\", \"phoneNumber\" : \"phoneNumber\", \"name\" : \"name\", \"specialization\" : \"specialization\", \"dateOfBirth\" : \"2000-01-23\", \"licenseNumber\" : \"licenseNumber\", \"id\" : \"046b6c7f-0b8a-43b9-b35d-6489e6daee91\", \"email\" : \"email\" }, { \"clinicId\" : \"046b6c7f-0b8a-43b9-b35d-6489e6daee91\", \"password\" : \"password\", \"role\" : \"PATIENT\", \"phoneNumber\" : \"phoneNumber\", \"name\" : \"name\", \"specialization\" : \"specialization\", \"dateOfBirth\" : \"2000-01-23\", \"licenseNumber\" : \"licenseNumber\", \"id\" : \"046b6c7f-0b8a-43b9-b35d-6489e6daee91\", \"email\" : \"email\" } ] }";
+                    String exampleString = "{ \"page\" : { \"size\" : 1, \"totalPages\" : 0, \"page\" : 0, \"totalElements\" : 0 }, \"content\" : [ { \"clinicId\" : \"046b6c7f-0b8a-43b9-b35d-6489e6daee91\", \"password\" : \"password\", \"role\" : \"PATIENT\", \"phoneNumber\" : \"phoneNumber\", \"name\" : \"name\", \"specialization\" : \"specialization\", \"dateOfBirth\" : \"2000-01-23\", \"licenseNumber\" : \"licenseNumber\", \"id\" : \"046b6c7f-0b8a-43b9-b35d-6489e6daee91\", \"email\" : \"email\", \"enabled\" : true }, { \"clinicId\" : \"046b6c7f-0b8a-43b9-b35d-6489e6daee91\", \"password\" : \"password\", \"role\" : \"PATIENT\", \"phoneNumber\" : \"phoneNumber\", \"name\" : \"name\", \"specialization\" : \"specialization\", \"dateOfBirth\" : \"2000-01-23\", \"licenseNumber\" : \"licenseNumber\", \"id\" : \"046b6c7f-0b8a-43b9-b35d-6489e6daee91\", \"email\" : \"email\", \"enabled\" : true } ] }";
                     ApiUtil.setExampleResponse(request, "application/json", exampleString);
                     break;
                 }
@@ -284,7 +529,7 @@ public interface UsersApi {
         getRequest().ifPresent(request -> {
             for (MediaType mediaType: MediaType.parseMediaTypes(request.getHeader("Accept"))) {
                 if (mediaType.isCompatibleWith(MediaType.valueOf("application/json"))) {
-                    String exampleString = "{ \"clinicId\" : \"046b6c7f-0b8a-43b9-b35d-6489e6daee91\", \"password\" : \"password\", \"role\" : \"PATIENT\", \"phoneNumber\" : \"phoneNumber\", \"name\" : \"name\", \"specialization\" : \"specialization\", \"dateOfBirth\" : \"2000-01-23\", \"licenseNumber\" : \"licenseNumber\", \"id\" : \"046b6c7f-0b8a-43b9-b35d-6489e6daee91\", \"email\" : \"email\" }";
+                    String exampleString = "{ \"clinicId\" : \"046b6c7f-0b8a-43b9-b35d-6489e6daee91\", \"password\" : \"password\", \"role\" : \"PATIENT\", \"phoneNumber\" : \"phoneNumber\", \"name\" : \"name\", \"specialization\" : \"specialization\", \"dateOfBirth\" : \"2000-01-23\", \"licenseNumber\" : \"licenseNumber\", \"id\" : \"046b6c7f-0b8a-43b9-b35d-6489e6daee91\", \"email\" : \"email\", \"enabled\" : true }";
                     ApiUtil.setExampleResponse(request, "application/json", exampleString);
                     break;
                 }

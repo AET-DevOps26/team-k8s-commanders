@@ -89,20 +89,21 @@ info "doctor id: $DOCTOR_ID"
 step "Registering patient (${PATIENT_EMAIL})"
 register_body="$(jq -nc --arg n "$PATIENT_NAME" --arg e "$PATIENT_EMAIL" --arg p "$PATIENT_PASSWORD" \
   '{name:$n,email:$e,password:$p}')"
-# Register is patient-only by design; tolerate 409 (already created) by logging in.
+# Register is best-effort: a fresh run creates the patient; a repeat run fails
+# because the email already exists (auth-service currently returns 500 for that,
+# not 409). Either way we then log in with the known password — login is the
+# source of truth for the patient id, so we don't depend on the register status.
 reg_status="$(curl -sS -o /dev/null -w '%{http_code}' -X POST "${BASE_URL}/auth/register" \
   -H "Content-Type: application/json" -d "$register_body")"
-if [ "$reg_status" = "409" ]; then
-  info "patient already exists — logging in instead"
-  patient_session="$(api POST /auth/login \
-    "$(jq -nc --arg e "$PATIENT_EMAIL" --arg p "$PATIENT_PASSWORD" '{email:$e,password:$p}')")"
+if [ "$reg_status" -ge 200 ] && [ "$reg_status" -lt 300 ]; then
+  info "patient registered"
 else
-  [ "$reg_status" -ge 200 ] && [ "$reg_status" -lt 300 ] || die "register -> HTTP $reg_status"
-  patient_session="$(api POST /auth/login \
-    "$(jq -nc --arg e "$PATIENT_EMAIL" --arg p "$PATIENT_PASSWORD" '{email:$e,password:$p}')")"
+  info "patient not newly created (register -> HTTP $reg_status) — assuming it already exists, logging in"
 fi
+patient_session="$(api POST /auth/login \
+  "$(jq -nc --arg e "$PATIENT_EMAIL" --arg p "$PATIENT_PASSWORD" '{email:$e,password:$p}')")"
 PATIENT_ID="$(jq -r '.user.id' <<<"$patient_session")"
-[ "$PATIENT_ID" != "null" ] || die "could not resolve patient id"
+[ "$PATIENT_ID" != "null" ] || die "could not resolve patient id (register HTTP $reg_status, login returned no user)"
 info "patient id: $PATIENT_ID"
 
 # ── 3. Book two appointments (as the doctor) ─────────────────────────────────
@@ -143,7 +144,7 @@ upsert_note "$APPT2_ID" \
 info "note saved for appointment #2 (I10 Hypertension)"
 
 # ── 5. Ask the AI assistant, as the doctor ───────────────────────────────────
-# ask JSON_BODY  -> prints answer + sources
+# ask JSON_BODY  -> prints answer + sources (single response, waits for the end)
 ask() {
   local resp
   resp="$(api POST /ai/query "$1" "$DOCTOR_TOKEN")"
@@ -152,13 +153,40 @@ ask() {
   jq -r '.answer' <<<"$resp" | sed 's/^/      /'
 }
 
-step "AI query #1 — by patient_id (expects profile + BOTH appointments + BOTH notes)"
-ask "$(jq -nc --arg pid "$PATIENT_ID" \
+# ask_stream JSON_BODY -> prints sources, then the answer token-by-token as it
+# arrives. Sends `Accept: text/event-stream`; `curl -N` keeps the stream
+# unbuffered so the tokens appear live instead of all at once.
+ask_stream() {
+  curl -sS -N -X POST "${BASE_URL}/ai/query" \
+    -H "Content-Type: application/json" \
+    -H "Accept: text/event-stream" \
+    -H "Authorization: Bearer ${DOCTOR_TOKEN}" \
+    -d "$1" \
+  | { event=""
+      while IFS= read -r line; do
+        case "$line" in
+          "event: "*) event="${line#event: }" ;;
+          "data: "*)
+            data="${line#data: }"
+            case "$event" in
+              sources) printf '%s    sources:%s %s\n%s    answer (streaming):%s\n      ' \
+                         "$BOLD" "$RESET" "$(jq -c . <<<"$data")" "$BOLD" "$RESET" ;;
+              token)   printf '%s' "$(jq -r . <<<"$data")" ;;
+              error)   printf '\n%s    stream error: %s%s\n' "$RED" "$(jq -r .detail <<<"$data")" "$RESET" ;;
+              done)    printf '\n' ;;
+            esac ;;
+        esac
+      done; }
+}
+
+step "AI query #1 — by patient_id, STREAMED (expects profile + BOTH appointments + BOTH notes)"
+ask_stream "$(jq -nc --arg pid "$PATIENT_ID" \
   '{patientId:$pid, query:"Summarise this patient'\''s visit history and list every diagnosis on record."}')"
 
-step "AI query #2 — by appointment_id (single appointment + its note)"
+step "AI query #2 — by appointment_id, single JSON response (single appointment + its note)"
 ask "$(jq -nc --arg aid "$APPT2_ID" \
   '{appointmentId:$aid, query:"What happened at this appointment and what was prescribed?"}')"
 
 printf '\n%s✓ Done.%s If the sources include "Clinical note" and "Appointment record" and the\n' "$GREEN" "$RESET"
 printf '  answer mentions the cough and the hypertension, the grounding context is working.\n'
+printf '  Query #1 streamed token-by-token (SSE); query #2 used the buffered JSON response.\n'

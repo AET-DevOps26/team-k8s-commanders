@@ -166,6 +166,8 @@ services:
       DB_NAME: patient_db
       DB_USER: caredesk
       DB_PASSWORD: caredesk
+      # Internal auth-service URL for the cross-service profile lookup.
+      AUTH_SERVICE_URL: http://auth-service:8081
       # application.yml ships with ddl-auto: validate. Compose dev profile
       # overrides to update so the schema is auto-created against a fresh DB.
       SPRING_JPA_HIBERNATE_DDL_AUTO: update

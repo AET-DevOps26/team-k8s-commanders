@@ -36,36 +36,46 @@ public class PatientService {
     private final PatientRepository patientRepository;
     private final AppointmentRepository appointmentRepository;
     private final AppointmentMapper appointmentMapper;
+    private final AuthServiceClient authServiceClient;
 
     /**
      * @param patientRepository     read access to the local patients table
      * @param appointmentRepository read access to the local appointments table
      * @param appointmentMapper     converts JPA appointments into API DTOs
+     * @param authServiceClient     fetches identity fields from auth-service
      */
     public PatientService(PatientRepository patientRepository,
                           AppointmentRepository appointmentRepository,
-                          AppointmentMapper appointmentMapper) {
+                          AppointmentMapper appointmentMapper,
+                          AuthServiceClient authServiceClient) {
         this.patientRepository = patientRepository;
         this.appointmentRepository = appointmentRepository;
         this.appointmentMapper = appointmentMapper;
+        this.authServiceClient = authServiceClient;
     }
 
     /**
-     * Builds the patient's profile view from the local {@code patients} row.
+     * Builds the patient's profile view by combining the auth-service identity
+     * fields ({@code name}, {@code email}, {@code role}) with the local
+     * {@code patients} row (date of birth, phone number).
      *
-     * <p>If no row exists the response still carries the requested {@code id}
-     * with all optional fields left blank, so the web client can render a
-     * "complete your profile" state without a 404 round-trip.
+     * <p>Falls back to an id-only profile if auth-service does not have the
+     * user or cannot be reached, so the web client can still render a partial
+     * state without a hard failure.
      *
      * @param patientId the patient's user id from auth-service
-     * @return a {@link UserProfile} populated from the local patient row
+     * @return a {@link UserProfile} merged from both sources
      */
     public UserProfile getProfile(UUID patientId) {
-        UserProfile profile = new UserProfile().id(patientId);
+        UserProfile profile = authServiceClient.getUserById(patientId);
+        if (profile == null) {
+            profile = new UserProfile().id(patientId);
+        }
         Optional<Patient> patient = patientRepository.findById(patientId);
+        UserProfile finalProfile = profile;
         patient.ifPresent(p -> {
-            profile.setDateOfBirth(p.getDateOfBirth());
-            profile.setPhoneNumber(p.getPhoneNumber());
+            finalProfile.setDateOfBirth(p.getDateOfBirth());
+            finalProfile.setPhoneNumber(p.getPhoneNumber());
         });
         return profile;
     }

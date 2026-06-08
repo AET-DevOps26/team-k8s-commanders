@@ -4,9 +4,6 @@ import com.caredesk.patient.model.DoctorProfile;
 import com.caredesk.patient.model.DoctorSlot;
 import com.caredesk.patient.repository.DoctorProfileRepository;
 import com.caredesk.patient.repository.DoctorSlotRepository;
-import java.util.Comparator;
-import java.util.List;
-import java.util.UUID;
 import org.openapitools.model.PageMeta;
 import org.openapitools.model.PaginatedUserProfileResponse;
 import org.openapitools.model.Schedule;
@@ -19,25 +16,44 @@ import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Comparator;
+import java.util.List;
+import java.util.UUID;
+
+/**
+ * Read-only doctor search, profile and schedule queries.
+ *
+ * <p>{@code listDoctors} searches the local {@code doctor_profiles} table.
+ * {@code getProfile} fetches identity fields from auth-service via
+ * {@link AuthServiceClient} and falls back to an id-only response when the
+ * lookup fails. {@code getSchedule} returns available slots sorted by start
+ * time.
+ */
 @Service
+@Transactional(readOnly = true)
 public class DoctorService {
 
     private final DoctorProfileRepository doctorProfileRepository;
     private final DoctorSlotRepository doctorSlotRepository;
+    private final ScheduleSlotMapper scheduleSlotMapper;
+    private final AuthServiceClient authServiceClient;
 
     public DoctorService(DoctorProfileRepository doctorProfileRepository,
-                         DoctorSlotRepository doctorSlotRepository) {
+                         DoctorSlotRepository doctorSlotRepository,
+                         ScheduleSlotMapper scheduleSlotMapper,
+                         AuthServiceClient authServiceClient) {
         this.doctorProfileRepository = doctorProfileRepository;
         this.doctorSlotRepository = doctorSlotRepository;
+        this.scheduleSlotMapper = scheduleSlotMapper;
+        this.authServiceClient = authServiceClient;
     }
 
-    @Transactional(readOnly = true)
     public PaginatedUserProfileResponse listDoctors(@Nullable String q,
                                                     @Nullable String specialization,
                                                     int page,
                                                     int size) {
-        Page<DoctorProfile> doctors = doctorProfileRepository.search(blankToEmpty(q), blankToEmpty(specialization),
-                PageRequest.of(page, size));
+        Page<DoctorProfile> doctors = doctorProfileRepository.search(
+                blankToEmpty(q), blankToEmpty(specialization), PageRequest.of(page, size));
         List<UserProfile> content = doctors.getContent().stream()
                 .map(this::toProfile)
                 .toList();
@@ -46,22 +62,19 @@ public class DoctorService {
         return new PaginatedUserProfileResponse(content, meta);
     }
 
-    @Transactional(readOnly = true)
-    public UserProfile getDoctor(UUID doctorId) {
-        return doctorProfileRepository.findById(doctorId)
-                .map(this::toProfile)
-                .orElseThrow(() -> new DoctorNotFoundException(doctorId));
+    public UserProfile getProfile(UUID doctorId) {
+        UserProfile profile = authServiceClient.getUserById(doctorId);
+        if (profile == null) {
+            profile = new UserProfile().id(doctorId);
+        }
+        return profile;
     }
 
-    @Transactional(readOnly = true)
     public Schedule getSchedule(UUID doctorId) {
-        if (!doctorProfileRepository.existsById(doctorId)) {
-            throw new DoctorNotFoundException(doctorId);
-        }
         List<ScheduleSlot> slots = doctorSlotRepository.findByDoctorId(doctorId).stream()
-                .sorted(Comparator.comparing(DoctorSlot::getStartAt))
                 .filter(slot -> Boolean.TRUE.equals(slot.getAvailable()))
-                .map(slot -> new ScheduleSlot(slot.getStartAt(), slot.getEndAt(), slot.getAvailable()))
+                .sorted(Comparator.comparing(DoctorSlot::getStartAt))
+                .map(scheduleSlotMapper::toApi)
                 .toList();
         return new Schedule(doctorId, slots);
     }

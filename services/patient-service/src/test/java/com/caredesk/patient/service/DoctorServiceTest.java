@@ -4,14 +4,16 @@ import com.caredesk.patient.model.DoctorProfile;
 import com.caredesk.patient.model.DoctorSlot;
 import com.caredesk.patient.repository.DoctorProfileRepository;
 import com.caredesk.patient.repository.DoctorSlotRepository;
-import java.time.OffsetDateTime;
-import java.util.List;
-import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.openapitools.model.PaginatedUserProfileResponse;
 import org.openapitools.model.Schedule;
+import org.openapitools.model.UserProfile;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
+
+import java.time.OffsetDateTime;
+import java.util.List;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -23,7 +25,10 @@ class DoctorServiceTest {
 
     private final DoctorProfileRepository doctorProfileRepository = mock(DoctorProfileRepository.class);
     private final DoctorSlotRepository doctorSlotRepository = mock(DoctorSlotRepository.class);
-    private final DoctorService service = new DoctorService(doctorProfileRepository, doctorSlotRepository);
+    private final ScheduleSlotMapper scheduleSlotMapper = new ScheduleSlotMapper();
+    private final AuthServiceClient authServiceClient = mock(AuthServiceClient.class);
+    private final DoctorService service = new DoctorService(
+            doctorProfileRepository, doctorSlotRepository, scheduleSlotMapper, authServiceClient);
 
     @Test
     void listDoctors_mapsSearchResults() {
@@ -52,22 +57,59 @@ class DoctorServiceTest {
     }
 
     @Test
+    void getProfile_returnsAuthServiceProfile_whenFound() {
+        UUID doctorId = UUID.randomUUID();
+        UserProfile authProfile = new UserProfile(doctorId, "Dr Who", "who@tardis.com",
+                org.openapitools.model.UserRole.DOCTOR);
+        when(authServiceClient.getUserById(doctorId)).thenReturn(authProfile);
+
+        UserProfile profile = service.getProfile(doctorId);
+
+        assertThat(profile.getId()).isEqualTo(doctorId);
+        assertThat(profile.getName()).isEqualTo("Dr Who");
+        assertThat(profile.getEmail()).isEqualTo("who@tardis.com");
+        assertThat(profile.getRole()).isEqualTo(org.openapitools.model.UserRole.DOCTOR);
+    }
+
+    @Test
+    void getProfile_fallsBackToIdOnly_whenAuthServiceMisses() {
+        UUID doctorId = UUID.randomUUID();
+        when(authServiceClient.getUserById(doctorId)).thenReturn(null);
+
+        UserProfile profile = service.getProfile(doctorId);
+
+        assertThat(profile.getId()).isEqualTo(doctorId);
+        assertThat(profile.getName()).isNull();
+        assertThat(profile.getEmail()).isNull();
+    }
+
+    @Test
     void getSchedule_returnsOnlyAvailableSlotsSortedByStart() {
-        DoctorProfile doctor = doctor();
+        UUID doctorId = UUID.randomUUID();
         OffsetDateTime early = OffsetDateTime.parse("2026-06-08T09:00:00Z");
         OffsetDateTime late = OffsetDateTime.parse("2026-06-08T10:00:00Z");
-        when(doctorProfileRepository.existsById(doctor.getId())).thenReturn(true);
-        when(doctorSlotRepository.findByDoctorId(doctor.getId())).thenReturn(List.of(
-                slot(doctor.getId(), late, true),
-                slot(doctor.getId(), early, true),
-                slot(doctor.getId(), early.plusHours(2), false)
+        when(doctorSlotRepository.findByDoctorId(doctorId)).thenReturn(List.of(
+                slot(doctorId, late, true),
+                slot(doctorId, early, true),
+                slot(doctorId, early.plusHours(2), false)
         ));
 
-        Schedule schedule = service.getSchedule(doctor.getId());
+        Schedule schedule = service.getSchedule(doctorId);
 
         assertThat(schedule.getSlots()).hasSize(2);
         assertThat(schedule.getSlots().get(0).getStartAt()).isEqualTo(early);
         assertThat(schedule.getSlots().get(1).getStartAt()).isEqualTo(late);
+    }
+
+    @Test
+    void getSchedule_returnsEmptySchedule_whenNoSlots() {
+        UUID doctorId = UUID.randomUUID();
+        when(doctorSlotRepository.findByDoctorId(doctorId)).thenReturn(List.of());
+
+        Schedule schedule = service.getSchedule(doctorId);
+
+        assertThat(schedule.getDoctorId()).isEqualTo(doctorId);
+        assertThat(schedule.getSlots()).isEmpty();
     }
 
     private static DoctorProfile doctor() {

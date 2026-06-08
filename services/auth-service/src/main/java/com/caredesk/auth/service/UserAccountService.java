@@ -9,7 +9,6 @@ import org.openapitools.model.PageMeta;
 import org.openapitools.model.PaginatedUserProfileResponse;
 import org.openapitools.model.PasswordChangeRequest;
 import org.openapitools.model.UserProfile;
-import org.openapitools.model.UserRole;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.security.access.AccessDeniedException;
@@ -36,7 +35,7 @@ public class UserAccountService {
     public UserProfile getUser(UUID userId) {
         User user = findUser(userId);
         requireOwnerOrAdmin(user);
-        return toUserProfile(user);
+        return UserService.toUserProfile(user);
     }
 
     @Transactional(readOnly = true)
@@ -44,7 +43,7 @@ public class UserAccountService {
         requireAdmin();
         Page<User> users = userRepository.findAll(PageRequest.of(page, size));
         List<UserProfile> content = users.getContent().stream()
-                .map(this::toUserProfile)
+                .map(UserService::toUserProfile)
                 .toList();
         PageMeta pageMeta = new PageMeta(page, size, users.getTotalElements(), users.getTotalPages());
         return new PaginatedUserProfileResponse(content, pageMeta);
@@ -74,7 +73,7 @@ public class UserAccountService {
         if (isAdmin()) {
             applyAdminFields(user, request);
         }
-        return toUserProfile(userRepository.save(user));
+        return UserService.toUserProfile(userRepository.save(user));
     }
 
     @Transactional
@@ -142,14 +141,4 @@ public class UserAccountService {
         user.setClinicId(request.getClinicId());
     }
 
-    private UserProfile toUserProfile(User user) {
-        UserRole apiRole = UserRole.valueOf(user.getRole().name());
-        UserProfile profile = new UserProfile(user.getId(), user.getName(), user.getEmail(), apiRole);
-        profile.setPhoneNumber(user.getPhoneNumber());
-        profile.setDateOfBirth(user.getDateOfBirth());
-        profile.setSpecialization(user.getSpecialization());
-        profile.setLicenseNumber(user.getLicenseNumber());
-        profile.setClinicId(user.getClinicId());
-        return profile;
-    }
 }

@@ -1,7 +1,6 @@
 package com.caredesk.patient.controller;
 
 import com.caredesk.patient.service.DoctorService;
-import java.util.UUID;
 import org.openapitools.api.DoctorsApi;
 import org.openapitools.model.PaginatedUserProfileResponse;
 import org.openapitools.model.Schedule;
@@ -10,6 +9,16 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Controller;
 
+import java.util.UUID;
+
+/**
+ * Controller for the {@code /doctors/**} endpoints.
+ *
+ * <p>Implements {@link DoctorsApi} and delegates business logic to
+ * {@link DoctorService}. Authentication is enforced by the gateway-injected
+ * {@code X-User-*} headers (see {@code PatientHeaderAuthFilter}). Per-role
+ * ownership rules are tracked in issue #32.
+ */
 @Controller
 public class DoctorsController implements DoctorsApi {
 
@@ -24,7 +33,7 @@ public class DoctorsController implements DoctorsApi {
 
     @Override
     public ResponseEntity<UserProfile> getDoctorById(UUID doctorId) {
-        return ResponseEntity.ok(doctorService.getDoctor(doctorId));
+        return ResponseEntity.ok(doctorService.getProfile(doctorId));
     }
 
     @Override

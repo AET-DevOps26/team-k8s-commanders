@@ -117,6 +117,8 @@ services:
       DB_NAME: ${PATIENT_DB_NAME:?PATIENT_DB_NAME must be set}
       DB_USER: ${PATIENT_DB_USER:?PATIENT_DB_USER must be set}
       DB_PASSWORD: ${PATIENT_DB_PASSWORD:?PATIENT_DB_PASSWORD must be set}
+      # Internal auth-service URL for the cross-service profile lookup.
+      AUTH_SERVICE_URL: http://auth-service:8081
       # application.yml ships with ddl-auto: validate. Set PATIENT_DDL_AUTO=update
       # for the first deployment so the schema is created, then revert.
       SPRING_JPA_HIBERNATE_DDL_AUTO: ${PATIENT_DDL_AUTO:-validate}

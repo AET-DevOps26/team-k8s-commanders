@@ -14,6 +14,17 @@ export function AppLink({ to, className, children, onNavigate }: AppLinkProps) {
       className={className}
       href={to}
       onClick={(event) => {
+        const isPlainLeftClick =
+          event.button === 0 &&
+          !event.metaKey &&
+          !event.ctrlKey &&
+          !event.shiftKey &&
+          !event.altKey
+
+        if (!isPlainLeftClick) {
+          return
+        }
+
         event.preventDefault()
         onNavigate(to)
       }}

@@ -31,6 +31,8 @@ export function getStoredSession() {
     if (session.accessToken && session.user?.id) {
       return session
     }
+
+    window.localStorage.removeItem(SESSION_KEY)
   } catch {
     window.localStorage.removeItem(SESSION_KEY)
   }

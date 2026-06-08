@@ -100,12 +100,10 @@ export function PatientDashboard({
             visitHistory,
           })
         }
-      } catch (loadError) {
+      } catch {
         if (isActive) {
           setError(
-            loadError instanceof Error
-              ? userMessage('Your dashboard could not be loaded. Please try again in a moment.')
-              : userMessage('Your dashboard could not be loaded. Please try again in a moment.'),
+            userMessage('Your dashboard could not be loaded. Please try again in a moment.'),
           )
           setPatientData(null)
         }

@@ -5,7 +5,12 @@ import {
   getDoctorSchedule,
   rescheduleAppointment,
 } from '../../clientApi'
-import { formatAppointmentDate, formatTimeRange, slotDuration } from '../../lib/dates'
+import {
+  formatAppointmentDate,
+  formatTimeRange,
+  isPastDateTime,
+  slotDuration,
+} from '../../lib/dates'
 import { EmptyPanel } from '../ui/EmptyPanel'
 
 type AppointmentRowProps = {
@@ -20,7 +25,11 @@ export function AppointmentRow({ appointment, onChanged, token }: AppointmentRow
   const [isMoving, setMoving] = useState(false)
   const [message, setMessage] = useState('')
   const [isBusy, setBusy] = useState(false)
-  const canChange = appointment.status !== 'CANCELLED' && appointment.status !== 'COMPLETED'
+  const isPast = isPastDateTime(appointment.dateTime)
+  const canChange =
+    appointment.status !== 'CANCELLED' &&
+    appointment.status !== 'COMPLETED' &&
+    !isPast
 
   async function handleCancel() {
     if (!canChange) {
@@ -42,6 +51,10 @@ export function AppointmentRow({ appointment, onChanged, token }: AppointmentRow
   }
 
   async function openMoveOptions() {
+    if (!canChange) {
+      return
+    }
+
     setMoving((current) => !current)
     setMessage('')
 
@@ -62,6 +75,10 @@ export function AppointmentRow({ appointment, onChanged, token }: AppointmentRow
   }
 
   async function handleReschedule() {
+    if (!canChange) {
+      return
+    }
+
     if (!selectedSlot) {
       setMessage('Please choose a new time.')
       return
@@ -87,13 +104,14 @@ export function AppointmentRow({ appointment, onChanged, token }: AppointmentRow
   }
 
   return (
-    <div className="appointment-item">
+    <div className={isPast ? 'appointment-item appointment-item-past' : 'appointment-item'}>
       <div>
         <strong>{formatAppointmentDate(appointment.dateTime)}</strong>
         <p>{appointment.reason ?? 'No reason provided'}</p>
         {message && <small>{message}</small>}
       </div>
       <div className="appointment-actions">
+        {isPast && <span className="appointment-status-past">PAST</span>}
         <span>{appointment.status}</span>
         {canChange && (
           <>

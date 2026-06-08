@@ -87,6 +87,20 @@ class AppointmentServiceTest {
     }
 
     @Test
+    void book_rejectsPastAppointment() {
+        UUID patientId = UUID.randomUUID();
+        UUID doctorId = UUID.randomUUID();
+        OffsetDateTime when = OffsetDateTime.now().minusHours(1);
+        AppointmentCreate request = new AppointmentCreate(patientId, doctorId, when, 30);
+
+        assertThatThrownBy(() -> service.book(request))
+                .isInstanceOf(AppointmentStateConflictException.class)
+                .hasMessageContaining("Past appointment cannot be booked");
+        verify(doctorSlotRepository, never()).findAndLockAvailableSlot(any(), any(), any());
+        verify(repository, never()).save(any());
+    }
+
+    @Test
     void list_returnsPagedResponse() {
         Appointment a = appointment(AppointmentStatus.SCHEDULED);
         Page<Appointment> page = new PageImpl<>(List.of(a), PageRequest.of(0, 20), 1);
@@ -178,6 +192,20 @@ class AppointmentServiceTest {
     }
 
     @Test
+    void reschedule_rejectsPastAppointment() {
+        Appointment a = appointment(AppointmentStatus.SCHEDULED, OffsetDateTime.now().minusDays(1));
+        when(repository.findById(a.getId())).thenReturn(Optional.of(a));
+
+        AppointmentRescheduleRequest req = new AppointmentRescheduleRequest(
+                OffsetDateTime.now().plusDays(2));
+        assertThatThrownBy(() -> service.reschedule(a.getId(), req))
+                .isInstanceOf(AppointmentStateConflictException.class)
+                .hasMessageContaining("Past appointment cannot be rescheduled");
+        verify(doctorSlotRepository, never()).findAndLockAvailableSlot(any(), any(), any());
+        verify(repository, never()).save(any());
+    }
+
+    @Test
     void cancel_setsStatusToCancelled() {
         Appointment a = appointment(AppointmentStatus.SCHEDULED);
         DoctorSlot slot = slot(a.getDoctorId(), a.getDateTime(), a.getDuration(), false);
@@ -206,6 +234,18 @@ class AppointmentServiceTest {
     }
 
     @Test
+    void cancel_rejectsPastAppointment() {
+        Appointment a = appointment(AppointmentStatus.SCHEDULED, OffsetDateTime.now().minusDays(1));
+        when(repository.findById(a.getId())).thenReturn(Optional.of(a));
+
+        assertThatThrownBy(() -> service.cancel(a.getId()))
+                .isInstanceOf(AppointmentStateConflictException.class)
+                .hasMessageContaining("Past appointment cannot be cancelled");
+        verify(doctorSlotRepository, never()).findSlotByTime(any(), any(), any());
+        verify(repository, never()).save(any());
+    }
+
+    @Test
     void cancel_throwsNotFound_whenMissing() {
         UUID id = UUID.randomUUID();
         when(repository.findById(id)).thenReturn(Optional.empty());
@@ -215,11 +255,15 @@ class AppointmentServiceTest {
     }
 
     private static Appointment appointment(AppointmentStatus status) {
+        return appointment(status, OffsetDateTime.now().plusDays(2));
+    }
+
+    private static Appointment appointment(AppointmentStatus status, OffsetDateTime dateTime) {
         Appointment a = new Appointment();
         a.setId(UUID.randomUUID());
         a.setPatientId(UUID.randomUUID());
         a.setDoctorId(UUID.randomUUID());
-        a.setDateTime(OffsetDateTime.parse("2026-06-10T10:00:00Z"));
+        a.setDateTime(dateTime);
         a.setStatus(status);
         a.setDuration(30);
         return a;

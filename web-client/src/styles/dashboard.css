@@ -73,6 +73,11 @@
   gap: 1rem;
 }
 
+.appointment-item-past {
+  border: 1px solid rgba(83, 99, 96, 0.18);
+  background: rgba(235, 239, 237, 0.86);
+}
+
 .appointment-item strong,
 .note-item strong {
   color: #132322;
@@ -97,6 +102,16 @@
   padding: 0.32rem 0.48rem;
   border-radius: 0.35rem;
   background: #cfe9df;
+}
+
+.appointment-item-past span {
+  color: #60716e;
+  background: #d9e0dd;
+}
+
+.appointment-item .appointment-status-past {
+  color: #7c3f2b;
+  background: #f0d7c7;
 }
 
 .appointment-actions {

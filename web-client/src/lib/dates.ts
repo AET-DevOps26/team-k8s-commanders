@@ -7,6 +7,10 @@ export function formatAppointmentDate(value: string) {
   }).format(new Date(value))
 }
 
+export function isPastDateTime(value: string, now = Date.now()) {
+  return new Date(value).getTime() < now
+}
+
 export function formatTimeRange(slot: ScheduleSlot) {
   const formatter = new Intl.DateTimeFormat('de-DE', {
     hour: '2-digit',

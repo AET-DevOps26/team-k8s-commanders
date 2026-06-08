@@ -5,7 +5,7 @@ import {
   getPatientVisitHistory,
   getUserProfile,
 } from '../../clientApi'
-import { formatAppointmentDate } from '../../lib/dates'
+import { formatAppointmentDate, isPastDateTime } from '../../lib/dates'
 import { userMessage } from '../../lib/messages'
 import type { PatientDashboardProps } from '../../types/route'
 import { AppointmentRow } from '../appointments/AppointmentRow'
@@ -41,7 +41,7 @@ export function PatientDashboard({
 
     return patientData.appointments
       .filter((appointment) => appointment.status !== 'CANCELLED')
-      .filter((appointment) => new Date(appointment.dateTime).getTime() >= now)
+      .filter((appointment) => !isPastDateTime(appointment.dateTime, now))
       .sort(
         (first, second) =>
           new Date(first.dateTime).getTime() -
@@ -59,7 +59,7 @@ export function PatientDashboard({
     return patientData.visitHistory.appointments.filter(
       (appointment) =>
         appointment.status === 'COMPLETED' ||
-        new Date(appointment.dateTime).getTime() < now,
+        isPastDateTime(appointment.dateTime, now),
     )
   }, [patientData])
 

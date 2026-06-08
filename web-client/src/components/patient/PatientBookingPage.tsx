@@ -1,11 +1,11 @@
-import { FormEvent, useEffect, useState } from 'react'
+import { FormEvent, useEffect, useMemo, useState } from 'react'
 import type { ScheduleSlot, UserProfile } from '../../clientApi'
 import {
   bookAppointment,
   getDoctorSchedule,
   listDoctors,
 } from '../../clientApi'
-import { formatAppointmentDate, formatTimeRange } from '../../lib/dates'
+import { formatAppointmentDate, formatTimeRange, isPastDateTime } from '../../lib/dates'
 import { userMessage } from '../../lib/messages'
 import type { PatientDashboardProps } from '../../types/route'
 import { PatientSubNav } from '../layout/PatientSubNav'
@@ -28,6 +28,11 @@ export function PatientBookingPage({
   const [status, setStatus] = useState('')
   const [error, setError] = useState('')
   const [isLoading, setLoading] = useState(false)
+  const futureSlots = useMemo(() => {
+    const now = Date.now()
+
+    return slots.filter((slot) => !isPastDateTime(slot.startAt, now))
+  }, [slots])
 
   async function searchDoctors(event?: FormEvent<HTMLFormElement>) {
     event?.preventDefault()
@@ -62,7 +67,8 @@ export function PatientBookingPage({
 
     try {
       const schedule = await getDoctorSchedule(doctor.id, session.accessToken)
-      setSlots(schedule.slots)
+      const availableFutureSlots = schedule.slots.filter((slot) => !isPastDateTime(slot.startAt))
+      setSlots(availableFutureSlots)
     } catch {
       setSlots([])
       setError(userMessage('Available times could not be loaded. Please choose another doctor or try again.'))
@@ -72,6 +78,12 @@ export function PatientBookingPage({
   async function handleBooking() {
     if (!selectedDoctor || !selectedSlot) {
       setError('Please select a doctor and time slot')
+      return
+    }
+
+    if (isPastDateTime(selectedSlot.startAt)) {
+      setSelectedSlot(null)
+      setError('Please choose an upcoming time slot')
       return
     }
 
@@ -174,8 +186,8 @@ export function PatientBookingPage({
               </div>
             </div>
             <div className="slot-grid">
-              {slots.length ? (
-                slots.map((slot) => (
+              {futureSlots.length ? (
+                futureSlots.map((slot) => (
                   <button
                     className={selectedSlot?.startAt === slot.startAt ? 'slot-button active' : 'slot-button'}
                     key={`${slot.startAt}-${slot.endAt}`}

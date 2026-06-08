@@ -10,6 +10,8 @@ Each fact becomes a LangChain ``Document`` whose ``metadata["source"]`` label
 is surfaced back to the caller in ``AIQueryResponse.sources``.
 """
 
+import asyncio
+
 from langchain_core.documents import Document
 
 from utils import service_client
@@ -77,6 +79,23 @@ async def build_context(
             for appointment in appointments:
                 docs.append(Document(page_content=_format_appointment(appointment),
                                      metadata={"source": SOURCE_APPOINTMENT}))
+
+            # patient-service's visit-history does not populate notes (clinical
+            # notes live in notes-service, keyed by appointment). Fetch each
+            # appointment's note directly so a patient-only query is still
+            # grounded in the patient's clinical notes. Concurrent so the latency
+            # is one round-trip, not one per appointment.
+            appointment_notes = await asyncio.gather(*(
+                service_client.get_appointment_note(appointment["id"], headers)
+                for appointment in appointments if appointment.get("id")
+            ))
+            for note in appointment_notes:
+                if note:
+                    docs.append(Document(page_content=_format_note(note),
+                                         metadata={"source": SOURCE_NOTE}))
+
+            # Forward-compatible: include any notes returned inline by
+            # visit-history (always empty today, see above).
             for note in history.get("notes") or []:
                 docs.append(Document(page_content=_format_note(note),
                                      metadata={"source": SOURCE_NOTE}))

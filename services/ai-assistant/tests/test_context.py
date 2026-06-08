@@ -54,6 +54,56 @@ def test_build_context_patient_combines_profile_and_history(mock_profile, mock_h
 
 
 @patch("utils.context.service_client.get_appointment_note", new_callable=AsyncMock)
+@patch("utils.context.service_client.get_visit_history", new_callable=AsyncMock)
+@patch("utils.context.service_client.get_patient_profile", new_callable=AsyncMock)
+def test_build_context_patient_fetches_note_per_appointment(mock_profile, mock_history, mock_note):
+    # patient-service returns appointments (with ids) but no inline notes; each
+    # appointment's clinical note is fetched from notes-service by id.
+    mock_profile.return_value = {"name": "Jane Roe"}
+    mock_history.return_value = {
+        "appointments": [
+            {"id": "a-1", "dateTime": "2026-01-01T09:00:00Z", "reason": "Old", "status": "COMPLETED", "duration": 30},
+            {"id": "a-2", "dateTime": "2026-05-01T09:00:00Z", "reason": "Recent", "status": "SCHEDULED", "duration": 20},
+        ],
+        "notes": [],
+    }
+    mock_note.side_effect = lambda appointment_id, headers: {
+        "a-1": {"content": "Old visit note", "diagnosis": None},
+        "a-2": {"content": "Recent visit note", "diagnosis": None},
+    }[appointment_id]
+
+    docs = asyncio.run(context.build_context("p-1", None, headers={}))
+
+    assert [d.metadata["source"] for d in docs] == [
+        "Patient record",
+        "Appointment record",  # a-2, most recent first
+        "Appointment record",  # a-1
+        "Clinical note",
+        "Clinical note",
+    ]
+    # A note is fetched for every appointment, in the (recent-first) appointment order.
+    assert mock_note.await_count == 2
+    assert "Recent visit note" in docs[3].page_content
+    assert "Old visit note" in docs[4].page_content
+
+
+@patch("utils.context.service_client.get_appointment_note", new_callable=AsyncMock)
+@patch("utils.context.service_client.get_visit_history", new_callable=AsyncMock)
+@patch("utils.context.service_client.get_patient_profile", new_callable=AsyncMock)
+def test_build_context_patient_skips_appointments_without_a_note(mock_profile, mock_history, mock_note):
+    mock_profile.return_value = {"name": "Jane Roe"}
+    mock_history.return_value = {
+        "appointments": [{"id": "a-1", "dateTime": "2026-05-01T09:00:00Z", "reason": "Check", "status": "SCHEDULED", "duration": 20}],
+        "notes": [],
+    }
+    mock_note.return_value = None  # no note recorded for this appointment yet
+
+    docs = asyncio.run(context.build_context("p-1", None, headers={}))
+
+    assert [d.metadata["source"] for d in docs] == ["Patient record", "Appointment record"]
+
+
+@patch("utils.context.service_client.get_appointment_note", new_callable=AsyncMock)
 @patch("utils.context.service_client.get_appointment", new_callable=AsyncMock)
 def test_build_context_appointment_fetches_appointment_and_note(mock_appointment, mock_note):
     mock_appointment.return_value = {"dateTime": "2026-05-01T09:00:00Z", "reason": "Check-up", "status": "SCHEDULED", "duration": 30}

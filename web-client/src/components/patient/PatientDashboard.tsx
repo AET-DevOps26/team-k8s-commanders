@@ -49,6 +49,18 @@ export function PatientDashboard({
       )
   }, [patientData])
 
+  const scheduleAppointments = useMemo(() => {
+    if (!patientData) {
+      return []
+    }
+
+    return [...patientData.appointments].sort(
+      (first, second) =>
+        new Date(second.dateTime).getTime() -
+        new Date(first.dateTime).getTime(),
+    )
+  }, [patientData])
+
   const pastVisits = useMemo(() => {
     if (!patientData) {
       return []
@@ -206,9 +218,9 @@ export function PatientDashboard({
                     <h2>My schedule</h2>
                   </div>
                 </div>
-                {patientData.appointments.length ? (
+                {scheduleAppointments.length ? (
                   <div className="appointment-list">
-                    {patientData.appointments.map((appointment) => (
+                    {scheduleAppointments.map((appointment) => (
                       <AppointmentRow
                         appointment={appointment}
                         key={appointment.id}

@@ -8,6 +8,8 @@ metadata:
     app.kubernetes.io/component: notes
 spec:
   replicas: {{ .Values.notes.replicaCount }}
+  strategy:
+    type: {{ .Values.deploymentStrategy.type }}
   selector:
     matchLabels:
       {{- include "caredesk.selectorLabels" (dict "root" . "component" "notes") | nindent 6 }}

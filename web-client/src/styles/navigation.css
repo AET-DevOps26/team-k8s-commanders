@@ -1,0 +1,81 @@
+.site-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.1rem clamp(1rem, 4vw, 4rem);
+}
+
+.brand,
+.nav-links,
+.hero-actions,
+.dashboard-header,
+.schedule-row,
+.ai-note,
+.proof-band {
+  display: flex;
+  align-items: center;
+}
+
+.brand {
+  gap: 0.6rem;
+  font-size: 1.05rem;
+  font-weight: 800;
+  letter-spacing: 0;
+}
+
+.brand-mark {
+  display: grid;
+  width: 2rem;
+  height: 2rem;
+  place-items: center;
+  border-radius: 0.45rem;
+  color: #f8fbf8;
+  background: #14615b;
+  box-shadow: 0 0.75rem 1.5rem rgba(20, 97, 91, 0.18);
+}
+
+.nav-links {
+  gap: clamp(0.65rem, 2vw, 1.25rem);
+  color: #425a57;
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.nav-links a {
+  min-height: 2.5rem;
+  display: inline-flex;
+  align-items: center;
+}
+
+.patient-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  margin-bottom: 1.5rem;
+}
+
+.patient-tabs button,
+.doctor-card,
+.slot-button {
+  border: 1px solid rgba(19, 35, 34, 0.12);
+  border-radius: 0.5rem;
+  color: #173331;
+  background: rgba(255, 255, 255, 0.72);
+  font: inherit;
+  cursor: pointer;
+}
+
+.patient-tabs button {
+  min-height: 2.65rem;
+  padding: 0 1rem;
+  font-weight: 900;
+}
+
+.patient-tabs button.active,
+.doctor-card.active,
+.slot-button.active {
+  color: #f8fbf8;
+  border-color: #14615b;
+  background: #14615b;
+}

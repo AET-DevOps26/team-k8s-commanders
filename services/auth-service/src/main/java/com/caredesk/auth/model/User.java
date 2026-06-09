@@ -1,19 +1,32 @@
 package com.caredesk.auth.model;
 
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.Id;
+import jakarta.persistence.PostLoad;
+import jakarta.persistence.PostPersist;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.Table;
+import jakarta.persistence.Transient;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import org.springframework.data.domain.Persistable;
+
 import java.time.LocalDate;
 import java.util.UUID;
 
 @Entity
 @Table(name = "users")
-public class User {
+public class User implements Persistable<UUID> {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
+
+    @Transient
+    private boolean newEntry = true;
 
     @NotBlank
     @Column(nullable = false)
@@ -42,8 +55,32 @@ public class User {
     private String licenseNumber;
     private UUID clinicId;
 
-    public UUID getId() { return id; }
-    public void setId(UUID id) { this.id = id; }
+    @Override
+    public UUID getId() {
+        return id;
+    }
+
+    @Override
+    public boolean isNew() {
+        return newEntry;
+    }
+
+    @PrePersist
+    void assignIdIfMissing() {
+        if (id == null) {
+            id = UUID.randomUUID();
+        }
+    }
+
+    @PostPersist
+    @PostLoad
+    void markPersisted() {
+        newEntry = false;
+    }
+
+    public void setId(UUID id) {
+        this.id = id;
+    }
 
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }

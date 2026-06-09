@@ -57,7 +57,7 @@ cert-manager (`letsencrypt-prod`) issues the TLS cert on first deploy (~30 s).
 
 | Component | Image (`ghcr.io/aet-devops26/team-k8s-commanders/…`) | Port | Replicas |
 |-----------|------------------------------------------------------|------|----------|
-| web-client | `web-client` | 3000 | 2 |
+| web-client | `web-client` | 3000 | 1 |
 | api-gateway | `api-gateway` | 8080 | 1 |
 | auth-service | `auth-service` | 8081 | 1 |
 | patient-service | `patient-service` | 8082 | 1 |
@@ -98,6 +98,29 @@ Requires a CNI that enforces NetworkPolicy — **AET (Calico) does**; kind/kindn
 does **not**, so locally the policies are harmless no-ops. Disable with
 `--set networkPolicy.enabled=false` (e.g. if a cluster CNI blocks kubelet probes).
 
+### AET namespace CPU quota
+
+Student namespaces on the AET Rancher cluster enforce **`limits.cpu=4`** (4000m).
+The chart defaults are sized to fit with headroom:
+
+| Component | CPU limit | Count | Total |
+|-----------|-----------|-------|-------|
+| Backend services | 400m | 5 | 2000m |
+| PostgreSQL | 250m | 3 | 750m |
+| web-client | 200m | 1 | 200m |
+| **Steady state** | | | **2950m** |
+
+All Deployments use **`Recreate`** strategy (not `RollingUpdate`) so image
+rollouts terminate the old pod before starting the new one. That avoids
+temporary double-booking of CPU quota during upgrades — the failure mode that
+caused `UPGRADE FAILED: context deadline exceeded` when old + new pods overlapped.
+
+If you add replicas or raise limits, re-check quota with:
+
+```bash
+bash scripts/check-k8s-quota.sh <your-namespace>
+```
+
 ---
 
 ## 3 · Tear down
@@ -130,7 +153,12 @@ A `Makefile` wrapper (`make deploy` / `make undeploy`, driven by an optional
 | Workflow | Trigger | Action |
 |----------|---------|--------|
 | `publish.yml` | push to `main` touching `services/**` or `web-client/**` | Build + push all 6 images to GHCR (matrix: web-client, api-gateway, auth-service, patient-service, notes-service, ai-assistant) |
-| `deploy-k8s.yml` | after Publish Images succeeds | `helm upgrade --install` against the AET cluster (image tag = `sha-<short>`) |
+| `deploy-k8s.yml` | after Publish Images succeeds, or manual `workflow_dispatch` | `helm upgrade --install` against the AET cluster (image tag = `sha-<short>` or `latest`) |
+
+Helm-only changes deploy via **Actions → Deploy to AET Cluster → Run workflow**
+(manual dispatch uses the `latest` image tag). The workflow no longer triggers on
+a direct `push` to `helm/**` — that previously raced with the post-build deploy and
+triggered overlapping rollouts at full CPU quota.
 
 **Required repo secrets/variables** for the CI deploy: `KUBECONFIG_AET`,
 `TUM_ID`, and (optionally) `LLM_API_KEY`. JWT secret and DB password fall back to
@@ -139,6 +167,23 @@ the chart's dev defaults unless overridden.
 ---
 
 ## 6 · Troubleshooting
+
+### `UPGRADE FAILED: context deadline exceeded` (CI deploy)
+
+Helm `--wait` timed out because one or more pods never became Ready. On the AET
+cluster the most common cause is **namespace CPU quota exhaustion during a rolling
+update** — Kubernetes keeps old pods while starting new ones, but the namespace
+was already at `limits.cpu=4`.
+
+The chart now uses **Recreate** deployments and lower CPU limits (2950m steady
+state). If a previous failed rollout left stuck ReplicaSets, clean up and redeploy:
+
+```bash
+kubectl -n <ns> get rs
+kubectl -n <ns> get events --sort-by='.lastTimestamp' | tail -20
+helm rollback caredesk -n <ns>   # or re-run deploy after fixing quota
+bash scripts/check-k8s-quota.sh <ns>
+```
 
 ### `helm uninstall` left PVCs behind
 The chart deletes its PVCs, but a stuck finalizer can leave them `Terminating`.

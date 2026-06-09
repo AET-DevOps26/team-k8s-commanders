@@ -8,6 +8,8 @@ metadata:
     app.kubernetes.io/component: web
 spec:
   replicas: {{ .Values.web.replicaCount }}
+  strategy:
+    type: {{ .Values.deploymentStrategy.type }}
   selector:
     matchLabels:
       {{- include "caredesk.selectorLabels" (dict "root" . "component" "web") | nindent 6 }}

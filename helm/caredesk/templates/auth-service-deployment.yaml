@@ -8,6 +8,8 @@ metadata:
     app.kubernetes.io/component: auth
 spec:
   replicas: {{ .Values.auth.replicaCount }}
+  strategy:
+    type: {{ .Values.deploymentStrategy.type }}
   selector:
     matchLabels:
       {{- include "caredesk.selectorLabels" (dict "root" . "component" "auth") | nindent 6 }}

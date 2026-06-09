@@ -3,6 +3,15 @@
 # Override at install: --set tumId=<your-id>
 tumId: ge38yuc
 
+# ─── AET cluster constraints ───────────────────────────────────────────────────
+# Student namespaces on the AET Rancher cluster enforce limits.cpu=4 (4000m).
+# Steady-state CPU limits must stay below that cap. Recreate (not RollingUpdate)
+# terminates the old pod before starting the new one, so rollouts do not need
+# temporary spare quota for overlapping pods.
+# Budget: 5×400m backends + 3×250m Postgres + 1×200m web = 2950m (1050m spare).
+deploymentStrategy:
+  type: Recreate
+
 # ─── CareDesk image settings ──────────────────────────────────────────────────
 images:
   registry: ghcr.io/aet-devops26/team-k8s-commanders
@@ -83,7 +92,8 @@ ingress:
 # ─── web-client (React + nginx, port 3000) ────────────────────────────────────
 web:
   enabled: true
-  replicaCount: 2
+  # Single replica keeps CPU quota headroom on the AET student cluster (4 CPU cap).
+  replicaCount: 1
   image:
     repository: web-client
     tag: ""        # falls back to images.tag
@@ -109,7 +119,7 @@ gateway:
     port: 8080
   resources:
     requests: { cpu: 100m, memory: 256Mi }
-    limits:   { cpu: 500m, memory: 512Mi }
+    limits:   { cpu: 400m, memory: 512Mi }
 
 # ─── auth-service (Spring Boot, port 8081) ────────────────────────────────────
 auth:
@@ -124,7 +134,7 @@ auth:
   dbName: auth_db
   resources:
     requests: { cpu: 100m, memory: 384Mi }
-    limits:   { cpu: 500m, memory: 768Mi }
+    limits:   { cpu: 400m, memory: 768Mi }
 
 # ─── patient-service (Spring Boot, port 8082) ─────────────────────────────────
 patient:
@@ -139,7 +149,7 @@ patient:
   dbName: patient_db
   resources:
     requests: { cpu: 100m, memory: 384Mi }
-    limits:   { cpu: 500m, memory: 768Mi }
+    limits:   { cpu: 400m, memory: 768Mi }
 
 # ─── notes-service (Spring Boot, port 8083) ───────────────────────────────────
 notes:
@@ -154,7 +164,7 @@ notes:
   dbName: notes_db
   resources:
     requests: { cpu: 100m, memory: 384Mi }
-    limits:   { cpu: 500m, memory: 768Mi }
+    limits:   { cpu: 400m, memory: 768Mi }
 
 # ─── ai-assistant (FastAPI, port 8000) ─────────────────────────────────────────
 ai:
@@ -176,4 +186,4 @@ ai:
     llmApiKey: ""
   resources:
     requests: { cpu: 100m, memory: 256Mi }
-    limits:   { cpu: 500m, memory: 512Mi }
+    limits:   { cpu: 400m, memory: 512Mi }

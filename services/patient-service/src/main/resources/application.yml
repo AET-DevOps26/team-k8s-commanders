@@ -7,6 +7,9 @@ openapi:
   careDesk:
     base-path: ""
 
+auth-service:
+  url: ${AUTH_SERVICE_URL:http://localhost:8081}
+
 spring:
   application:
     name: patient-service

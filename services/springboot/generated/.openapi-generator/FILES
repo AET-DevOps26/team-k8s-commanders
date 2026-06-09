@@ -29,6 +29,7 @@ src/main/java/org/openapitools/model/PageMeta.java
 src/main/java/org/openapitools/model/PaginatedAppointmentResponse.java
 src/main/java/org/openapitools/model/PaginatedNotificationResponse.java
 src/main/java/org/openapitools/model/PaginatedUserProfileResponse.java
+src/main/java/org/openapitools/model/PasswordChangeRequest.java
 src/main/java/org/openapitools/model/ProblemDetail.java
 src/main/java/org/openapitools/model/RegisterRequest.java
 src/main/java/org/openapitools/model/Schedule.java

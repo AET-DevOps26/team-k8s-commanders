@@ -26,9 +26,6 @@ spring:
         - id: auth-service
           uri: ${AUTH_SERVICE_URL:http://localhost:8081}
           predicates:
-            # auth-service owns both /auth/** (login/register) and /users/**
-            # (admin user management). Admin-only access is enforced inside
-            # auth-service via the JWT role, not at the gateway.
             - Path=/api/v1/auth/**,/api/v1/users/**
           filters:
             - StripPrefix=2

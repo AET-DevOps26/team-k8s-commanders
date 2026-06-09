@@ -8,6 +8,8 @@ metadata:
     app.kubernetes.io/component: ai
 spec:
   replicas: {{ .Values.ai.replicaCount }}
+  strategy:
+    type: {{ .Values.deploymentStrategy.type }}
   selector:
     matchLabels:
       {{- include "caredesk.selectorLabels" (dict "root" . "component" "ai") | nindent 6 }}

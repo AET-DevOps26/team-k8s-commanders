@@ -1,14 +1,19 @@
 package com.caredesk.auth.controller;
 
+import com.caredesk.auth.service.UserAccountService;
 import com.caredesk.auth.service.UserAdminService;
 import com.caredesk.auth.service.UserService;
 import org.openapitools.api.UsersApi;
 import org.openapitools.model.PaginatedUserProfileResponse;
+import org.openapitools.model.PasswordChangeRequest;
 import org.openapitools.model.UserCreate;
 import org.openapitools.model.UserProfile;
 import org.openapitools.model.UserStats;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -17,22 +22,27 @@ import java.util.UUID;
 /**
  * Implements the generated {@link UsersApi} for the {@code /users/**} endpoints.
  *
- * <p>{@code getUserById} is the path that patient-service and notes-service call
- * to compose a full {@link UserProfile} from auth-service identity fields plus
- * their own domain data. It is permitted without a JWT in
- * {@code SecurityConfig} for internal service-to-service use.
+ * <p>Admin operations ({@code listUsers}, {@code createUser}, {@code deleteUser},
+ * {@code getUserStats}) delegate to {@link UserAdminService}. Gateway-facing
+ * account self-service ({@code changeUserPassword}, patient profile updates via
+ * {@code replaceUser}) delegate to {@link UserAccountService}, which enforces
+ * owner-or-admin authorization.
  *
- * <p>All other operations are admin-only — access is enforced by Spring Security
- * in {@code SecurityConfig} (role taken from the JWT). Business logic is
- * delegated to {@link UserAdminService}.
+ * <p>{@code getUserById} serves two callers: authenticated users reach it through
+ * the gateway with a JWT, while patient-service and notes-service call it directly
+ * without credentials via {@link UserService}.
  */
 @Controller
 public class UsersController implements UsersApi {
 
+    private final UserAccountService userAccountService;
     private final UserService userService;
     private final UserAdminService userAdminService;
 
-    public UsersController(UserService userService, UserAdminService userAdminService) {
+    public UsersController(UserAccountService userAccountService,
+                           UserService userService,
+                           UserAdminService userAdminService) {
+        this.userAccountService = userAccountService;
         this.userService = userService;
         this.userAdminService = userAdminService;
     }
@@ -43,7 +53,16 @@ public class UsersController implements UsersApi {
     }
 
     @Override
+    public ResponseEntity<Void> changeUserPassword(UUID userId, PasswordChangeRequest passwordChangeRequest) {
+        userAccountService.changePassword(userId, passwordChangeRequest);
+        return ResponseEntity.noContent().build();
+    }
+
+    @Override
     public ResponseEntity<UserProfile> getUserById(UUID userId) {
+        if (isAuthenticated()) {
+            return ResponseEntity.ok(userAccountService.getUser(userId));
+        }
         UserProfile profile = userService.findById(userId);
         if (profile == null) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found: " + userId);
@@ -59,7 +78,10 @@ public class UsersController implements UsersApi {
 
     @Override
     public ResponseEntity<UserProfile> replaceUser(UUID userId, UserProfile userProfile) {
-        return ResponseEntity.ok(userAdminService.replaceUser(userId, userProfile));
+        if (isAdmin()) {
+            return ResponseEntity.ok(userAdminService.replaceUser(userId, userProfile));
+        }
+        return ResponseEntity.ok(userAccountService.updateUser(userId, userProfile));
     }
 
     @Override
@@ -71,5 +93,18 @@ public class UsersController implements UsersApi {
     @Override
     public ResponseEntity<UserStats> getUserStats() {
         return ResponseEntity.ok(userAdminService.getStats());
+    }
+
+    private boolean isAuthenticated() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        return authentication != null
+                && authentication.isAuthenticated()
+                && !(authentication instanceof AnonymousAuthenticationToken);
+    }
+
+    private boolean isAdmin() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        return authentication != null && authentication.getAuthorities().stream()
+                .anyMatch(authority -> "ROLE_ADMIN".equals(authority.getAuthority()));
     }
 }

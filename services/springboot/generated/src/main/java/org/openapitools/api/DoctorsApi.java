@@ -5,6 +5,8 @@
  */
 package org.openapitools.api;
 
+import org.springframework.lang.Nullable;
+import org.openapitools.model.PaginatedUserProfileResponse;
 import org.openapitools.model.ProblemDetail;
 import org.openapitools.model.Schedule;
 import java.util.UUID;
@@ -202,6 +204,95 @@ public interface DoctorsApi {
                 if (mediaType.isCompatibleWith(MediaType.valueOf("application/problem+json"))) {
                     String exampleString = "Custom MIME type example not yet supported: application/problem+json";
                     ApiUtil.setExampleResponse(request, "application/problem+json", exampleString);
+                    break;
+                }
+                if (mediaType.isCompatibleWith(MediaType.valueOf("application/problem+json"))) {
+                    String exampleString = "Custom MIME type example not yet supported: application/problem+json";
+                    ApiUtil.setExampleResponse(request, "application/problem+json", exampleString);
+                    break;
+                }
+                if (mediaType.isCompatibleWith(MediaType.valueOf("application/problem+json"))) {
+                    String exampleString = "Custom MIME type example not yet supported: application/problem+json";
+                    ApiUtil.setExampleResponse(request, "application/problem+json", exampleString);
+                    break;
+                }
+                if (mediaType.isCompatibleWith(MediaType.valueOf("application/problem+json"))) {
+                    String exampleString = "Custom MIME type example not yet supported: application/problem+json";
+                    ApiUtil.setExampleResponse(request, "application/problem+json", exampleString);
+                    break;
+                }
+                if (mediaType.isCompatibleWith(MediaType.valueOf("application/problem+json"))) {
+                    String exampleString = "Custom MIME type example not yet supported: application/problem+json";
+                    ApiUtil.setExampleResponse(request, "application/problem+json", exampleString);
+                    break;
+                }
+            }
+        });
+        return new ResponseEntity<>(HttpStatus.NOT_IMPLEMENTED);
+
+    }
+
+
+    String PATH_LIST_DOCTORS = "/doctors";
+    /**
+     * GET /doctors : Search doctors
+     *
+     * @param q Case-insensitive search term for doctor name or specialization. (optional)
+     * @param specialization Case-insensitive specialization filter. (optional)
+     * @param page Zero-based page index. (optional, default to 0)
+     * @param size Number of items per page. (optional, default to 20)
+     * @return Paginated doctor list (status code 200)
+     *         or The request is malformed or fails validation. (status code 400)
+     *         or Authentication is required or has failed. (status code 401)
+     *         or The caller is authenticated but not allowed to access the resource. (status code 403)
+     *         or An unexpected error occurred while processing the request. (status code 500)
+     */
+    @Operation(
+        operationId = "listDoctors",
+        summary = "Search doctors",
+        tags = { "Doctors" },
+        responses = {
+            @ApiResponse(responseCode = "200", description = "Paginated doctor list", content = {
+                @Content(mediaType = "application/json", schema = @Schema(implementation = PaginatedUserProfileResponse.class)),
+                @Content(mediaType = "application/problem+json", schema = @Schema(implementation = PaginatedUserProfileResponse.class))
+            }),
+            @ApiResponse(responseCode = "400", description = "The request is malformed or fails validation.", content = {
+                @Content(mediaType = "application/json", schema = @Schema(implementation = ProblemDetail.class)),
+                @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class))
+            }),
+            @ApiResponse(responseCode = "401", description = "Authentication is required or has failed.", content = {
+                @Content(mediaType = "application/json", schema = @Schema(implementation = ProblemDetail.class)),
+                @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class))
+            }),
+            @ApiResponse(responseCode = "403", description = "The caller is authenticated but not allowed to access the resource.", content = {
+                @Content(mediaType = "application/json", schema = @Schema(implementation = ProblemDetail.class)),
+                @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class))
+            }),
+            @ApiResponse(responseCode = "500", description = "An unexpected error occurred while processing the request.", content = {
+                @Content(mediaType = "application/json", schema = @Schema(implementation = ProblemDetail.class)),
+                @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class))
+            })
+        },
+        security = {
+            @SecurityRequirement(name = "bearerAuth")
+        }
+    )
+    @RequestMapping(
+        method = RequestMethod.GET,
+        value = DoctorsApi.PATH_LIST_DOCTORS,
+        produces = { "application/json", "application/problem+json" }
+    )
+    default ResponseEntity<PaginatedUserProfileResponse> listDoctors(
+        @Parameter(name = "q", description = "Case-insensitive search term for doctor name or specialization.", in = ParameterIn.QUERY) @Valid @RequestParam(value = "q", required = false) @Nullable String q,
+        @Parameter(name = "specialization", description = "Case-insensitive specialization filter.", in = ParameterIn.QUERY) @Valid @RequestParam(value = "specialization", required = false) @Nullable String specialization,
+        @Min(value = 0) @Parameter(name = "page", description = "Zero-based page index.", in = ParameterIn.QUERY) @Valid @RequestParam(value = "page", required = false, defaultValue = "0") Integer page,
+        @Min(value = 1) @Max(value = 100) @Parameter(name = "size", description = "Number of items per page.", in = ParameterIn.QUERY) @Valid @RequestParam(value = "size", required = false, defaultValue = "20") Integer size
+    ) {
+        getRequest().ifPresent(request -> {
+            for (MediaType mediaType: MediaType.parseMediaTypes(request.getHeader("Accept"))) {
+                if (mediaType.isCompatibleWith(MediaType.valueOf("application/json"))) {
+                    String exampleString = "{ \"page\" : { \"size\" : 1, \"totalPages\" : 0, \"page\" : 0, \"totalElements\" : 0 }, \"content\" : [ { \"clinicId\" : \"046b6c7f-0b8a-43b9-b35d-6489e6daee91\", \"password\" : \"password\", \"role\" : \"PATIENT\", \"phoneNumber\" : \"phoneNumber\", \"name\" : \"name\", \"specialization\" : \"specialization\", \"dateOfBirth\" : \"2000-01-23\", \"licenseNumber\" : \"licenseNumber\", \"id\" : \"046b6c7f-0b8a-43b9-b35d-6489e6daee91\", \"email\" : \"email\", \"enabled\" : true }, { \"clinicId\" : \"046b6c7f-0b8a-43b9-b35d-6489e6daee91\", \"password\" : \"password\", \"role\" : \"PATIENT\", \"phoneNumber\" : \"phoneNumber\", \"name\" : \"name\", \"specialization\" : \"specialization\", \"dateOfBirth\" : \"2000-01-23\", \"licenseNumber\" : \"licenseNumber\", \"id\" : \"046b6c7f-0b8a-43b9-b35d-6489e6daee91\", \"email\" : \"email\", \"enabled\" : true } ] }";
+                    ApiUtil.setExampleResponse(request, "application/json", exampleString);
                     break;
                 }
                 if (mediaType.isCompatibleWith(MediaType.valueOf("application/problem+json"))) {

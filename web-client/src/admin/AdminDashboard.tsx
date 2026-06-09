@@ -6,8 +6,8 @@ import {
   listUsers,
   replaceUser,
 } from '../clientApi'
-import { StatusPanel } from '../components/StatusPanel'
-import { ShellNav } from '../components/ShellNav'
+import { StatusPanel } from '../components/ui/StatusPanel'
+import { ShellNav } from '../components/layout/ShellNav'
 import './admin.css'
 import { AdminStats } from './AdminStats'
 import { ConfirmDialog } from './ConfirmDialog'

@@ -1,5 +1,5 @@
 import type { AuthSession, UserProfile } from '../clientApi'
-import type { Route } from '../routing'
+import type { Route } from '../types/route'
 
 export type AdminDashboardProps = {
   session: AuthSession

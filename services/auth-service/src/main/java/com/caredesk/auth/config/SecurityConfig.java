@@ -40,8 +40,10 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/users/stats").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.GET, "/users").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.POST, "/users").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.PUT, "/users/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/users/**").hasRole("ADMIN")
+                        // Patient self-service — owner-or-admin enforced in UserAccountService.
+                        .requestMatchers(HttpMethod.PUT, "/users/*/password").authenticated()
+                        .requestMatchers(HttpMethod.PUT, "/users/*").authenticated()
                         // GET /users/{id} is an internal service-to-service endpoint that
                         // patient-service and notes-service call without a JWT.
                         .requestMatchers(HttpMethod.GET, "/users/**").permitAll()

@@ -13,3 +13,7 @@ data:
   LLM_PROVIDER: {{ .Values.ai.env.llmProvider | quote }}
   LLM_MODEL: {{ .Values.ai.env.llmModel | quote }}
   OPENWEBUI_BASE_URL: {{ .Values.ai.env.openwebuiBaseUrl | quote }}
+  # Source-of-truth services the assistant pulls live patient context from.
+  # The ai→patient/notes path is already opened in the NetworkPolicy.
+  PATIENT_SERVICE_URL: {{ printf "http://%s-patient:%d" (include "caredesk.fullname" .) (int .Values.patient.service.port) | quote }}
+  NOTES_SERVICE_URL: {{ printf "http://%s-notes:%d" (include "caredesk.fullname" .) (int .Values.notes.service.port) | quote }}

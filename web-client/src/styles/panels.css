@@ -1,0 +1,53 @@
+.summary-card {
+  min-height: 11rem;
+  padding: 1.2rem;
+}
+
+.summary-card span,
+.profile-list dt,
+.appointment-item span,
+.note-item span {
+  color: #19726c;
+  font-size: 0.78rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.summary-card strong {
+  display: block;
+  margin: 0.85rem 0 0.35rem;
+  color: #10201f;
+  font-size: clamp(2.5rem, 6vw, 4rem);
+  line-height: 0.9;
+}
+
+.summary-card p,
+.empty-panel,
+.status-panel p {
+  margin: 0;
+  color: #5a6f6b;
+  line-height: 1.6;
+}
+
+.empty-panel {
+  padding: 1rem;
+  border-radius: 0.5rem;
+  background: rgba(226, 241, 235, 0.68);
+}
+
+.status-panel,
+.empty-state {
+  margin-bottom: 1rem;
+  padding: clamp(1rem, 3vw, 1.5rem);
+}
+
+.status-panel strong {
+  display: block;
+  margin-bottom: 0.35rem;
+  color: #132322;
+}
+
+.empty-state {
+  margin: clamp(2rem, 6vw, 5rem) clamp(1rem, 4vw, 4rem);
+}

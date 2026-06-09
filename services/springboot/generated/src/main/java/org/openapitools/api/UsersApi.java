@@ -7,6 +7,7 @@ package org.openapitools.api;
 
 import org.springframework.lang.Nullable;
 import org.openapitools.model.PaginatedUserProfileResponse;
+import org.openapitools.model.PasswordChangeRequest;
 import org.openapitools.model.ProblemDetail;
 import java.util.UUID;
 import org.openapitools.model.UserProfile;
@@ -45,6 +46,89 @@ public interface UsersApi {
     default Optional<NativeWebRequest> getRequest() {
         return Optional.empty();
     }
+
+    String PATH_CHANGE_USER_PASSWORD = "/users/{userId}/password";
+    /**
+     * PUT /users/{userId}/password : Change a user&#39;s password
+     *
+     * @param userId  (required)
+     * @param passwordChangeRequest  (required)
+     * @return Password changed (status code 204)
+     *         or The request is malformed or fails validation. (status code 400)
+     *         or Authentication is required or has failed. (status code 401)
+     *         or The caller is authenticated but not allowed to access the resource. (status code 403)
+     *         or The requested resource does not exist. (status code 404)
+     *         or An unexpected error occurred while processing the request. (status code 500)
+     */
+    @Operation(
+        operationId = "changeUserPassword",
+        summary = "Change a user's password",
+        tags = { "Users" },
+        responses = {
+            @ApiResponse(responseCode = "204", description = "Password changed"),
+            @ApiResponse(responseCode = "400", description = "The request is malformed or fails validation.", content = {
+                @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class))
+            }),
+            @ApiResponse(responseCode = "401", description = "Authentication is required or has failed.", content = {
+                @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class))
+            }),
+            @ApiResponse(responseCode = "403", description = "The caller is authenticated but not allowed to access the resource.", content = {
+                @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class))
+            }),
+            @ApiResponse(responseCode = "404", description = "The requested resource does not exist.", content = {
+                @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class))
+            }),
+            @ApiResponse(responseCode = "500", description = "An unexpected error occurred while processing the request.", content = {
+                @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class))
+            })
+        },
+        security = {
+            @SecurityRequirement(name = "bearerAuth")
+        }
+    )
+    @RequestMapping(
+        method = RequestMethod.PUT,
+        value = UsersApi.PATH_CHANGE_USER_PASSWORD,
+        produces = { "application/problem+json" },
+        consumes = { "application/json" }
+    )
+    default ResponseEntity<Void> changeUserPassword(
+        @Parameter(name = "userId", description = "", required = true, in = ParameterIn.PATH) @PathVariable("userId") UUID userId,
+        @Parameter(name = "PasswordChangeRequest", description = "", required = true) @Valid @RequestBody PasswordChangeRequest passwordChangeRequest
+    ) {
+        getRequest().ifPresent(request -> {
+            for (MediaType mediaType: MediaType.parseMediaTypes(request.getHeader("Accept"))) {
+                if (mediaType.isCompatibleWith(MediaType.valueOf("application/problem+json"))) {
+                    String exampleString = "Custom MIME type example not yet supported: application/problem+json";
+                    ApiUtil.setExampleResponse(request, "application/problem+json", exampleString);
+                    break;
+                }
+                if (mediaType.isCompatibleWith(MediaType.valueOf("application/problem+json"))) {
+                    String exampleString = "Custom MIME type example not yet supported: application/problem+json";
+                    ApiUtil.setExampleResponse(request, "application/problem+json", exampleString);
+                    break;
+                }
+                if (mediaType.isCompatibleWith(MediaType.valueOf("application/problem+json"))) {
+                    String exampleString = "Custom MIME type example not yet supported: application/problem+json";
+                    ApiUtil.setExampleResponse(request, "application/problem+json", exampleString);
+                    break;
+                }
+                if (mediaType.isCompatibleWith(MediaType.valueOf("application/problem+json"))) {
+                    String exampleString = "Custom MIME type example not yet supported: application/problem+json";
+                    ApiUtil.setExampleResponse(request, "application/problem+json", exampleString);
+                    break;
+                }
+                if (mediaType.isCompatibleWith(MediaType.valueOf("application/problem+json"))) {
+                    String exampleString = "Custom MIME type example not yet supported: application/problem+json";
+                    ApiUtil.setExampleResponse(request, "application/problem+json", exampleString);
+                    break;
+                }
+            }
+        });
+        return new ResponseEntity<>(HttpStatus.NOT_IMPLEMENTED);
+
+    }
+
 
     String PATH_GET_USER_BY_ID = "/users/{userId}";
     /**

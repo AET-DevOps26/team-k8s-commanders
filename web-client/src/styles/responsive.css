@@ -1,0 +1,70 @@
+@media (max-width: 900px) {
+  .hero-section,
+  .split-section,
+  .auth-shell,
+  .dashboard-grid,
+  .settings-grid,
+  .booking-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .feature-grid,
+  .patient-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .feature-card {
+    min-height: auto;
+  }
+
+  .proof-band {
+    align-items: stretch;
+  }
+
+  .patient-hero {
+    display: grid;
+  }
+}
+
+@media (max-width: 640px) {
+  .site-nav {
+    align-items: flex-start;
+  }
+
+  .nav-links {
+    justify-content: flex-end;
+    flex-wrap: wrap;
+  }
+
+  .nav-links a:first-child {
+    display: none;
+  }
+
+  .hero-section {
+    padding-top: 1.4rem;
+  }
+
+  h1 {
+    font-size: clamp(2.7rem, 17vw, 4.2rem);
+  }
+
+  .hero-visual {
+    min-height: 31rem;
+  }
+
+  .proof-band {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .primary-button,
+  .secondary-button {
+    width: 100%;
+  }
+
+  .patient-tabs button,
+  .quick-actions .primary-button,
+  .quick-actions .secondary-button {
+    flex: 1 1 100%;
+  }
+}

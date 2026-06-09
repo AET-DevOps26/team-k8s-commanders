@@ -17,30 +17,20 @@ import java.util.*;
 import jakarta.annotation.Generated;
 
 /**
- * AIQueryRequest
+ * Options for a new conversation. Binding a patient and/or appointment grounds every message in the session in that record&#39;s live data. 
  */
 
+@Schema(name = "AISessionCreateRequest", description = "Options for a new conversation. Binding a patient and/or appointment grounds every message in the session in that record's live data. ")
 @Generated(value = "org.openapitools.codegen.languages.SpringCodegen", comments = "Generator version: 7.22.0")
-public class AIQueryRequest {
+public class AISessionCreateRequest {
 
   private @Nullable UUID patientId;
 
   private @Nullable UUID appointmentId;
 
-  private String query;
+  private @Nullable String title;
 
-  public AIQueryRequest() {
-    super();
-  }
-
-  /**
-   * Constructor with only required parameters
-   */
-  public AIQueryRequest(String query) {
-    this.query = query;
-  }
-
-  public AIQueryRequest patientId(@Nullable UUID patientId) {
+  public AISessionCreateRequest patientId(@Nullable UUID patientId) {
     this.patientId = patientId;
     return this;
   }
@@ -61,7 +51,7 @@ public class AIQueryRequest {
     this.patientId = patientId;
   }
 
-  public AIQueryRequest appointmentId(@Nullable UUID appointmentId) {
+  public AISessionCreateRequest appointmentId(@Nullable UUID appointmentId) {
     this.appointmentId = appointmentId;
     return this;
   }
@@ -82,25 +72,25 @@ public class AIQueryRequest {
     this.appointmentId = appointmentId;
   }
 
-  public AIQueryRequest query(String query) {
-    this.query = query;
+  public AISessionCreateRequest title(@Nullable String title) {
+    this.title = title;
     return this;
   }
 
   /**
-   * Get query
-   * @return query
+   * Optional human-friendly label for the conversation.
+   * @return title
    */
-  @NotNull 
-  @Schema(name = "query", requiredMode = Schema.RequiredMode.REQUIRED)
-  @JsonProperty("query")
-  public String getQuery() {
-    return query;
+  
+  @Schema(name = "title", description = "Optional human-friendly label for the conversation.", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
+  @JsonProperty("title")
+  public @Nullable String getTitle() {
+    return title;
   }
 
-  @JsonProperty("query")
-  public void setQuery(String query) {
-    this.query = query;
+  @JsonProperty("title")
+  public void setTitle(@Nullable String title) {
+    this.title = title;
   }
 
   @Override
@@ -111,24 +101,24 @@ public class AIQueryRequest {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    AIQueryRequest aiQueryRequest = (AIQueryRequest) o;
-    return Objects.equals(this.patientId, aiQueryRequest.patientId) &&
-        Objects.equals(this.appointmentId, aiQueryRequest.appointmentId) &&
-        Objects.equals(this.query, aiQueryRequest.query);
+    AISessionCreateRequest aiSessionCreateRequest = (AISessionCreateRequest) o;
+    return Objects.equals(this.patientId, aiSessionCreateRequest.patientId) &&
+        Objects.equals(this.appointmentId, aiSessionCreateRequest.appointmentId) &&
+        Objects.equals(this.title, aiSessionCreateRequest.title);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(patientId, appointmentId, query);
+    return Objects.hash(patientId, appointmentId, title);
   }
 
   @Override
   public String toString() {
     StringBuilder sb = new StringBuilder();
-    sb.append("class AIQueryRequest {\n");
+    sb.append("class AISessionCreateRequest {\n");
     sb.append("    patientId: ").append(toIndentedString(patientId)).append("\n");
     sb.append("    appointmentId: ").append(toIndentedString(appointmentId)).append("\n");
-    sb.append("    query: ").append(toIndentedString(query)).append("\n");
+    sb.append("    title: ").append(toIndentedString(title)).append("\n");
     sb.append("}");
     return sb.toString();
   }

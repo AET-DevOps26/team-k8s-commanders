@@ -144,24 +144,33 @@ upsert_note "$APPT2_ID" \
 info "note saved for appointment #2 (I10 Hypertension)"
 
 # ── 5. Ask the AI assistant, as the doctor ───────────────────────────────────
-# ask JSON_BODY  -> prints answer + sources (single response, waits for the end)
+# Conversations are persistent now: open a session (optionally bound to a
+# patient/appointment) and post messages to it. The binding grounds every turn.
+#
+# new_session JSON_BODY -> prints the new session id
+new_session() {
+  api POST /ai/sessions "$1" "$DOCTOR_TOKEN" | jq -r '.id'
+}
+
+# ask SESSION_ID QUERY -> prints answer + sources (single response, waits for the end)
 ask() {
   local resp
-  resp="$(api POST /ai/query "$1" "$DOCTOR_TOKEN")"
+  resp="$(api POST "/ai/sessions/$1/messages" \
+    "$(jq -nc --arg q "$2" '{query:$q}')" "$DOCTOR_TOKEN")"
   printf '%s    sources:%s %s\n' "$BOLD" "$RESET" "$(jq -c '.sources // []' <<<"$resp")"
   printf '%s    answer:%s\n'      "$BOLD" "$RESET"
   jq -r '.answer' <<<"$resp" | sed 's/^/      /'
 }
 
-# ask_stream JSON_BODY -> prints sources, then the answer token-by-token as it
-# arrives. Sends `Accept: text/event-stream`; `curl -N` keeps the stream
+# ask_stream SESSION_ID QUERY -> prints sources, then the answer token-by-token as
+# it arrives. Sends `Accept: text/event-stream`; `curl -N` keeps the stream
 # unbuffered so the tokens appear live instead of all at once.
 ask_stream() {
-  curl -sS -N -X POST "${BASE_URL}/ai/query" \
+  curl -sS -N -X POST "${BASE_URL}/ai/sessions/$1/messages" \
     -H "Content-Type: application/json" \
     -H "Accept: text/event-stream" \
     -H "Authorization: Bearer ${DOCTOR_TOKEN}" \
-    -d "$1" \
+    -d "$(jq -nc --arg q "$2" '{query:$q}')" \
   | { event=""
       while IFS= read -r line; do
         case "$line" in
@@ -179,14 +188,22 @@ ask_stream() {
       done; }
 }
 
-step "AI query #1 — by patient_id, STREAMED (expects profile + BOTH appointments + BOTH notes)"
-ask_stream "$(jq -nc --arg pid "$PATIENT_ID" \
-  '{patientId:$pid, query:"Summarise this patient'\''s visit history and list every diagnosis on record."}')"
+step "AI session #1 — bound to patient_id, STREAMED (expects profile + BOTH appointments + BOTH notes)"
+PATIENT_SESSION="$(new_session "$(jq -nc --arg pid "$PATIENT_ID" '{patientId:$pid}')")"
+info "session id: $PATIENT_SESSION"
+ask_stream "$PATIENT_SESSION" \
+  "Summarise this patient's visit history and list every diagnosis on record."
 
-step "AI query #2 — by appointment_id, single JSON response (single appointment + its note)"
-ask "$(jq -nc --arg aid "$APPT2_ID" \
-  '{appointmentId:$aid, query:"What happened at this appointment and what was prescribed?"}')"
+step "Follow-up in the SAME session — proves the conversation has memory"
+ask "$PATIENT_SESSION" \
+  "Of those diagnoses, which one needs follow-up soonest and why?"
+
+step "AI session #2 — bound to appointment_id, single JSON response (single appointment + its note)"
+APPT_SESSION="$(new_session "$(jq -nc --arg aid "$APPT2_ID" '{appointmentId:$aid}')")"
+info "session id: $APPT_SESSION"
+ask "$APPT_SESSION" "What happened at this appointment and what was prescribed?"
 
 printf '\n%s✓ Done.%s If the sources include "Clinical note" and "Appointment record" and the\n' "$GREEN" "$RESET"
 printf '  answer mentions the cough and the hypertension, the grounding context is working.\n'
-printf '  Query #1 streamed token-by-token (SSE); query #2 used the buffered JSON response.\n'
+printf '  Session #1 streamed token-by-token (SSE), then a follow-up reused the conversation;\n'
+printf '  session #2 used the buffered JSON response.\n'

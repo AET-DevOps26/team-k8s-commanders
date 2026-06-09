@@ -7,7 +7,7 @@ No vector store is involved for patient data — semantic retrieval is reserved
 for the medical-guidelines knowledge base (future work).
 
 Each fact becomes a LangChain ``Document`` whose ``metadata["source"]`` label
-is surfaced back to the caller in ``AIQueryResponse.sources``.
+is surfaced back to the caller in ``AIMessageResponse.sources``.
 """
 
 import asyncio

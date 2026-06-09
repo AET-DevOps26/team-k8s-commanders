@@ -107,22 +107,41 @@ PATIENT_ID="$(jq -r '.user.id' <<<"$patient_session")"
 info "patient id: $PATIENT_ID"
 
 # ── 3. Book two appointments (as the doctor) ─────────────────────────────────
-# book_appointment DATETIME DURATION REASON  -> echoes the new appointment id
+# The backend only accepts a booking that lands exactly on an *available*
+# DoctorSlot, and slots are published for a fixed doctor by the dev data seeder
+# (not for the freshly-registered login account). So we book against that seeded
+# doctor and, rather than guessing times, read its schedule and book whatever
+# slots are actually free — which keeps the demo working no matter when it runs.
+SEED_DOCTOR_ID="${SEED_DOCTOR_ID:-22222222-2222-2222-2222-222222222222}"
+
+# book_appointment DATETIME DURATION REASON DOCTOR_ID  -> echoes the new appointment id
 book_appointment() {
-  local dt="$1" dur="$2" reason="$3" appt
+  local dt="$1" dur="$2" reason="$3" did="$4" appt
   appt="$(api POST /appointments \
-    "$(jq -nc --arg pid "$PATIENT_ID" --arg did "$DOCTOR_ID" --arg dt "$dt" \
+    "$(jq -nc --arg pid "$PATIENT_ID" --arg did "$did" --arg dt "$dt" \
               --argjson dur "$dur" --arg r "$reason" \
        '{patientId:$pid,doctorId:$did,dateTime:$dt,duration:$dur,reason:$r}')" \
     "$DOCTOR_TOKEN")"
   jq -r '.id' <<<"$appt"
 }
 
+step "Finding two open slots in the doctor's schedule"
+schedule="$(api GET "/doctors/${SEED_DOCTOR_ID}/schedule" "" "$DOCTOR_TOKEN")"
+# Earliest two available, *future* slots (the backend rejects past bookings),
+# each as "startAt durationMinutes".
+mapfile -t SLOTS < <(jq -r '
+  [.slots[] | select(.available and ((.startAt|fromdateiso8601) > now))]
+  | sort_by(.startAt) | .[0:2][]
+  | "\(.startAt) \(((( .endAt|fromdateiso8601) - (.startAt|fromdateiso8601)) / 60) | floor)"' <<<"$schedule")
+[ "${#SLOTS[@]}" -ge 2 ] \
+  || die "doctor ${SEED_DOCTOR_ID} has fewer than 2 open future slots (found ${#SLOTS[@]}). Restart patient-service to reseed its schedule."
+info "using slots: ${SLOTS[0]} | ${SLOTS[1]}"
+
 step "Booking two appointments for the patient"
-APPT1_ID="$(book_appointment "2026-03-10T09:00:00Z" 30 "Annual check-up, persistent cough")"
-info "appointment #1: $APPT1_ID  (2026-03-10, persistent cough)"
-APPT2_ID="$(book_appointment "2026-05-22T14:30:00Z" 20 "Follow-up on blood pressure")"
-info "appointment #2: $APPT2_ID  (2026-05-22, blood pressure follow-up)"
+APPT1_ID="$(book_appointment "${SLOTS[0]% *}" "${SLOTS[0]#* }" "Annual check-up, persistent cough" "$SEED_DOCTOR_ID")"
+info "appointment #1: $APPT1_ID  (${SLOTS[0]% *}, persistent cough)"
+APPT2_ID="$(book_appointment "${SLOTS[1]% *}" "${SLOTS[1]#* }" "Follow-up on blood pressure" "$SEED_DOCTOR_ID")"
+info "appointment #2: $APPT2_ID  (${SLOTS[1]% *}, blood pressure follow-up)"
 
 # ── 4. Write a clinical note per appointment (as the doctor) ──────────────────
 # upsert_note APPOINTMENT_ID CONTENT DIAG_CODE DIAG_DESC
@@ -202,6 +221,13 @@ step "AI session #2 — bound to appointment_id, single JSON response (single ap
 APPT_SESSION="$(new_session "$(jq -nc --arg aid "$APPT2_ID" '{appointmentId:$aid}')")"
 info "session id: $APPT_SESSION"
 ask "$APPT_SESSION" "What happened at this appointment and what was prescribed?"
+
+# ── 6. Clean up so the demo is re-runnable ───────────────────────────────────
+# Cancelling releases the doctor slots we consumed, so the next run finds them
+# free again instead of failing with "slot unavailable".
+step "Cleaning up (cancelling the demo appointments to free the slots)"
+api POST "/appointments/${APPT1_ID}/cancel" "" "$DOCTOR_TOKEN" >/dev/null && info "cancelled appointment #1"
+api POST "/appointments/${APPT2_ID}/cancel" "" "$DOCTOR_TOKEN" >/dev/null && info "cancelled appointment #2"
 
 printf '\n%s✓ Done.%s If the sources include "Clinical note" and "Appointment record" and the\n' "$GREEN" "$RESET"
 printf '  answer mentions the cough and the hypertension, the grounding context is working.\n'

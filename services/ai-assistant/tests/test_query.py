@@ -1,3 +1,4 @@
+import json
 from unittest.mock import AsyncMock, patch
 
 import httpx
@@ -264,3 +265,93 @@ def test_query_forbidden_for_unknown_role():
     )
 
     assert response.status_code == 403
+
+
+# ── Streaming (Server-Sent Events) ───────────────────────────────────────────
+SSE_HEADERS = {**DOCTOR_HEADERS, "Accept": "text/event-stream"}
+
+
+def _parse_sse(text: str):
+    """Parse an SSE body into a list of (event, json-decoded-data) tuples."""
+    events = []
+    for block in text.strip().split("\n\n"):
+        if not block.strip():
+            continue
+        event, data = None, None
+        for line in block.splitlines():
+            if line.startswith("event:"):
+                event = line[len("event:"):].strip()
+            elif line.startswith("data:"):
+                data = json.loads(line[len("data:"):].strip())
+        events.append((event, data))
+    return events
+
+
+@patch("routes.query.get_llm")
+@patch("routes.query.build_context", new_callable=AsyncMock)
+def test_query_streams_sse_when_requested(mock_build_context, mock_get_llm):
+    """Accept: text/event-stream streams sources, then tokens, then done."""
+    mock_build_context.return_value = [PATIENT_DOC, NOTE_DOC]
+    mock_get_llm.return_value = _fake_llm("The patient is stable.")
+
+    client = TestClient(app)
+    response = client.post(
+        "/ai/query",
+        headers=SSE_HEADERS,
+        json={"query": "Status?", "patientId": "550e8400-e29b-41d4-a716-446655440000"},
+    )
+
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith("text/event-stream")
+
+    events = _parse_sse(response.text)
+    assert events[0][0] == "sources"
+    assert events[0][1] == ["Patient record", "Clinical note"]
+    assert events[-1] == ("done", {})
+
+    # The token events, concatenated, reconstruct the full answer regardless of
+    # how the model chose to chunk it.
+    answer = "".join(data for event, data in events if event == "token")
+    assert answer == "The patient is stable."
+
+
+@patch("routes.query.build_context", new_callable=AsyncMock)
+def test_query_stream_request_still_404s_on_unknown_ids(mock_build_context):
+    """Validation runs before streaming, so a bad id is a real 404, not a stream."""
+    mock_build_context.return_value = []
+
+    client = TestClient(app)
+    response = client.post(
+        "/ai/query",
+        headers=SSE_HEADERS,
+        json={"query": "Status?", "patientId": "00000000-0000-0000-0000-000000000000"},
+    )
+
+    assert response.status_code == 404
+    assert "text/event-stream" not in response.headers["content-type"]
+
+
+@patch("routes.query.get_llm")
+@patch("routes.query.build_context", new_callable=AsyncMock)
+def test_query_stream_reports_llm_error_as_event(mock_build_context, mock_get_llm):
+    """A failure once streaming has started is reported as a trailing error event."""
+    mock_build_context.return_value = [PATIENT_DOC]
+
+    def _raise(_input):
+        raise RuntimeError("boom")
+
+    mock_get_llm.return_value = RunnableLambda(_raise)
+
+    client = TestClient(app)
+    response = client.post(
+        "/ai/query",
+        headers=SSE_HEADERS,
+        json={"query": "Status?", "patientId": "550e8400-e29b-41d4-a716-446655440000"},
+    )
+
+    # The 200 + headers were already committed before the LLM ran.
+    assert response.status_code == 200
+    events = _parse_sse(response.text)
+    assert events[0][0] == "sources"
+    assert events[-1][0] == "error"
+    assert "detail" in events[-1][1]

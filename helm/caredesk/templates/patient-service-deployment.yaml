@@ -8,6 +8,8 @@ metadata:
     app.kubernetes.io/component: patient
 spec:
   replicas: {{ .Values.patient.replicaCount }}
+  strategy:
+    type: {{ .Values.deploymentStrategy.type }}
   selector:
     matchLabels:
       {{- include "caredesk.selectorLabels" (dict "root" . "component" "patient") | nindent 6 }}

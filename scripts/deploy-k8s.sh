@@ -8,7 +8,7 @@
 #   make deploy
 #
 # Prerequisites:
-#   - helm v3 + kubectl on PATH
+#   - helm v3 + kubectl + python3 on PATH
 #   - kubeconfig at ~/.kube/config (download stud.yaml from https://rancher.ase.cit.tum.de)
 #
 # Optional overrides (env or .env.k8s at repo root): TUM_ID, RELEASE,
@@ -36,6 +36,7 @@ require() {
 # ─── Preflight ─────────────────────────────────────────────────────────────────
 require helm
 require kubectl
+require python3
 
 # .env.k8s is OPTIONAL — load it only if present (overrides defaults below).
 if [[ -f "${ENV_FILE}" ]]; then
@@ -63,6 +64,8 @@ log "kube context: $(kubectl config current-context)"
 log "Ensuring namespace ${NAMESPACE}"
 kubectl get ns "${NAMESPACE}" >/dev/null 2>&1 || \
   kubectl create namespace "${NAMESPACE}"
+
+bash "${SCRIPT_DIR}/check-k8s-quota.sh" "${NAMESPACE}"
 
 # ─── Compose --set flags ───────────────────────────────────────────────────────
 # The full stack (web, gateway, auth, patient, notes, ai + one Postgres each)

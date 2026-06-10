@@ -35,6 +35,9 @@ services:
       LLM_MODEL: ${LLM_MODEL:?LLM_MODEL must be set}
       OPENWEBUI_BASE_URL: ${OPENWEBUI_BASE_URL:-}
       LLM_API_KEY: ${LLM_API_KEY:?LLM_API_KEY must be set}
+      # Source-of-truth services the assistant pulls live patient context from.
+      PATIENT_SERVICE_URL: http://patient-service:8082
+      NOTES_SERVICE_URL: http://notes-service:8083
     healthcheck:
       test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/ai/health')\""]
       interval: 30s

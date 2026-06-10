@@ -1,0 +1,64 @@
+name: Patient Service CI
+
+on:
+  push:
+    paths:
+      - "api/openapi.yaml"
+      - "services/patient-service/**"
+      - ".github/workflows/patient-service-ci.yml"
+  pull_request:
+    paths:
+      - "api/openapi.yaml"
+      - "services/patient-service/**"
+      - ".github/workflows/patient-service-ci.yml"
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Java
+        uses: actions/setup-java@v5
+        with:
+          java-version: "21"
+          distribution: temurin
+          cache: maven
+
+      - name: Set up Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: lts/*
+
+      - name: Install node deps
+        run: npm ci
+
+      - name: Generate OpenAPI Spring stubs
+        run: ./api/scripts/gen-all.sh
+
+      - name: Install OpenAPI stubs JAR into local Maven repo
+        run: |
+          cd services/springboot/generated
+          mvn -B -q compile
+          rm -f target/classes/application.properties
+          cd target/classes
+          jar cf /tmp/openapi-spring-1.0.0.jar .
+          mvn -B -q install:install-file \
+            -Dfile=/tmp/openapi-spring-1.0.0.jar \
+            -DgroupId=org.openapitools \
+            -DartifactId=openapi-spring \
+            -Dversion=1.0.0 \
+            -Dpackaging=jar
+
+      - name: Run tests
+        run: mvn -B test
+        working-directory: services/patient-service
+
+      - name: Upload test reports on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: patient-service-surefire-reports
+          path: services/patient-service/target/surefire-reports/
+          retention-days: 7

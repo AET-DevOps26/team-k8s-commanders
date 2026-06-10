@@ -43,7 +43,7 @@ class AppointmentServiceTest {
     void book_createsScheduledAppointment() {
         UUID patientId = UUID.randomUUID();
         UUID doctorId = UUID.randomUUID();
-        OffsetDateTime when = OffsetDateTime.parse("2026-06-10T10:00:00Z");
+        OffsetDateTime when = OffsetDateTime.now().plusDays(2);
         AppointmentCreate request = new AppointmentCreate(patientId, doctorId, when, 30);
         request.setReason("Check-up");
         DoctorSlot slot = slot(doctorId, when, 30, true);
@@ -76,7 +76,7 @@ class AppointmentServiceTest {
     void book_rejectsUnavailableSlot() {
         UUID patientId = UUID.randomUUID();
         UUID doctorId = UUID.randomUUID();
-        OffsetDateTime when = OffsetDateTime.parse("2026-06-10T10:00:00Z");
+        OffsetDateTime when = OffsetDateTime.now().plusDays(2);
         AppointmentCreate request = new AppointmentCreate(patientId, doctorId, when, 30);
         when(doctorSlotRepository.findAndLockAvailableSlot(eq(doctorId), eq(when), eq(when.plusMinutes(30))))
                 .thenReturn(Optional.empty());
@@ -136,7 +136,7 @@ class AppointmentServiceTest {
     @Test
     void reschedule_updatesDateTimeAndMarksRescheduled() {
         Appointment a = appointment(AppointmentStatus.SCHEDULED);
-        OffsetDateTime newWhen = OffsetDateTime.parse("2026-07-01T15:00:00Z");
+        OffsetDateTime newWhen = OffsetDateTime.now().plusDays(3);
         DoctorSlot oldSlot = slot(a.getDoctorId(), a.getDateTime(), a.getDuration(), false);
         DoctorSlot newSlot = slot(a.getDoctorId(), newWhen, 45, true);
         when(repository.findById(a.getId())).thenReturn(Optional.of(a));
@@ -162,7 +162,7 @@ class AppointmentServiceTest {
     void reschedule_leavesDurationUntouched_whenOmitted() {
         Appointment a = appointment(AppointmentStatus.SCHEDULED);
         a.setDuration(30);
-        OffsetDateTime newWhen = OffsetDateTime.parse("2026-07-01T15:00:00Z");
+        OffsetDateTime newWhen = OffsetDateTime.now().plusDays(3);
         DoctorSlot oldSlot = slot(a.getDoctorId(), a.getDateTime(), a.getDuration(), false);
         DoctorSlot newSlot = slot(a.getDoctorId(), newWhen, 30, true);
         when(repository.findById(a.getId())).thenReturn(Optional.of(a));
@@ -185,7 +185,7 @@ class AppointmentServiceTest {
         when(repository.findById(a.getId())).thenReturn(Optional.of(a));
 
         AppointmentRescheduleRequest req = new AppointmentRescheduleRequest(
-                OffsetDateTime.parse("2026-07-01T15:00:00Z"));
+                OffsetDateTime.now().plusDays(3));
         assertThatThrownBy(() -> service.reschedule(a.getId(), req))
                 .isInstanceOf(AppointmentStateConflictException.class);
         verify(repository, never()).save(any());

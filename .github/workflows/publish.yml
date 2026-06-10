@@ -25,7 +25,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  generate-stubs:
+  check-generated-sync:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -43,19 +43,22 @@ jobs:
 
       - run: ./api/scripts/gen-all.sh
 
-      - uses: actions/upload-artifact@v4
-        with:
-          name: springboot-generated
-          path: services/springboot/generated/
-          retention-days: 1
+      - name: Fail if generated stubs are out of sync with the spec
+        run: |
+          if ! git diff --exit-code services/springboot/generated/src/; then
+            echo "services/springboot/generated/src/ is out of sync with api/openapi.yaml."
+            echo "Run ./api/scripts/gen-all.sh locally and commit the result."
+            exit 1
+          fi
 
   build:
-    needs: generate-stubs
+    needs: check-generated-sync
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
     strategy:
+      fail-fast: false
       matrix:
         include:
           - service: ai-assistant
@@ -92,12 +95,6 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - name: Download generated Spring stubs
-        uses: actions/download-artifact@v4
-        with:
-          name: springboot-generated
-          path: services/springboot/generated/
-
       - name: Generate image tags
         id: meta
         uses: docker/metadata-action@v5
@@ -107,6 +104,9 @@ jobs:
             type=raw,value=latest,enable={{is_default_branch}}
             type=ref,event=branch
             type=sha
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
       - name: Log in to GHCR
         if: github.event_name != 'pull_request'
@@ -123,3 +123,5 @@ jobs:
           file: ${{ matrix.dockerfile }}
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
+          cache-from: type=gha,scope=${{ matrix.service }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.service }}

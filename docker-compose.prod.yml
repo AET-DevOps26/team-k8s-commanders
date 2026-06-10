@@ -35,6 +35,9 @@ services:
       LLM_MODEL: ${LLM_MODEL:?LLM_MODEL must be set}
       OPENWEBUI_BASE_URL: ${OPENWEBUI_BASE_URL:-}
       LLM_API_KEY: ${LLM_API_KEY:?LLM_API_KEY must be set}
+      # Source-of-truth services the assistant pulls live patient context from.
+      PATIENT_SERVICE_URL: http://patient-service:8082
+      NOTES_SERVICE_URL: http://notes-service:8083
     healthcheck:
       test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/ai/health')\""]
       interval: 30s
@@ -58,6 +61,7 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+      start_period: 30s
     networks:
       - caredesk
 
@@ -100,6 +104,7 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+      start_period: 30s
     networks:
       - caredesk
 
@@ -115,6 +120,8 @@ services:
       DB_NAME: ${PATIENT_DB_NAME:?PATIENT_DB_NAME must be set}
       DB_USER: ${PATIENT_DB_USER:?PATIENT_DB_USER must be set}
       DB_PASSWORD: ${PATIENT_DB_PASSWORD:?PATIENT_DB_PASSWORD must be set}
+      # Internal auth-service URL for the cross-service profile lookup.
+      AUTH_SERVICE_URL: http://auth-service:8081
       # application.yml ships with ddl-auto: validate. Set PATIENT_DDL_AUTO=update
       # for the first deployment so the schema is created, then revert.
       SPRING_JPA_HIBERNATE_DDL_AUTO: ${PATIENT_DDL_AUTO:-validate}
@@ -141,6 +148,7 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+      start_period: 30s
     networks:
       - caredesk
 

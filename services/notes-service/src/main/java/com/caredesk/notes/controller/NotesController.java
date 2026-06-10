@@ -51,12 +51,15 @@ public class NotesController implements AppointmentsApi {
      */
     @Override
     public ResponseEntity<ClinicalNote> getAppointmentNote(UUID appointmentId) {
-        return notesService.getByAppointment(appointmentId)
-                .map(NoteMapper::toModel)
-                .map(ResponseEntity::ok)
+        UUID doctorId = currentDoctorId();
+        com.caredesk.notes.model.ClinicalNote note = notesService.getByAppointment(appointmentId)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND,
                         "No clinical note exists for appointment " + appointmentId));
+        if (!note.getDoctorId().equals(doctorId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Not your appointment");
+        }
+        return ResponseEntity.ok(NoteMapper.toModel(note));
     }
 
     /**
@@ -85,6 +88,19 @@ public class NotesController implements AppointmentsApi {
         return ResponseEntity
                 .status(result.created() ? HttpStatus.CREATED : HttpStatus.OK)
                 .body(NoteMapper.toModel(result.note()));
+    }
+
+    /**
+     * Deletes the clinical note for an appointment. Only the authoring doctor
+     * may delete their own note.
+     *
+     * @param appointmentId the appointment whose note should be deleted
+     * @return 204 No Content on success, 404 if no note exists, 403 if not the author
+     */
+    @Override
+    public ResponseEntity<Void> deleteAppointmentNote(UUID appointmentId) {
+        notesService.delete(appointmentId, currentDoctorId());
+        return ResponseEntity.noContent().build();
     }
 
     /**

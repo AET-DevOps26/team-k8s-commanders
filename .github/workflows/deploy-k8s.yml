@@ -1,0 +1,119 @@
+name: Deploy to AET Cluster
+
+on:
+  workflow_run:
+    workflows: ["Build and Publish Images"]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+# One deploy at a time per team namespace — avoids overlapping helm upgrades.
+concurrency:
+  group: aet-deploy-${{ github.repository }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  packages: read
+
+jobs:
+  deploy:
+    # Only run when the upstream Publish Images workflow succeeded (or on manual dispatch).
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    environment:
+      name: AET
+      url: "https://caredesk-${{ vars.TUM_ID }}.student.k8s.aet.cit.tum.de"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install helm
+        uses: azure/setup-helm@v4
+        with:
+          version: v3.16.0
+
+      - name: Install kubectl
+        uses: azure/setup-kubectl@v4
+
+      - name: Write kubeconfig
+        env:
+          KUBECONFIG_AET: ${{ secrets.KUBECONFIG_AET }}
+        run: |
+          mkdir -p "$HOME/.kube"
+          echo "${KUBECONFIG_AET}" | base64 -d > "$HOME/.kube/config"
+          chmod 600 "$HOME/.kube/config"
+          kubectl config current-context
+
+      - name: Determine image tag
+        id: tag
+        run: |
+          # Pin sha-<short> after a successful Publish Images run — the only path
+          # guaranteed to have built and pushed that tag. Manual workflow_dispatch
+          # uses `latest` (last image published from main).
+          if [ "${{ github.event_name }}" = "workflow_run" ]; then
+            SHA="${{ github.event.workflow_run.head_sha }}"
+            echo "tag=sha-${SHA::7}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=latest" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Check namespace CPU quota
+        env:
+          TUM_ID: ${{ vars.TUM_ID }}
+        run: |
+          NS="${TUM_ID}-devops26-team-k8s-commanders"
+          kubectl get ns "${NS}" >/dev/null 2>&1 || kubectl create namespace "${NS}"
+          bash scripts/check-k8s-quota.sh "${NS}"
+
+      - name: Deploy with Helm
+        env:
+          TUM_ID: ${{ vars.TUM_ID }}
+          LLM_PROVIDER: ${{ vars.LLM_PROVIDER }}
+          LLM_MODEL: ${{ vars.LLM_MODEL }}
+          INGRESS_HOST: ${{ vars.INGRESS_HOST }}
+          OPENWEBUI_BASE_URL: ${{ vars.OPENWEBUI_BASE_URL }}
+        run: |
+          NS="${TUM_ID}-devops26-team-k8s-commanders"
+
+          SET_FLAGS=(
+            --set "tumId=${TUM_ID}"
+            --set "images.tag=${{ steps.tag.outputs.tag }}"
+            --set "ai.secrets.llmApiKey=${{ secrets.LLM_API_KEY }}"
+            --set "ai.env.llmProvider=${LLM_PROVIDER}"
+            --set "ai.env.llmModel=${LLM_MODEL}"
+          )
+
+          if [ -n "${OPENWEBUI_BASE_URL}" ]; then
+            SET_FLAGS+=(--set "ai.env.openwebuiBaseUrl=${OPENWEBUI_BASE_URL}")
+          fi
+
+          if [ -n "${INGRESS_HOST}" ]; then
+            SET_FLAGS+=(--set "ingress.host=${INGRESS_HOST}")
+          fi
+
+          if [ -n "${{ secrets.JWT_SECRET }}" ]; then
+            SET_FLAGS+=(--set "backend.jwtSecret=${{ secrets.JWT_SECRET }}")
+          fi
+          if [ -n "${{ secrets.POSTGRES_PASSWORD }}" ]; then
+            SET_FLAGS+=(--set "postgres.password=${{ secrets.POSTGRES_PASSWORD }}")
+          fi
+
+          if ! helm upgrade --install caredesk helm/caredesk \
+            --namespace "${NS}" \
+            "${SET_FLAGS[@]}" \
+            --wait --timeout 10m; then
+            echo "::error::Helm upgrade failed — collecting cluster diagnostics"
+            kubectl -n "${NS}" get pods,deploy,rs
+            kubectl -n "${NS}" get events --sort-by='.lastTimestamp' | tail -25
+            kubectl -n "${NS}" describe resourcequota || true
+            exit 1
+          fi
+
+      - name: Smoke test
+        env:
+          TUM_ID: ${{ vars.TUM_ID }}
+        run: |
+          NS="${TUM_ID}-devops26-team-k8s-commanders"
+          kubectl -n "${NS}" get pods,svc,ingress
+          helm get notes caredesk -n "${NS}"

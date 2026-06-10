@@ -7,8 +7,6 @@ import com.caredesk.auth.repository.UserRepository;
 import org.openapitools.model.AuthSession;
 import org.openapitools.model.LoginRequest;
 import org.openapitools.model.RegisterRequest;
-import org.openapitools.model.UserProfile;
-import org.openapitools.model.UserRole;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -42,12 +40,14 @@ public class AuthServiceImpl implements AuthService {
         user.setName(request.getName());
         user.setEmail(request.getEmail());
         user.setPassword(passwordEncoder.encode(request.getPassword()));
+        user.setPhoneNumber(request.getPhoneNumber());
+        user.setDateOfBirth(request.getDateOfBirth());
         // Public self-registration always creates a PATIENT — elevated roles are assigned by admins only.
         user.setRole(Role.PATIENT);
         userRepository.save(user);
 
         String token = jwtUtil.generateToken(user.getId().toString(), user.getEmail(), user.getRole().name());
-        return new AuthSession(token, toUserProfile(user));
+        return new AuthSession(token, UserService.toUserProfile(user));
     }
 
     @Override
@@ -59,7 +59,7 @@ public class AuthServiceImpl implements AuthService {
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
         String token = jwtUtil.generateToken(user.getId().toString(), user.getEmail(), user.getRole().name());
-        return new AuthSession(token, toUserProfile(user));
+        return new AuthSession(token, UserService.toUserProfile(user));
     }
 
     @Override
@@ -68,16 +68,4 @@ public class AuthServiceImpl implements AuthService {
         // A token blacklist can be added here later if needed.
     }
 
-    // Maps a User entity to the generated UserProfile model expected by the API contract.
-    // Converts the internal Role enum to the API-layer UserRole at the boundary.
-    private UserProfile toUserProfile(User user) {
-        UserRole apiRole = UserRole.valueOf(user.getRole().name());
-        UserProfile profile = new UserProfile(user.getId(), user.getName(), user.getEmail(), apiRole);
-        profile.setPhoneNumber(user.getPhoneNumber());
-        profile.setDateOfBirth(user.getDateOfBirth());
-        profile.setSpecialization(user.getSpecialization());
-        profile.setLicenseNumber(user.getLicenseNumber());
-        profile.setClinicId(user.getClinicId());
-        return profile;
-    }
 }

@@ -1,12 +1,12 @@
-# syntax=docker/dockerfile:1
 #
 # Multi-stage build for the patient-service.
 #
 # Depends on the OpenAPI-generated stubs JAR (org.openapitools:openapi-spring)
-# which is not in Maven Central. Same pattern as auth-service: compile the
-# stubs project, strip its application.properties so it does not shadow our
-# application.yml, install it as a plain library JAR, then build the service
-# against it.
+# which is not in Maven Central. The stubs live in services/springboot/generated/
+# (committed to the repo). Same pattern as auth-service and notes-service:
+# compile the stubs project, strip its application.properties so it does not
+# shadow our application.yml, install it as a plain library JAR, then build the
+# service against it.
 #
 # Build from the REPO ROOT (not from services/patient-service):
 #     docker build -f services/patient-service/Dockerfile -t caredesk-patient-service .

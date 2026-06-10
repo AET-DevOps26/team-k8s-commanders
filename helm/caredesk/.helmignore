@@ -1,0 +1,13 @@
+# Helm chart ignore patterns
+.DS_Store
+.git/
+.gitignore
+.idea/
+*.tmproj
+.vscode/
+*.swp
+*.bak
+*.tmp
+*.orig
+.env*
+README.md.bak

@@ -1,0 +1,173 @@
+.appointment-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.search-input {
+  width: 100%;
+  min-height: 3rem;
+  border: 1px solid rgba(19, 35, 34, 0.14);
+  border-radius: 0.5rem;
+  padding: 0 0.85rem;
+  color: #132322;
+  background: rgba(255, 255, 255, 0.9);
+  font: inherit;
+}
+
+.search-input:focus {
+  outline: 3px solid rgba(20, 97, 91, 0.18);
+  border-color: #14615b;
+}
+
+.patient-search {
+  display: grid;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.patient-results {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.patient-result {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  text-align: left;
+  cursor: pointer;
+  border: 1px solid rgba(19, 35, 34, 0.12);
+  border-radius: 0.65rem;
+  padding: 0.7rem 0.85rem;
+  background: rgba(255, 255, 255, 0.74);
+  font: inherit;
+  color: #132322;
+}
+
+.patient-result span {
+  color: #415956;
+  font-size: 0.85rem;
+}
+
+.patient-result.is-active {
+  border-color: #14615b;
+  outline: 3px solid rgba(20, 97, 91, 0.18);
+}
+
+.patient-record {
+  display: grid;
+  gap: 1.25rem;
+  border-top: 1px solid rgba(19, 35, 34, 0.1);
+  padding-top: 1.25rem;
+}
+
+.patient-record-head h3 {
+  margin: 0;
+}
+
+.patient-record-head p {
+  margin: 0.15rem 0 0;
+  color: #415956;
+}
+
+.record-section {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.appointment-select {
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+  color: #132322;
+  border: 1px solid rgba(19, 35, 34, 0.1);
+}
+
+.appointment-select.is-active {
+  border-color: #14615b;
+  outline: 3px solid rgba(20, 97, 91, 0.18);
+}
+
+.note-form,
+.ai-assistant {
+  display: grid;
+  gap: 0.85rem;
+  border: 1px solid rgba(19, 35, 34, 0.1);
+  border-radius: 0.85rem;
+  padding: 1.1rem;
+  background: rgba(255, 255, 255, 0.6);
+}
+
+.note-form label,
+.ai-assistant label {
+  display: grid;
+  gap: 0.35rem;
+  color: #415956;
+  font-size: 0.88rem;
+  font-weight: 800;
+}
+
+.note-form textarea,
+.note-form input,
+.ai-assistant input {
+  width: 100%;
+  border: 1px solid rgba(19, 35, 34, 0.14);
+  border-radius: 0.5rem;
+  padding: 0.7rem 0.85rem;
+  color: #132322;
+  background: rgba(255, 255, 255, 0.9);
+  font: inherit;
+  resize: vertical;
+}
+
+.note-form textarea:focus,
+.note-form input:focus,
+.ai-assistant input:focus {
+  outline: 3px solid rgba(20, 97, 91, 0.18);
+  border-color: #14615b;
+}
+
+.note-form-head,
+.note-form-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.85rem;
+}
+
+.note-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+
+.form-status {
+  margin: 0;
+  padding: 0.8rem;
+  border-radius: 0.5rem;
+  color: #14615b;
+  background: rgba(20, 97, 91, 0.12);
+  line-height: 1.5;
+}
+
+.ai-answer {
+  border-top: 1px solid rgba(19, 35, 34, 0.1);
+  padding-top: 0.75rem;
+}
+
+.ai-answer p {
+  margin: 0;
+  line-height: 1.6;
+}
+
+.ai-sources {
+  margin: 0.5rem 0 0;
+  padding-left: 1.1rem;
+  color: #415956;
+  font-size: 0.85rem;
+}

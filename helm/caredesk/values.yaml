@@ -1,0 +1,189 @@
+# ─── Identity ──────────────────────────────────────────────────────────────────
+# TUM ID determines the default ingress host. Namespace is passed via --namespace.
+# Override at install: --set tumId=<your-id>
+tumId: ge38yuc
+
+# ─── AET cluster constraints ───────────────────────────────────────────────────
+# Student namespaces on the AET Rancher cluster enforce limits.cpu=4 (4000m).
+# Steady-state CPU limits must stay below that cap. Recreate (not RollingUpdate)
+# terminates the old pod before starting the new one, so rollouts do not need
+# temporary spare quota for overlapping pods.
+# Budget: 5×400m backends + 3×250m Postgres + 1×200m web = 2950m (1050m spare).
+deploymentStrategy:
+  type: Recreate
+
+# ─── CareDesk image settings ──────────────────────────────────────────────────
+images:
+  registry: ghcr.io/aet-devops26/team-k8s-commanders
+  tag: latest
+  pullPolicy: IfNotPresent
+  # GHCR packages for this project are PUBLIC — no pull secret is needed, so the
+  # chart installs with a single command and zero credentials. CI may flip
+  # create=true and inject a PAT for rate-limit headroom; not required to deploy.
+  pullSecret:
+    create: false
+    name: ghcr-pull
+    server: ghcr.io
+    username: ""
+    password: ""
+    email: caredesk@example.com
+
+# ─── Shared backend settings ──────────────────────────────────────────────────
+# A development default is baked in so the whole stack deploys with one command
+# and no pre-created env files / secrets. Override in any real environment:
+#   --set backend.jwtSecret=<your-secret>
+backend:
+  # Shared HMAC secret. auth-service signs JWTs with it; api-gateway verifies
+  # them with the same value. Must be >= 32 chars for HS256/384.
+  jwtSecret: "caredesk-cluster-dev-jwt-secret-change-me-32+"
+  jwtExpirationMs: "86400000"   # 24h (string to avoid YAML int→float)
+  # Fresh databases have no schema; `update` lets Hibernate create tables on
+  # first boot. Switch to `validate` once real migrations exist.
+  ddlAuto: update
+
+# ─── PostgreSQL (one lightweight instance per backend service) ─────────────────
+# Plain postgres:16-alpine (public on Docker Hub) — predictable, fast to pull,
+# no subchart / private-registry caveats. One DB per service mirrors compose.
+postgres:
+  image: postgres:16-alpine
+  username: caredesk
+  # Development default — override with --set postgres.password=<secret>.
+  password: caredesk
+  storage: 1Gi
+  resources:
+    requests: { cpu: 50m,  memory: 64Mi }
+    limits:   { cpu: 250m, memory: 256Mi }
+
+# Databases to provision. Each entry yields a Deployment + Service + PVC named
+# caredesk-<key>, reachable in-cluster at that DNS name on port 5432.
+databases:
+  auth-db:
+    database: auth_db
+  patient-db:
+    database: patient_db
+  notes-db:
+    database: notes_db
+
+# ─── NetworkPolicy ─────────────────────────────────────────────────────────────
+# Enforces the trusted-header model: backend services (auth/patient/notes/ai)
+# trust gateway-injected X-User-* headers, so only the gateway may reach them.
+# Each Postgres is reachable only from its owning backend service.
+# Requires a CNI that enforces NetworkPolicy (AET = Calico ✓; kind/kindnet does
+# NOT enforce — policies are harmless no-ops locally).
+networkPolicy:
+  enabled: true
+
+# ─── Ingress ───────────────────────────────────────────────────────────────────
+ingress:
+  enabled: true
+  className: nginx
+  # If empty, _helpers renders: caredesk-<tumId>.student.k8s.aet.cit.tum.de
+  host: ""
+  # Extra DNS hosts render the same ingress rules. Useful for local aliases
+  # such as localhost without changing the canonical cluster host.
+  hostAliases: []
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+  tls:
+    enabled: true
+    clusterIssuer: letsencrypt-prod
+    secretName: caredesk-tls
+
+# ─── web-client (React + nginx, port 3000) ────────────────────────────────────
+web:
+  enabled: true
+  # Single replica keeps CPU quota headroom on the AET student cluster (4 CPU cap).
+  replicaCount: 1
+  image:
+    repository: web-client
+    tag: ""        # falls back to images.tag
+  service:
+    port: 3000
+  env:
+    # If empty, _helpers derives https://<ingressHost>/api/v1 — the gateway base.
+    publicApiUrl: ""
+  resources:
+    requests: { cpu: 50m,  memory: 64Mi }
+    limits:   { cpu: 200m, memory: 128Mi }
+
+# ─── api-gateway (Spring Cloud Gateway, port 8080) ────────────────────────────
+# Single entry point for /api/v1/**: verifies JWTs, injects X-User-* headers and
+# routes to the backend services.
+gateway:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: api-gateway
+    tag: ""
+  service:
+    port: 8080
+  resources:
+    requests: { cpu: 100m, memory: 256Mi }
+    limits:   { cpu: 400m, memory: 512Mi }
+
+# ─── auth-service (Spring Boot, port 8081) ────────────────────────────────────
+auth:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: auth-service
+    tag: ""
+  service:
+    port: 8081
+  dbHost: caredesk-auth-db
+  dbName: auth_db
+  resources:
+    requests: { cpu: 100m, memory: 384Mi }
+    limits:   { cpu: 400m, memory: 768Mi }
+
+# ─── patient-service (Spring Boot, port 8082) ─────────────────────────────────
+patient:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: patient-service
+    tag: ""
+  service:
+    port: 8082
+  dbHost: caredesk-patient-db
+  dbName: patient_db
+  resources:
+    requests: { cpu: 100m, memory: 384Mi }
+    limits:   { cpu: 400m, memory: 768Mi }
+
+# ─── notes-service (Spring Boot, port 8083) ───────────────────────────────────
+notes:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: notes-service
+    tag: ""
+  service:
+    port: 8083
+  dbHost: caredesk-notes-db
+  dbName: notes_db
+  resources:
+    requests: { cpu: 100m, memory: 384Mi }
+    limits:   { cpu: 400m, memory: 768Mi }
+
+# ─── ai-assistant (FastAPI, port 8000) ─────────────────────────────────────────
+ai:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: ai-assistant
+    tag: ""
+  service:
+    port: 8000
+  env:
+    llmProvider: openai
+    llmModel: gpt-4o-mini
+    openwebuiBaseUrl: ""
+  secrets:
+    # Optional. Empty is fine for deployment — the pod boots and stays healthy,
+    # the assistant just cannot answer until a key is provided:
+    #   --set ai.secrets.llmApiKey=sk-...
+    llmApiKey: ""
+  resources:
+    requests: { cpu: 100m, memory: 256Mi }
+    limits:   { cpu: 400m, memory: 512Mi }

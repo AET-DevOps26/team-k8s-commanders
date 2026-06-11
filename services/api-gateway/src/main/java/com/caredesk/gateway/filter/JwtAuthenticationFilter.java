@@ -6,6 +6,7 @@ import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.core.Ordered;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.stereotype.Component;
@@ -53,6 +54,13 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
                 })
                 .build();
         ServerWebExchange sanitisedExchange = exchange.mutate().request(sanitised).build();
+
+        // CORS preflight requests carry no Authorization header by design. Let them
+        // through so the gateway's globalcors config can answer with the CORS headers;
+        // rejecting them here would break every cross-origin write (PUT/DELETE/POST).
+        if (HttpMethod.OPTIONS.equals(sanitised.getMethod())) {
+            return chain.filter(sanitisedExchange);
+        }
 
         String path = sanitised.getURI().getPath();
         if (isPublic(path)) {

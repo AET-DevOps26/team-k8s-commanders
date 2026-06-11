@@ -1,10 +1,10 @@
-import type { AuthSession } from '../../clientApi'
-import type { NavigateHandler } from '../../types/route'
-import { AppLink } from '../ui/AppLink'
+import type { AuthSession } from '../clientApi'
+import type { Route } from '../routing'
+import { AppLink } from './AppLink'
 
 type ShellNavProps = {
   session: AuthSession | null
-  onNavigate: NavigateHandler
+  onNavigate: (path: Route) => void
   onLogout?: () => void
 }
 

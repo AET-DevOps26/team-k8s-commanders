@@ -1,0 +1,242 @@
+/* --- Admin dashboard --- */
+.admin-stats {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+}
+
+.admin-stats .summary-card {
+  min-height: 8.5rem;
+}
+
+.admin-stats .summary-card strong {
+  font-size: clamp(1.8rem, 4vw, 2.6rem);
+}
+
+.admin-table {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.admin-row {
+  display: grid;
+  grid-template-columns: 1.2fr 1.6fr 0.9fr 0.7fr 1fr;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 0.75rem 0.9rem;
+  border-radius: 0.7rem;
+  background: rgba(255, 255, 255, 0.55);
+}
+
+.admin-row span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.admin-head {
+  background: transparent;
+  padding-bottom: 0.2rem;
+}
+
+.admin-head span {
+  color: #19726c;
+  font-size: 0.74rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.admin-row select {
+  width: 100%;
+  padding: 0.4rem 0.5rem;
+  border: 1px solid rgba(25, 114, 108, 0.3);
+  border-radius: 0.5rem;
+  background: #fff;
+  font: inherit;
+}
+
+.admin-row select:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.status-pill {
+  display: inline-block;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.status-pill.is-active {
+  background: rgba(25, 114, 108, 0.14);
+  color: #146b65;
+}
+
+.status-pill.is-disabled {
+  background: rgba(170, 60, 60, 0.14);
+  color: #a33;
+}
+
+.admin-actions {
+  display: flex;
+  gap: 0.9rem;
+}
+
+.text-link.danger {
+  color: #a33;
+}
+
+.text-link.danger:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.admin-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  margin-top: 1.2rem;
+}
+
+.admin-pagination span {
+  color: #5a6f6b;
+  font-size: 0.9rem;
+}
+
+/* --- Modal dialogs (create/edit user) --- */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 4vh 1rem;
+  overflow-y: auto;
+  background: rgba(16, 32, 31, 0.45);
+  backdrop-filter: blur(2px);
+}
+
+.modal-card {
+  width: min(30rem, 100%);
+  max-height: 92vh;
+  gap: 0.85rem;
+  overflow-y: auto;
+}
+
+.modal-card h2 {
+  font-size: 1.45rem;
+}
+
+/* Tighter, consistent fields inside the modal (the shared .auth-card sizing is
+   tuned for the full-page auth form and is too large here). */
+.modal-card label {
+  gap: 0.3rem;
+  font-size: 0.82rem;
+}
+
+.modal-card input,
+.modal-card select {
+  width: 100%;
+  min-height: 2.5rem;
+  padding: 0 0.7rem;
+  border: 1px solid rgba(19, 35, 34, 0.14);
+  border-radius: 0.5rem;
+  color: #132322;
+  background: rgba(255, 255, 255, 0.9);
+  font: inherit;
+}
+
+/* Style the native select like the inputs, with a custom chevron. */
+.modal-card select {
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: 2rem;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='none' stroke='%2314615b' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round' d='M1 1.5 6 6.5 11 1.5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  cursor: pointer;
+}
+
+.modal-card input:focus,
+.modal-card select:focus {
+  outline: 3px solid rgba(20, 97, 91, 0.18);
+  border-color: #14615b;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.modal-actions button {
+  flex: 1;
+}
+
+/* Checkbox + label on one row. Overrides the .auth-card label grid layout. */
+.modal-card label.checkbox-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.55rem;
+  font-size: 0.9rem;
+  font-weight: 800;
+  color: #415956;
+}
+
+.modal-card label.checkbox-row input {
+  flex: 0 0 auto;
+  width: 1.15rem;
+  min-height: 0;
+  height: 1.15rem;
+  margin: 0;
+  accent-color: #14615b;
+  cursor: pointer;
+}
+
+/* Confirmation dialog (e.g. deactivate user). */
+.confirm-card {
+  width: min(26rem, 100%);
+}
+
+.confirm-message {
+  margin: 0;
+  color: #5a6f6b;
+  line-height: 1.6;
+  font-size: 0.95rem;
+}
+
+.danger-button {
+  background: #b3261e;
+  box-shadow: 0 1rem 2rem rgba(179, 38, 30, 0.22);
+}
+
+.danger-button:hover {
+  background: #9c1f18;
+}
+
+@media (max-width: 860px) {
+  .admin-stats {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .admin-head {
+    display: none;
+  }
+
+  .admin-row {
+    grid-template-columns: 1fr;
+    gap: 0.45rem;
+  }
+
+  .admin-row span[data-label]::before {
+    content: attr(data-label) ": ";
+    font-weight: 800;
+    color: #19726c;
+    text-transform: uppercase;
+    font-size: 0.7rem;
+    letter-spacing: 0.05em;
+  }
+}

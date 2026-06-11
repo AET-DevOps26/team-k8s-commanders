@@ -7,8 +7,13 @@ export type Route =
   | '/patient'
   | '/patient/profile'
   | '/patient/book'
+  | '/admin'
 
 export type NavigateHandler = (path: Route) => void
+
+export function dashboardPath(role: string): Route {
+  return role === 'ADMIN' ? '/admin' : '/patient'
+}
 
 export type AuthFormProps = {
   mode: 'login' | 'register'

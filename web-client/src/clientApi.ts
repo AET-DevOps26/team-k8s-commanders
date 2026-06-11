@@ -17,6 +17,9 @@ export type ScheduleSlot = components['schemas']['ScheduleSlot']
 export type VisitHistory = components['schemas']['VisitHistory']
 export type PaginatedAppointmentResponse =
   components['schemas']['PaginatedAppointmentResponse']
+export type UserCreate = components['schemas']['UserCreate']
+export type UserStats = components['schemas']['UserStats']
+export type UserRole = components['schemas']['UserRole']
 
 type RequestOptions = {
   method?: string
@@ -54,9 +57,10 @@ async function getErrorMessage(response: Response) {
       title?: string
       detail?: string
       message?: string
+      error?: string
     }
 
-    return payload.detail ?? payload.message ?? payload.title ?? fallback
+    return payload.detail ?? payload.message ?? payload.error ?? payload.title ?? fallback
   } catch {
     return fallback
   }
@@ -103,6 +107,48 @@ export function getPatientVisitHistory(patientId: string, token: string) {
   })
 }
 
+// --- Admin user management (ADMIN role only) ---
+
+export function listUsers(token: string, page = 0, size = 20) {
+  return request<PaginatedUserProfileResponse>(
+    `/users?page=${page}&size=${size}`,
+    { token },
+  )
+}
+
+export function getUserStats(token: string) {
+  return request<UserStats>('/users/stats', { token })
+}
+
+export function createUser(payload: UserCreate, token: string) {
+  return request<UserProfile>('/users', {
+    method: 'POST',
+    body: payload,
+    token,
+  })
+}
+
+export function replaceUser(
+  userId: string,
+  payload: UserProfile,
+  token: string,
+) {
+  return request<UserProfile>(`/users/${userId}`, {
+    method: 'PUT',
+    body: payload,
+    token,
+  })
+}
+
+export function deactivateUser(userId: string, token: string) {
+  return request<void>(`/users/${userId}`, {
+    method: 'DELETE',
+    token,
+  })
+}
+
+// --- Account self-service ---
+
 export function getUserProfile(userId: string, token: string) {
   return request<UserProfile>(`/users/${userId}`, { token })
 }
@@ -126,6 +172,8 @@ export function changeUserPassword(
     body: payload,
   })
 }
+
+// --- Doctors and appointments ---
 
 export function listDoctors(
   token: string,

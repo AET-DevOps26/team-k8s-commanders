@@ -33,6 +33,15 @@ spring:
           filters:
             - StripPrefix=2
 
+        # Must come before patient-service: the notifications sub-path is more
+        # specific than /appointments/** and is owned by the notification-service.
+        - id: notification-service
+          uri: ${NOTIFICATION_SERVICE_URL:http://localhost:8084}
+          predicates:
+            - Path=/api/v1/notifications/**,/api/v1/appointments/*/notifications
+          filters:
+            - StripPrefix=2
+
         - id: patient-service
           uri: ${PATIENT_SERVICE_URL:http://localhost:8082}
           predicates:

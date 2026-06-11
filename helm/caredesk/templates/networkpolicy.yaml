@@ -19,10 +19,11 @@ Each database accepts connections only from its owning backend service.
 
 {{- /* Backend services: allowed callers per component */ -}}
 {{- $backends := dict
-  "auth"    (list "gateway")
-  "patient" (list "gateway" "ai")
-  "notes"   (list "gateway" "ai")
-  "ai"      (list "gateway")
+  "auth"         (list "gateway")
+  "patient"      (list "gateway" "ai")
+  "notes"        (list "gateway" "ai")
+  "notification" (list "gateway")
+  "ai"           (list "gateway")
 -}}
 {{- range $svc, $callers := $backends }}
 {{- $cfg := index $root.Values $svc }}

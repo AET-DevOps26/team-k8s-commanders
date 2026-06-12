@@ -1,6 +1,5 @@
 # == Testing requirements ==
 pytest==9.0.3
-ruff==0.15.15
-# Async SQLite driver so tests exercise the real SQLAlchemy layer in-memory,
-# without standing up Postgres.
+ruff==0.15.16
 aiosqlite==0.20.0
+

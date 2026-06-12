@@ -119,6 +119,56 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '500':
           $ref: '#/components/responses/InternalServerError'
+    post:
+      tags: [Users]
+      summary: Create a user (admin only)
+      description: >-
+        Creates a user with an explicit role. Unlike public self-registration
+        (which always yields a PATIENT), an admin may create DOCTOR or ADMIN
+        accounts and set role-specific fields.
+      operationId: createUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserCreate'
+      responses:
+        '201':
+          description: User created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /users/stats:
+    get:
+      tags: [Users]
+      summary: Aggregate user statistics (admin only)
+      description: Counts of users grouped by role and account status, for the admin dashboard.
+      operationId: getUserStats
+      responses:
+        '200':
+          description: User statistics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserStats'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
   /users/{userId}:
     get:
       tags: [Users]
@@ -164,6 +214,26 @@ paths:
                 $ref: '#/components/schemas/UserProfile'
         '400':
           $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    delete:
+      tags: [Users]
+      summary: Deactivate a user (admin only)
+      description: >-
+        Soft-deletes a user by disabling the account. A disabled user can no
+        longer authenticate but their records are retained.
+      operationId: deleteUser
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+      responses:
+        '204':
+          description: User deactivated
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -1092,9 +1162,60 @@ components:
           type: string
         licenseNumber:
           type: string
+        enabled:
+          type: boolean
+          description: Whether the account is active. Disabled accounts cannot authenticate.
         password:
           type: string
           writeOnly: true
+    UserCreate:
+      type: object
+      required: [name, email, password, role]
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+        role:
+          $ref: '#/components/schemas/UserRole'
+        phoneNumber:
+          type: string
+        dateOfBirth:
+          type: string
+          format: date
+        specialization:
+          type: string
+        licenseNumber:
+          type: string
+        clinicId:
+          type: string
+          format: uuid
+    UserStats:
+      type: object
+      required: [total, patients, doctors, admins, active, disabled]
+      properties:
+        total:
+          type: integer
+          format: int64
+        patients:
+          type: integer
+          format: int64
+        doctors:
+          type: integer
+          format: int64
+        admins:
+          type: integer
+          format: int64
+        active:
+          type: integer
+          format: int64
+        disabled:
+          type: integer
+          format: int64
     Clinic:
       type: object
       required: [id, name, address]

@@ -1,6 +1,7 @@
 import type { AuthSession } from '../../clientApi'
 import { features, workflowStats } from '../../constants/landing'
 import type { NavigateHandler } from '../../types/route'
+import { dashboardPath } from '../../types/route'
 import { ShellNav } from '../layout/ShellNav'
 import { AppLink } from '../ui/AppLink'
 import { FeatureIcon } from '../ui/FeatureIcon'
@@ -32,17 +33,17 @@ export function LandingPage({ session, onNavigate, onLogout }: LandingPageProps)
           <div className="hero-actions">
             <AppLink
               className="primary-button"
-              to={session ? '/patient' : '/register'}
+              to={session ? dashboardPath(session.user.role) : '/register'}
               onNavigate={onNavigate}
             >
               {session ? 'Open dashboard' : 'Start with CareDesk'}
             </AppLink>
             <AppLink
               className="secondary-button"
-              to={session ? '/patient' : '/login'}
+              to={session ? dashboardPath(session.user.role) : '/login'}
               onNavigate={onNavigate}
             >
-              {session ? 'Patient area' : 'Log in'}
+              {session ? (session.user.role === 'ADMIN' ? 'Admin area' : 'Patient area') : 'Log in'}
             </AppLink>
           </div>
         </div>

@@ -21,21 +21,19 @@ import java.util.*;
 import jakarta.annotation.Generated;
 
 /**
- * UserProfile
+ * UserCreate
  */
 
 @Generated(value = "org.openapitools.codegen.languages.SpringCodegen", comments = "Generator version: 7.22.0")
-public class UserProfile {
-
-  private UUID id;
+public class UserCreate {
 
   private String name;
 
   private String email;
 
-  private UserRole role;
+  private String password;
 
-  private @Nullable UUID clinicId;
+  private UserRole role;
 
   private @Nullable String phoneNumber;
 
@@ -46,46 +44,23 @@ public class UserProfile {
 
   private @Nullable String licenseNumber;
 
-  private @Nullable Boolean enabled;
+  private @Nullable UUID clinicId;
 
-  private @Nullable String password;
-
-  public UserProfile() {
+  public UserCreate() {
     super();
   }
 
   /**
    * Constructor with only required parameters
    */
-  public UserProfile(UUID id, String name, String email, UserRole role) {
-    this.id = id;
+  public UserCreate(String name, String email, String password, UserRole role) {
     this.name = name;
     this.email = email;
+    this.password = password;
     this.role = role;
   }
 
-  public UserProfile id(UUID id) {
-    this.id = id;
-    return this;
-  }
-
-  /**
-   * Get id
-   * @return id
-   */
-  @NotNull @Valid 
-  @Schema(name = "id", requiredMode = Schema.RequiredMode.REQUIRED)
-  @JsonProperty("id")
-  public UUID getId() {
-    return id;
-  }
-
-  @JsonProperty("id")
-  public void setId(UUID id) {
-    this.id = id;
-  }
-
-  public UserProfile name(String name) {
+  public UserCreate name(String name) {
     this.name = name;
     return this;
   }
@@ -106,7 +81,7 @@ public class UserProfile {
     this.name = name;
   }
 
-  public UserProfile email(String email) {
+  public UserCreate email(String email) {
     this.email = email;
     return this;
   }
@@ -127,7 +102,28 @@ public class UserProfile {
     this.email = email;
   }
 
-  public UserProfile role(UserRole role) {
+  public UserCreate password(String password) {
+    this.password = password;
+    return this;
+  }
+
+  /**
+   * Get password
+   * @return password
+   */
+  @NotNull 
+  @Schema(name = "password", requiredMode = Schema.RequiredMode.REQUIRED)
+  @JsonProperty("password")
+  public String getPassword() {
+    return password;
+  }
+
+  @JsonProperty("password")
+  public void setPassword(String password) {
+    this.password = password;
+  }
+
+  public UserCreate role(UserRole role) {
     this.role = role;
     return this;
   }
@@ -148,28 +144,7 @@ public class UserProfile {
     this.role = role;
   }
 
-  public UserProfile clinicId(@Nullable UUID clinicId) {
-    this.clinicId = clinicId;
-    return this;
-  }
-
-  /**
-   * Get clinicId
-   * @return clinicId
-   */
-  @Valid 
-  @Schema(name = "clinicId", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
-  @JsonProperty("clinicId")
-  public @Nullable UUID getClinicId() {
-    return clinicId;
-  }
-
-  @JsonProperty("clinicId")
-  public void setClinicId(@Nullable UUID clinicId) {
-    this.clinicId = clinicId;
-  }
-
-  public UserProfile phoneNumber(@Nullable String phoneNumber) {
+  public UserCreate phoneNumber(@Nullable String phoneNumber) {
     this.phoneNumber = phoneNumber;
     return this;
   }
@@ -190,7 +165,7 @@ public class UserProfile {
     this.phoneNumber = phoneNumber;
   }
 
-  public UserProfile dateOfBirth(@Nullable LocalDate dateOfBirth) {
+  public UserCreate dateOfBirth(@Nullable LocalDate dateOfBirth) {
     this.dateOfBirth = dateOfBirth;
     return this;
   }
@@ -211,7 +186,7 @@ public class UserProfile {
     this.dateOfBirth = dateOfBirth;
   }
 
-  public UserProfile specialization(@Nullable String specialization) {
+  public UserCreate specialization(@Nullable String specialization) {
     this.specialization = specialization;
     return this;
   }
@@ -232,7 +207,7 @@ public class UserProfile {
     this.specialization = specialization;
   }
 
-  public UserProfile licenseNumber(@Nullable String licenseNumber) {
+  public UserCreate licenseNumber(@Nullable String licenseNumber) {
     this.licenseNumber = licenseNumber;
     return this;
   }
@@ -253,46 +228,25 @@ public class UserProfile {
     this.licenseNumber = licenseNumber;
   }
 
-  public UserProfile enabled(@Nullable Boolean enabled) {
-    this.enabled = enabled;
+  public UserCreate clinicId(@Nullable UUID clinicId) {
+    this.clinicId = clinicId;
     return this;
   }
 
   /**
-   * Whether the account is active. Disabled accounts cannot authenticate.
-   * @return enabled
+   * Get clinicId
+   * @return clinicId
    */
-  
-  @Schema(name = "enabled", description = "Whether the account is active. Disabled accounts cannot authenticate.", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
-  @JsonProperty("enabled")
-  public @Nullable Boolean getEnabled() {
-    return enabled;
+  @Valid 
+  @Schema(name = "clinicId", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
+  @JsonProperty("clinicId")
+  public @Nullable UUID getClinicId() {
+    return clinicId;
   }
 
-  @JsonProperty("enabled")
-  public void setEnabled(@Nullable Boolean enabled) {
-    this.enabled = enabled;
-  }
-
-  public UserProfile password(@Nullable String password) {
-    this.password = password;
-    return this;
-  }
-
-  /**
-   * Get password
-   * @return password
-   */
-  
-  @Schema(name = "password", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
-  @JsonProperty("password")
-  public @Nullable String getPassword() {
-    return password;
-  }
-
-  @JsonProperty("password")
-  public void setPassword(@Nullable String password) {
-    this.password = password;
+  @JsonProperty("clinicId")
+  public void setClinicId(@Nullable UUID clinicId) {
+    this.clinicId = clinicId;
   }
 
   @Override
@@ -303,40 +257,36 @@ public class UserProfile {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    UserProfile userProfile = (UserProfile) o;
-    return Objects.equals(this.id, userProfile.id) &&
-        Objects.equals(this.name, userProfile.name) &&
-        Objects.equals(this.email, userProfile.email) &&
-        Objects.equals(this.role, userProfile.role) &&
-        Objects.equals(this.clinicId, userProfile.clinicId) &&
-        Objects.equals(this.phoneNumber, userProfile.phoneNumber) &&
-        Objects.equals(this.dateOfBirth, userProfile.dateOfBirth) &&
-        Objects.equals(this.specialization, userProfile.specialization) &&
-        Objects.equals(this.licenseNumber, userProfile.licenseNumber) &&
-        Objects.equals(this.enabled, userProfile.enabled) &&
-        Objects.equals(this.password, userProfile.password);
+    UserCreate userCreate = (UserCreate) o;
+    return Objects.equals(this.name, userCreate.name) &&
+        Objects.equals(this.email, userCreate.email) &&
+        Objects.equals(this.password, userCreate.password) &&
+        Objects.equals(this.role, userCreate.role) &&
+        Objects.equals(this.phoneNumber, userCreate.phoneNumber) &&
+        Objects.equals(this.dateOfBirth, userCreate.dateOfBirth) &&
+        Objects.equals(this.specialization, userCreate.specialization) &&
+        Objects.equals(this.licenseNumber, userCreate.licenseNumber) &&
+        Objects.equals(this.clinicId, userCreate.clinicId);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(id, name, email, role, clinicId, phoneNumber, dateOfBirth, specialization, licenseNumber, enabled, password);
+    return Objects.hash(name, email, password, role, phoneNumber, dateOfBirth, specialization, licenseNumber, clinicId);
   }
 
   @Override
   public String toString() {
     StringBuilder sb = new StringBuilder();
-    sb.append("class UserProfile {\n");
-    sb.append("    id: ").append(toIndentedString(id)).append("\n");
+    sb.append("class UserCreate {\n");
     sb.append("    name: ").append(toIndentedString(name)).append("\n");
     sb.append("    email: ").append(toIndentedString(email)).append("\n");
+    sb.append("    password: ").append("*").append("\n");
     sb.append("    role: ").append(toIndentedString(role)).append("\n");
-    sb.append("    clinicId: ").append(toIndentedString(clinicId)).append("\n");
     sb.append("    phoneNumber: ").append(toIndentedString(phoneNumber)).append("\n");
     sb.append("    dateOfBirth: ").append(toIndentedString(dateOfBirth)).append("\n");
     sb.append("    specialization: ").append(toIndentedString(specialization)).append("\n");
     sb.append("    licenseNumber: ").append(toIndentedString(licenseNumber)).append("\n");
-    sb.append("    enabled: ").append(toIndentedString(enabled)).append("\n");
-    sb.append("    password: ").append(toIndentedString(password)).append("\n");
+    sb.append("    clinicId: ").append(toIndentedString(clinicId)).append("\n");
     sb.append("}");
     return sb.toString();
   }

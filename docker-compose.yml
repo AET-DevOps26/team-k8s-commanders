@@ -38,7 +38,7 @@ services:
       POSTGRES_USER: caredesk
       POSTGRES_PASSWORD: caredesk
     ports:
-      - "5435:5432"
+      - "5436:5432"
     volumes:
       - ai-db-data:/var/lib/postgresql/data
     healthcheck:

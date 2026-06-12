@@ -62,7 +62,12 @@ if [ -d "$src_models_dir" ]; then
   done
   # The generator emits cross-model imports rooted at the full `openapi_server`
   # package; the AI service keeps only a flat `models/` package, so rewrite them.
-  sed -i 's/from openapi_server\.models\./from models./g' "$target_models_dir"/*.py
+  # Use a backup suffix and delete it so this works with both GNU and BSD sed
+  # (BSD/macOS `sed -i` requires an explicit suffix argument).
+  for py in "$target_models_dir"/*.py; do
+    sed -i.bak 's/from openapi_server\.models\./from models./g' "$py"
+    rm -f "$py.bak"
+  done
 fi
 # ensure package init
 if [ ! -f "$target_models_dir/__init__.py" ]; then

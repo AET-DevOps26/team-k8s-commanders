@@ -122,6 +122,8 @@ services:
       DB_PASSWORD: ${PATIENT_DB_PASSWORD:?PATIENT_DB_PASSWORD must be set}
       # Internal auth-service URL for the cross-service profile lookup.
       AUTH_SERVICE_URL: http://auth-service:8081
+      # Internal notification-service URL for booking-confirmation triggers.
+      NOTIFICATION_SERVICE_URL: http://notification-service:8084
       # application.yml ships with ddl-auto: validate. Set PATIENT_DDL_AUTO=update
       # for the first deployment so the schema is created, then revert.
       SPRING_JPA_HIBERNATE_DDL_AUTO: ${PATIENT_DDL_AUTO:-validate}
@@ -194,6 +196,15 @@ services:
     networks:
       - caredesk
 
+  # Catch-all SMTP server. Ports are not published — reach the web UI over an
+  # SSH tunnel to port 8025. Point notification-service at a real SMTP provider
+  # via SMTP_* to send actual mail instead.
+  mailpit:
+    image: axllent/mailpit:latest
+    restart: always
+    networks:
+      - caredesk
+
   notification-service:
     image: ghcr.io/aet-devops26/team-k8s-commanders/notification-service:${IMAGE_TAG:-latest}
     restart: always
@@ -209,6 +220,11 @@ services:
       # application.yml ships with ddl-auto: validate. Set NOTIFICATION_DDL_AUTO=update
       # for the first deployment so the schema is created, then revert.
       SPRING_JPA_HIBERNATE_DDL_AUTO: ${NOTIFICATION_DDL_AUTO:-validate}
+      # SMTP target defaults to the Mailpit container; override SMTP_* for a real provider.
+      SMTP_HOST: ${SMTP_HOST:-mailpit}
+      SMTP_PORT: ${SMTP_PORT:-1025}
+      # Reminder scheduler reads upcoming appointments from patient-service.
+      PATIENT_SERVICE_URL: http://patient-service:8082
     healthcheck:
       test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8084/actuator/health || exit 1"]
       interval: 10s

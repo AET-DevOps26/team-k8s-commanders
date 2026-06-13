@@ -37,13 +37,15 @@ class AppointmentServiceTest {
     private final AppointmentRepository repository = mock(AppointmentRepository.class);
     private final DoctorSlotRepository doctorSlotRepository = mock(DoctorSlotRepository.class);
     private final AppointmentMapper mapper = new AppointmentMapper();
-    private final AppointmentService service = new AppointmentService(repository, doctorSlotRepository, mapper);
+    private final NotificationServiceClient notificationServiceClient = mock(NotificationServiceClient.class);
+    private final AppointmentService service =
+            new AppointmentService(repository, doctorSlotRepository, mapper, notificationServiceClient);
 
     @Test
     void book_createsScheduledAppointment() {
         UUID patientId = UUID.randomUUID();
         UUID doctorId = UUID.randomUUID();
-        OffsetDateTime when = OffsetDateTime.parse("2026-06-10T10:00:00Z");
+        OffsetDateTime when = OffsetDateTime.now().plusDays(2);
         AppointmentCreate request = new AppointmentCreate(patientId, doctorId, when, 30);
         request.setReason("Check-up");
         DoctorSlot slot = slot(doctorId, when, 30, true);
@@ -56,7 +58,7 @@ class AppointmentServiceTest {
             return a;
         });
 
-        org.openapitools.model.Appointment created = service.book(request);
+        org.openapitools.model.Appointment created = service.book(request, "anna@example.com");
 
         ArgumentCaptor<Appointment> captor = ArgumentCaptor.forClass(Appointment.class);
         verify(repository).save(captor.capture());
@@ -67,23 +69,28 @@ class AppointmentServiceTest {
         assertThat(persisted.getDuration()).isEqualTo(30);
         assertThat(persisted.getReason()).isEqualTo("Check-up");
         assertThat(persisted.getStatus()).isEqualTo(AppointmentStatus.SCHEDULED);
+        // The booking patient's contact email is captured for later notifications.
+        assertThat(persisted.getPatientEmail()).isEqualTo("anna@example.com");
         assertThat(slot.getAvailable()).isFalse();
         assertThat(created.getId()).isNotNull();
         assertThat(created.getStatus()).isEqualTo(AppointmentStatus.SCHEDULED);
+        // A confirmation notification is triggered after the row is persisted.
+        verify(notificationServiceClient).notify(any(NotificationTriggerRequest.class));
     }
 
     @Test
     void book_rejectsUnavailableSlot() {
         UUID patientId = UUID.randomUUID();
         UUID doctorId = UUID.randomUUID();
-        OffsetDateTime when = OffsetDateTime.parse("2026-06-10T10:00:00Z");
+        OffsetDateTime when = OffsetDateTime.now().plusDays(2);
         AppointmentCreate request = new AppointmentCreate(patientId, doctorId, when, 30);
         when(doctorSlotRepository.findAndLockAvailableSlot(eq(doctorId), eq(when), eq(when.plusMinutes(30))))
                 .thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> service.book(request))
+        assertThatThrownBy(() -> service.book(request, "anna@example.com"))
                 .isInstanceOf(AppointmentStateConflictException.class);
         verify(repository, never()).save(any());
+        verify(notificationServiceClient, never()).notify(any());
     }
 
     @Test
@@ -93,7 +100,7 @@ class AppointmentServiceTest {
         OffsetDateTime when = OffsetDateTime.now().minusHours(1);
         AppointmentCreate request = new AppointmentCreate(patientId, doctorId, when, 30);
 
-        assertThatThrownBy(() -> service.book(request))
+        assertThatThrownBy(() -> service.book(request, "anna@example.com"))
                 .isInstanceOf(AppointmentStateConflictException.class)
                 .hasMessageContaining("Past appointment cannot be booked");
         verify(doctorSlotRepository, never()).findAndLockAvailableSlot(any(), any(), any());
@@ -136,7 +143,7 @@ class AppointmentServiceTest {
     @Test
     void reschedule_updatesDateTimeAndMarksRescheduled() {
         Appointment a = appointment(AppointmentStatus.SCHEDULED);
-        OffsetDateTime newWhen = OffsetDateTime.parse("2026-07-01T15:00:00Z");
+        OffsetDateTime newWhen = OffsetDateTime.now().plusDays(3);
         DoctorSlot oldSlot = slot(a.getDoctorId(), a.getDateTime(), a.getDuration(), false);
         DoctorSlot newSlot = slot(a.getDoctorId(), newWhen, 45, true);
         when(repository.findById(a.getId())).thenReturn(Optional.of(a));
@@ -156,13 +163,14 @@ class AppointmentServiceTest {
         assertThat(dto.getStatus()).isEqualTo(AppointmentStatus.RESCHEDULED);
         assertThat(oldSlot.getAvailable()).isTrue();
         assertThat(newSlot.getAvailable()).isFalse();
+        verify(notificationServiceClient).notify(any(NotificationTriggerRequest.class));
     }
 
     @Test
     void reschedule_leavesDurationUntouched_whenOmitted() {
         Appointment a = appointment(AppointmentStatus.SCHEDULED);
         a.setDuration(30);
-        OffsetDateTime newWhen = OffsetDateTime.parse("2026-07-01T15:00:00Z");
+        OffsetDateTime newWhen = OffsetDateTime.now().plusDays(3);
         DoctorSlot oldSlot = slot(a.getDoctorId(), a.getDateTime(), a.getDuration(), false);
         DoctorSlot newSlot = slot(a.getDoctorId(), newWhen, 30, true);
         when(repository.findById(a.getId())).thenReturn(Optional.of(a));
@@ -185,7 +193,7 @@ class AppointmentServiceTest {
         when(repository.findById(a.getId())).thenReturn(Optional.of(a));
 
         AppointmentRescheduleRequest req = new AppointmentRescheduleRequest(
-                OffsetDateTime.parse("2026-07-01T15:00:00Z"));
+                OffsetDateTime.now().plusDays(3));
         assertThatThrownBy(() -> service.reschedule(a.getId(), req))
                 .isInstanceOf(AppointmentStateConflictException.class);
         verify(repository, never()).save(any());
@@ -219,6 +227,7 @@ class AppointmentServiceTest {
 
         assertThat(dto.getStatus()).isEqualTo(AppointmentStatus.CANCELLED);
         assertThat(slot.getAvailable()).isTrue();
+        verify(notificationServiceClient).notify(any(NotificationTriggerRequest.class));
     }
 
     @Test
@@ -231,6 +240,8 @@ class AppointmentServiceTest {
         assertThat(dto.getStatus()).isEqualTo(AppointmentStatus.CANCELLED);
         // The already-cancelled row should not be saved again.
         verify(repository, never()).save(any());
+        // No state change → no notification.
+        verify(notificationServiceClient, never()).notify(any());
     }
 
     @Test

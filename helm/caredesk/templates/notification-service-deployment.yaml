@@ -30,6 +30,14 @@ spec:
             - name: SERVER_PORT
               value: {{ .Values.notification.service.port | quote }}
             {{- include "caredesk.dbEnv" (dict "root" $ "host" .Values.notification.dbHost "name" .Values.notification.dbName) | nindent 12 }}
+            # SMTP target — defaults to the in-cluster Mailpit service.
+            - name: SMTP_HOST
+              value: {{ .Values.notification.smtp.host | default (printf "%s-mailpit" (include "caredesk.fullname" .)) | quote }}
+            - name: SMTP_PORT
+              value: {{ .Values.notification.smtp.port | default .Values.mailpit.smtpPort | quote }}
+            # Reminder scheduler reads upcoming appointments from patient-service.
+            - name: PATIENT_SERVICE_URL
+              value: {{ printf "http://%s-patient:%d" (include "caredesk.fullname" .) (int .Values.patient.service.port) | quote }}
           startupProbe:
             httpGet:
               path: /actuator/health

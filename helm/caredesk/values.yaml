@@ -8,7 +8,8 @@ tumId: ge38yuc
 # Steady-state CPU limits must stay below that cap. Recreate (not RollingUpdate)
 # terminates the old pod before starting the new one, so rollouts do not need
 # temporary spare quota for overlapping pods.
-# Budget: 6×400m backends + 4×250m Postgres + 1×200m web = 3600m (400m spare).
+# Budget: 6×400m backends + 4×250m Postgres + 1×200m web + 1×100m mailpit
+# = 3700m (300m spare).
 deploymentStrategy:
   type: Recreate
 
@@ -179,9 +180,33 @@ notification:
     port: 8084
   dbHost: caredesk-notification-db
   dbName: notification_db
+  # SMTP target. Empty host falls back to the in-cluster Mailpit service; set
+  # these to a real provider to send actual mail.
+  smtp:
+    host: ""
+    port: ""
   resources:
     requests: { cpu: 100m, memory: 384Mi }
     limits:   { cpu: 400m, memory: 768Mi }
+
+# ─── Mailpit (catch-all SMTP server + web UI) ──────────────────────────────────
+# notification-service sends SMTP here; Mailpit catches every message and shows
+# it in a web UI. Image is from Docker Hub (not the project GHCR registry).
+# The web UI is ClusterIP-only — reach it with:
+#   kubectl port-forward svc/caredesk-mailpit 8025:8025 -n <namespace>
+# Point notification-service at a real SMTP provider (notification.smtp.*) to
+# send actual mail instead.
+mailpit:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: axllent/mailpit
+    tag: latest
+  smtpPort: 1025
+  webPort: 8025
+  resources:
+    requests: { cpu: 25m,  memory: 32Mi }
+    limits:   { cpu: 100m, memory: 128Mi }
 
 # ─── ai-assistant (FastAPI, port 8000) ─────────────────────────────────────────
 ai:

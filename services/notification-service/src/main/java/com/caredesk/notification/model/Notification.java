@@ -51,6 +51,23 @@ public class Notification {
     @Column(nullable = false, length = 16)
     private NotificationChannel channel;
 
+    /**
+     * Why this notification was sent. Service-internal — not exposed in the API
+     * model. Lets the reminder scheduler dedupe reminders per appointment.
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(length = 16)
+    private NotificationType type;
+
+    /**
+     * The address this notification was delivered to, if any. Service-internal
+     * — kept for the record of what was actually sent, not exposed in the API
+     * model. Null when no recipient address was known (the record is still
+     * stored).
+     */
+    @Column(name = "recipient_email")
+    private String recipientEmail;
+
     @NotNull
     @Column(name = "sent_at", nullable = false)
     private OffsetDateTime sentAt;
@@ -84,6 +101,18 @@ public class Notification {
 
     /** @param channel the delivery channel */
     public void setChannel(NotificationChannel channel) { this.channel = channel; }
+
+    /** @return why this notification was sent, or {@code null} */
+    public NotificationType getType() { return type; }
+
+    /** @param type why this notification was sent */
+    public void setType(NotificationType type) { this.type = type; }
+
+    /** @return the address this notification was delivered to, or {@code null} */
+    public String getRecipientEmail() { return recipientEmail; }
+
+    /** @param recipientEmail the address this notification was delivered to */
+    public void setRecipientEmail(String recipientEmail) { this.recipientEmail = recipientEmail; }
 
     /** @return the time the notification was sent, with offset */
     public OffsetDateTime getSentAt() { return sentAt; }

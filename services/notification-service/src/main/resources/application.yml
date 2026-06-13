@@ -7,6 +7,23 @@ openapi:
   careDesk:
     base-path: ""
 
+# Internal patient-service URL for the reminder scheduler's upcoming-appointments feed.
+patient-service:
+  url: ${PATIENT_SERVICE_URL:http://localhost:8082}
+
+# Appointment reminder scheduler. Disable in tests with reminder.enabled=false.
+notification:
+  mail:
+    # From address on outgoing mail. Override per environment.
+    from: ${MAIL_FROM:CareDesk <no-reply@caredesk.local>}
+  reminder:
+    enabled: ${REMINDER_ENABLED:true}
+    # How far ahead to look for appointments needing a reminder.
+    window-hours: ${REMINDER_WINDOW_HOURS:24}
+    # How often the scan runs, and how long to wait after startup before the first run.
+    scan-interval-ms: ${REMINDER_SCAN_INTERVAL_MS:900000}
+    initial-delay-ms: ${REMINDER_INITIAL_DELAY_MS:60000}
+
 spring:
   application:
     name: notification-service
@@ -14,6 +31,19 @@ spring:
   mvc:
     problemdetails:
       enabled: true
+  # SMTP delivery. Defaults target a local Mailpit (no auth, no TLS); a real
+  # provider is purely an SMTP_*/MAIL_* config change.
+  mail:
+    host: ${SMTP_HOST:localhost}
+    port: ${SMTP_PORT:1025}
+    username: ${SMTP_USERNAME:}
+    password: ${SMTP_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: ${SMTP_AUTH:false}
+          starttls:
+            enable: ${SMTP_STARTTLS:false}
   datasource:
     url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:notification_db}
     username: ${DB_USER:caredesk}

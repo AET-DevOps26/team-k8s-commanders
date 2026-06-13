@@ -1,6 +1,8 @@
 package com.caredesk.notification.service;
 
+import com.caredesk.notification.email.EmailSender;
 import com.caredesk.notification.model.Notification;
+import com.caredesk.notification.model.NotificationType;
 import com.caredesk.notification.repository.NotificationRepository;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -36,7 +38,8 @@ import static org.mockito.Mockito.when;
 class NotificationsServiceTest {
 
     private final NotificationRepository repository = mock(NotificationRepository.class);
-    private final NotificationsService service = new NotificationsService(repository);
+    private final EmailSender emailSender = mock(EmailSender.class);
+    private final NotificationsService service = new NotificationsService(repository, emailSender);
 
     @Test
     void create_persistsRecordAndStampsSentAt() {
@@ -161,6 +164,50 @@ class NotificationsServiceTest {
 
         assertThat(response.getContent()).hasSize(1);
         verify(repository, never()).findByAppointmentId(any(), any());
+    }
+
+    @Test
+    void recordAndSend_persistsRecordThenSendsEmail() {
+        UUID patientId = UUID.randomUUID();
+        UUID appointmentId = UUID.randomUUID();
+        when(repository.save(any(Notification.class))).thenAnswer(inv -> {
+            Notification n = inv.getArgument(0);
+            n.setId(UUID.randomUUID());
+            return n;
+        });
+
+        org.openapitools.model.Notification created = service.recordAndSend(
+                appointmentId, patientId, "anna@example.com",
+                NotificationType.CONFIRMATION, "Appointment confirmed", "You're booked.");
+
+        ArgumentCaptor<Notification> captor = ArgumentCaptor.forClass(Notification.class);
+        verify(repository).save(captor.capture());
+        Notification persisted = captor.getValue();
+        assertThat(persisted.getType()).isEqualTo(NotificationType.CONFIRMATION);
+        assertThat(persisted.getChannel()).isEqualTo(NotificationChannel.EMAIL);
+        assertThat(persisted.getRecipientEmail()).isEqualTo("anna@example.com");
+        assertThat(persisted.getMessage()).isEqualTo("You're booked.");
+        assertThat(persisted.getSentAt()).isNotNull();
+        verify(emailSender).send("anna@example.com", "Appointment confirmed", "You're booked.");
+        assertThat(created.getId()).isNotNull();
+    }
+
+    @Test
+    void recordAndSend_persistsRecordEvenWhenDeliveryFails() {
+        when(repository.save(any(Notification.class))).thenAnswer(inv -> {
+            Notification n = inv.getArgument(0);
+            n.setId(UUID.randomUUID());
+            return n;
+        });
+        // EmailSender swallows failures and returns false; recordAndSend must still return the saved record.
+        when(emailSender.send(any(), any(), any())).thenReturn(false);
+
+        org.openapitools.model.Notification created = service.recordAndSend(
+                UUID.randomUUID(), UUID.randomUUID(), "down@example.com",
+                NotificationType.REMINDER, "Reminder", "See you soon.");
+
+        verify(repository).save(any(Notification.class));
+        assertThat(created.getId()).isNotNull();
     }
 
     private static Notification notification(UUID patientId, UUID appointmentId) {

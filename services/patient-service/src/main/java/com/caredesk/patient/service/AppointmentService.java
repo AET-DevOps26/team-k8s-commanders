@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.OffsetDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.UUID;
 
@@ -35,30 +36,44 @@ import java.util.UUID;
 @Transactional
 public class AppointmentService {
 
+    private static final DateTimeFormatter WHEN_FORMAT =
+            DateTimeFormatter.ofPattern("EEE d MMM yyyy, HH:mm 'UTC'");
+
     private final AppointmentRepository appointmentRepository;
     private final DoctorSlotRepository doctorSlotRepository;
     private final AppointmentMapper appointmentMapper;
+    private final NotificationServiceClient notificationServiceClient;
 
     /**
-     * @param appointmentRepository repository for appointment rows
-     * @param appointmentMapper     converts JPA entities to API DTOs
+     * @param appointmentRepository       repository for appointment rows
+     * @param appointmentMapper           converts JPA entities to API DTOs
+     * @param notificationServiceClient   best-effort trigger for confirmation
+     *                                    notifications on booking events
      */
     public AppointmentService(AppointmentRepository appointmentRepository,
                               DoctorSlotRepository doctorSlotRepository,
-                              AppointmentMapper appointmentMapper) {
+                              AppointmentMapper appointmentMapper,
+                              NotificationServiceClient notificationServiceClient) {
         this.appointmentRepository = appointmentRepository;
         this.doctorSlotRepository = doctorSlotRepository;
         this.appointmentMapper = appointmentMapper;
+        this.notificationServiceClient = notificationServiceClient;
     }
 
     /**
      * Books a new appointment. The new row always starts in
      * {@link AppointmentStatus#SCHEDULED}.
      *
-     * @param request the booking request from the caller
+     * <p>The booking patient's contact email (from the gateway-injected
+     * {@code X-User-Email}) is stored on the appointment so notification-service
+     * can deliver the confirmation and any later reminder. A best-effort
+     * confirmation notification is triggered after the row is persisted.
+     *
+     * @param request      the booking request from the caller
+     * @param contactEmail the booking patient's email, may be {@code null}
      * @return the persisted appointment as an API DTO
      */
-    public org.openapitools.model.Appointment book(AppointmentCreate request) {
+    public org.openapitools.model.Appointment book(AppointmentCreate request, String contactEmail) {
         rejectPastDateTime(request.getDateTime(), "booked");
         DoctorSlot slot = findAvailableSlot(request.getDoctorId(), request.getDateTime(), request.getDuration());
         slot.setAvailable(false);
@@ -70,8 +85,13 @@ public class AppointmentService {
         entity.setDateTime(request.getDateTime());
         entity.setDuration(request.getDuration());
         entity.setReason(request.getReason());
+        entity.setPatientEmail(contactEmail);
         entity.setStatus(AppointmentStatus.SCHEDULED);
         Appointment saved = appointmentRepository.save(entity);
+
+        notify(saved, "CONFIRMATION", "Appointment confirmed",
+                "Your appointment on " + formatWhen(saved.getDateTime())
+                        + " is confirmed. We look forward to seeing you.");
         return appointmentMapper.toApi(saved);
     }
 
@@ -144,7 +164,11 @@ public class AppointmentService {
         entity.setDuration(duration);
         // Mark as RESCHEDULED so the patient and doctor dashboards can flag it.
         entity.setStatus(AppointmentStatus.RESCHEDULED);
-        return appointmentMapper.toApi(appointmentRepository.save(entity));
+        Appointment saved = appointmentRepository.save(entity);
+
+        notify(saved, "RESCHEDULE", "Appointment rescheduled",
+                "Your appointment has been moved to " + formatWhen(saved.getDateTime()) + ".");
+        return appointmentMapper.toApi(saved);
     }
 
     /**
@@ -164,8 +188,26 @@ public class AppointmentService {
             releaseSlot(entity.getDoctorId(), entity.getDateTime(), entity.getDuration());
             entity.setStatus(AppointmentStatus.CANCELLED);
             entity = appointmentRepository.save(entity);
+
+            notify(entity, "CANCELLATION", "Appointment cancelled",
+                    "Your appointment on " + formatWhen(entity.getDateTime())
+                            + " has been cancelled.");
         }
         return appointmentMapper.toApi(entity);
+    }
+
+    /**
+     * Fires a best-effort confirmation notification for a booking event. The
+     * recipient email is whatever was captured on the appointment at booking;
+     * the call never throws (see {@link NotificationServiceClient}).
+     */
+    private void notify(Appointment appt, String type, String subject, String message) {
+        notificationServiceClient.notify(new NotificationTriggerRequest(
+                appt.getId(), appt.getPatientId(), appt.getPatientEmail(), type, subject, message));
+    }
+
+    private static String formatWhen(OffsetDateTime when) {
+        return when != null ? WHEN_FORMAT.format(when) : "the scheduled time";
     }
 
     private void rejectPastAppointment(Appointment appointment, String operation) {

@@ -60,6 +60,11 @@ public class SecurityConfig {
                         // Spring forwards unhandled exceptions to /error. Without permitting
                         // it, error pages come back as 403 instead of the intended status.
                         .requestMatchers("/error").permitAll()
+                        // Service-to-service feed for the notification reminder scheduler.
+                        // Not exposed through the gateway (no /api/v1/internal route) and
+                        // reachable only from notification-service under the cluster
+                        // NetworkPolicy, so it carries no X-User-* identity.
+                        .requestMatchers("/internal/**").permitAll()
                         // Everything else requires an authenticated principal, which
                         // PatientHeaderAuthFilter sets from the gateway-injected headers.
                         .anyRequest().authenticated()

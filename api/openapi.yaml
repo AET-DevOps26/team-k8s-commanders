@@ -898,11 +898,17 @@ paths:
               $ref: '#/components/schemas/AIMessageRequest'
       responses:
         '200':
-          description: The assistant's reply
+          description: >
+            The assistant's reply. Returned as a single JSON object by default, or
+            as a Server-Sent Events stream when the client sends
+            `Accept: text/event-stream`.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/AIMessageResponse'
+            text/event-stream:
+              schema:
+                $ref: '#/components/schemas/AISSEEvent'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -1486,6 +1492,42 @@ components:
         confidence:
           type: number
           format: float
+    AISSEEvent:
+      description: >
+        A single Server-Sent Event emitted when the reply is streamed
+        (`Accept: text/event-stream`). Each event is framed on the wire as
+        `event: <name>\ndata: <json>\n\n`; the schemas below describe the JSON
+        `data` payload for each `event` name. The stream emits one `sources`
+        event, followed by zero or more `token` events, and terminates with
+        either a `done` event or, on a mid-stream failure, an `error` event.
+      oneOf:
+        - $ref: '#/components/schemas/AISSESourcesEvent'
+        - $ref: '#/components/schemas/AISSETokenEvent'
+        - $ref: '#/components/schemas/AISSEDoneEvent'
+        - $ref: '#/components/schemas/AISSEErrorEvent'
+    AISSESourcesEvent:
+      description: >
+        `event: sources` — the source identifiers grounding the answer. Sent
+        once, before any token.
+      type: array
+      items:
+        type: string
+    AISSETokenEvent:
+      description: >
+        `event: token` — an incremental chunk of the answer text. Concatenate
+        all token events in order to reconstruct the full answer.
+      type: string
+    AISSEDoneEvent:
+      description: '`event: done` — terminal event signalling the stream completed successfully. Empty object.'
+      type: object
+    AISSEErrorEvent:
+      description: >
+        `event: error` — terminal event signalling a mid-stream failure. The
+        assistant reply is not persisted when this is emitted.
+      type: object
+      properties:
+        detail:
+          type: string
     RegisterRequest:
       type: object
       required: [name, email, password, phoneNumber, dateOfBirth]

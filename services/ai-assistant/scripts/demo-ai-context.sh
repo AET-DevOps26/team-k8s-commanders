@@ -33,6 +33,8 @@ DOCTOR_PASSWORD="${DOCTOR_PASSWORD:-doctor123}"
 PATIENT_NAME="${PATIENT_NAME:-Maria Schmidt}"
 PATIENT_EMAIL="${PATIENT_EMAIL:-maria.schmidt@example.com}"
 PATIENT_PASSWORD="${PATIENT_PASSWORD:-patient123}"
+PATIENT_PHONE="${PATIENT_PHONE:-+49 89 1234567}"
+PATIENT_DOB="${PATIENT_DOB:-1985-04-12}"
 
 # ── Pretty output ────────────────────────────────────────────────────────────
 if [ -t 1 ]; then BOLD=$'\033[1m'; DIM=$'\033[2m'; GREEN=$'\033[32m'; CYAN=$'\033[36m'; RED=$'\033[31m'; RESET=$'\033[0m'
@@ -88,7 +90,8 @@ info "doctor id: $DOCTOR_ID"
 # ── 2. Patient (register, or reuse if already present) ───────────────────────
 step "Registering patient (${PATIENT_EMAIL})"
 register_body="$(jq -nc --arg n "$PATIENT_NAME" --arg e "$PATIENT_EMAIL" --arg p "$PATIENT_PASSWORD" \
-  '{name:$n,email:$e,password:$p}')"
+  --arg ph "$PATIENT_PHONE" --arg dob "$PATIENT_DOB" \
+  '{name:$n,email:$e,password:$p,phoneNumber:$ph,dateOfBirth:$dob}')"
 # Register is best-effort: a fresh run creates the patient; a repeat run fails
 # because the email already exists (auth-service currently returns 500 for that,
 # not 409). Either way we then log in with the known password — login is the
@@ -129,7 +132,12 @@ step "Finding two open slots in the doctor's schedule"
 schedule="$(api GET "/doctors/${SEED_DOCTOR_ID}/schedule" "" "$DOCTOR_TOKEN")"
 # Earliest two available, *future* slots (the backend rejects past bookings),
 # each as "startAt durationMinutes".
-mapfile -t SLOTS < <(jq -r '
+# Read into an array with a while-loop rather than `mapfile`/`readarray`, which
+# don't exist in bash 3.2 (the version macOS still ships at /usr/bin/env bash).
+SLOTS=()
+while IFS= read -r slot_line; do
+  [ -n "$slot_line" ] && SLOTS+=("$slot_line")
+done < <(jq -r '
   [.slots[] | select(.available and ((.startAt|fromdateiso8601) > now))]
   | sort_by(.startAt) | .[0:2][]
   | "\(.startAt) \(((( .endAt|fromdateiso8601) - (.startAt|fromdateiso8601)) / 60) | floor)"' <<<"$schedule")

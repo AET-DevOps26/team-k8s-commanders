@@ -14,6 +14,8 @@ src/main/java/org/openapitools/model/AIMessage.java
 src/main/java/org/openapitools/model/AIMessageRequest.java
 src/main/java/org/openapitools/model/AIMessageResponse.java
 src/main/java/org/openapitools/model/AIMessageRole.java
+src/main/java/org/openapitools/model/AISSEErrorEvent.java
+src/main/java/org/openapitools/model/AISSEEvent.java
 src/main/java/org/openapitools/model/AISession.java
 src/main/java/org/openapitools/model/AISessionCreateRequest.java
 src/main/java/org/openapitools/model/AISessionSummary.java

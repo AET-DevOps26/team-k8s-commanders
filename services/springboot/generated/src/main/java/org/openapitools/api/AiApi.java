@@ -7,6 +7,7 @@ package org.openapitools.api;
 
 import org.openapitools.model.AIMessageRequest;
 import org.openapitools.model.AIMessageResponse;
+import org.openapitools.model.AISSEEvent;
 import org.openapitools.model.AISession;
 import org.openapitools.model.AISessionCreateRequest;
 import org.springframework.lang.Nullable;
@@ -142,7 +143,7 @@ public interface AiApi {
      *
      * @param sessionId  (required)
      * @param aiMessageRequest  (required)
-     * @return The assistant&#39;s reply (status code 200)
+     * @return The assistant&#39;s reply. Returned as a single JSON object by default, or as a Server-Sent Events stream when the client sends &#x60;Accept: text/event-stream&#x60;.  (status code 200)
      *         or The request is malformed or fails validation. (status code 400)
      *         or Authentication is required or has failed. (status code 401)
      *         or The caller is authenticated but not allowed to access the resource. (status code 403)
@@ -156,32 +157,39 @@ public interface AiApi {
         description = "Appends the user's message to the conversation and returns the assistant's answer, grounded in the session's bound patient/appointment context (re-fetched live) and the full prior conversation. Both messages are persisted. When the client sends `Accept: text/event-stream` the answer is streamed as Server-Sent Events (a `sources` event, then `token` events, then `done`). ",
         tags = { "AI Assistant" },
         responses = {
-            @ApiResponse(responseCode = "200", description = "The assistant's reply", content = {
+            @ApiResponse(responseCode = "200", description = "The assistant's reply. Returned as a single JSON object by default, or as a Server-Sent Events stream when the client sends `Accept: text/event-stream`. ", content = {
                 @Content(mediaType = "application/json", schema = @Schema(implementation = AIMessageResponse.class)),
+                @Content(mediaType = "text/event-stream", schema = @Schema(implementation = AIMessageResponse.class)),
                 @Content(mediaType = "application/problem+json", schema = @Schema(implementation = AIMessageResponse.class))
             }),
             @ApiResponse(responseCode = "400", description = "The request is malformed or fails validation.", content = {
                 @Content(mediaType = "application/json", schema = @Schema(implementation = ProblemDetail.class)),
+                @Content(mediaType = "text/event-stream", schema = @Schema(implementation = ProblemDetail.class)),
                 @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class))
             }),
             @ApiResponse(responseCode = "401", description = "Authentication is required or has failed.", content = {
                 @Content(mediaType = "application/json", schema = @Schema(implementation = ProblemDetail.class)),
+                @Content(mediaType = "text/event-stream", schema = @Schema(implementation = ProblemDetail.class)),
                 @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class))
             }),
             @ApiResponse(responseCode = "403", description = "The caller is authenticated but not allowed to access the resource.", content = {
                 @Content(mediaType = "application/json", schema = @Schema(implementation = ProblemDetail.class)),
+                @Content(mediaType = "text/event-stream", schema = @Schema(implementation = ProblemDetail.class)),
                 @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class))
             }),
             @ApiResponse(responseCode = "404", description = "The requested resource does not exist.", content = {
                 @Content(mediaType = "application/json", schema = @Schema(implementation = ProblemDetail.class)),
+                @Content(mediaType = "text/event-stream", schema = @Schema(implementation = ProblemDetail.class)),
                 @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class))
             }),
             @ApiResponse(responseCode = "500", description = "An unexpected error occurred while processing the request.", content = {
                 @Content(mediaType = "application/json", schema = @Schema(implementation = ProblemDetail.class)),
+                @Content(mediaType = "text/event-stream", schema = @Schema(implementation = ProblemDetail.class)),
                 @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class))
             }),
             @ApiResponse(responseCode = "502", description = "An upstream service the request depends on could not be reached.", content = {
                 @Content(mediaType = "application/json", schema = @Schema(implementation = ProblemDetail.class)),
+                @Content(mediaType = "text/event-stream", schema = @Schema(implementation = ProblemDetail.class)),
                 @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class))
             })
         },
@@ -192,7 +200,7 @@ public interface AiApi {
     @RequestMapping(
         method = RequestMethod.POST,
         value = AiApi.PATH_CREATE_AI_SESSION_MESSAGE,
-        produces = { "application/json", "application/problem+json" },
+        produces = { "application/json", "text/event-stream", "application/problem+json" },
         consumes = { "application/json" }
     )
     default ResponseEntity<AIMessageResponse> createAISessionMessage(
@@ -204,6 +212,11 @@ public interface AiApi {
                 if (mediaType.isCompatibleWith(MediaType.valueOf("application/json"))) {
                     String exampleString = "{ \"answer\" : \"answer\", \"sources\" : [ \"sources\", \"sources\" ], \"confidence\" : 0.8008282 }";
                     ApiUtil.setExampleResponse(request, "application/json", exampleString);
+                    break;
+                }
+                if (mediaType.isCompatibleWith(MediaType.valueOf("text/event-stream"))) {
+                    String exampleString = "Custom MIME type example not yet supported: text/event-stream";
+                    ApiUtil.setExampleResponse(request, "text/event-stream", exampleString);
                     break;
                 }
                 if (mediaType.isCompatibleWith(MediaType.valueOf("application/problem+json"))) {

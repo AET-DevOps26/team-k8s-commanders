@@ -65,6 +65,9 @@ databases:
     database: notes_db
   ai-db:
     database: ai_db
+    # pgvector image (stock postgres:16 + `vector` extension) for the
+    # clinical-guidelines RAG collection. Overrides the shared postgres.image.
+    image: pgvector/pgvector:pg16
 
 # ─── NetworkPolicy ─────────────────────────────────────────────────────────────
 # Enforces the trusted-header model: backend services (auth/patient/notes/ai)
@@ -183,6 +186,11 @@ ai:
     llmProvider: openai
     llmModel: gpt-4o-mini
     openwebuiBaseUrl: ""
+    # Embedding model for the clinical-guidelines RAG path. embeddingDim must
+    # match the model AND the collection ingested into ai-db. Defaults pair with
+    # the openai provider (text-embedding-3-small = 1536-dim).
+    embeddingModel: text-embedding-3-small
+    embeddingDim: 1536
   secrets:
     # Optional. Empty is fine for deployment — the pod boots and stays healthy,
     # the assistant just cannot answer until a key is provided:

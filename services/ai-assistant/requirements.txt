@@ -8,6 +8,14 @@ pydantic==2.13.4
 langchain-core==1.4.6
 langchain-openai==1.2.2
 
+# == Vector store / RAG (clinical-guidelines knowledge base) ==
+# PGVector store reuses the ai-db Postgres (pgvector extension); embeddings go
+# through langchain-openai's OpenAIEmbeddings (also used for the local Ollama
+# /v1 endpoint), so no extra embedding client is needed.
+langchain-postgres==0.0.16
+langchain-text-splitters==1.1.2
+pgvector==0.3.6
+
 # == Backend service calls (live patient/notes context) ==
 httpx==0.28.1
 

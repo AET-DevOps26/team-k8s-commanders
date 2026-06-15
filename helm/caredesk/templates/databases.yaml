@@ -58,7 +58,9 @@ spec:
     spec:
       containers:
         - name: postgres
-          image: {{ $root.Values.postgres.image | quote }}
+          # Per-database image override (e.g. ai-db uses pgvector for the RAG
+          # collection); falls back to the shared postgres image.
+          image: {{ $db.image | default $root.Values.postgres.image | quote }}
           imagePullPolicy: {{ $root.Values.images.pullPolicy }}
           ports:
             - name: postgres

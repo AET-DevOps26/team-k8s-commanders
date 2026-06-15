@@ -28,7 +28,9 @@ services:
       - caredesk
 
   ai-db:
-    image: postgres:16-alpine
+    # pgvector image (stock postgres:16 + `vector` extension) for the
+    # clinical-guidelines RAG collection; also hosts the session store.
+    image: pgvector/pgvector:pg16
     restart: always
     environment:
       POSTGRES_DB: ${AI_DB_NAME:?AI_DB_NAME must be set}
@@ -56,6 +58,10 @@ services:
       LLM_MODEL: ${LLM_MODEL:?LLM_MODEL must be set}
       OPENWEBUI_BASE_URL: ${OPENWEBUI_BASE_URL:-}
       LLM_API_KEY: ${LLM_API_KEY:?LLM_API_KEY must be set}
+      # Embeddings for the clinical-guidelines RAG path. EMBEDDING_DIM must match
+      # the model and the ingested collection (1536 for text-embedding-3-small).
+      EMBEDDING_MODEL: ${EMBEDDING_MODEL:-text-embedding-3-small}
+      EMBEDDING_DIM: ${EMBEDDING_DIM:-1536}
       # Source-of-truth services the assistant pulls live patient context from.
       PATIENT_SERVICE_URL: http://patient-service:8082
       NOTES_SERVICE_URL: http://notes-service:8083

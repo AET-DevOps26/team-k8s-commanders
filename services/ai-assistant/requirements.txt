@@ -10,3 +10,7 @@ langchain-openai==1.2.2
 
 # == Backend service calls (live patient/notes context) ==
 httpx==0.28.1
+
+# == Persistence (conversation sessions) ==
+sqlalchemy[asyncio]==2.0.44
+asyncpg==0.30.0

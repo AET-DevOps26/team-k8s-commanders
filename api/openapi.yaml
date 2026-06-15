@@ -782,24 +782,21 @@ paths:
           $ref: '#/components/responses/NotFound'
         '500':
           $ref: '#/components/responses/InternalServerError'
-  /ai/query:
-    post:
+  /ai/sessions:
+    get:
       tags: [AI Assistant]
-      summary: Query patient history using AI
-      operationId: queryAIAssistant
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/AIQueryRequest'
+      summary: List the caller's AI conversation sessions
+      operationId: listAISessions
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/SizeParam'
       responses:
         '200':
-          description: AI response
+          description: Paginated list of the caller's sessions, newest first
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AIQueryResponse'
+                $ref: '#/components/schemas/PaginatedAISessionResponse'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -808,6 +805,122 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '500':
           $ref: '#/components/responses/InternalServerError'
+    post:
+      tags: [AI Assistant]
+      summary: Start a new AI conversation session
+      description: >
+        Creates a conversation, optionally bound to a patient and/or appointment.
+        When bound, every message in the session is grounded in live data fetched
+        for those ids; the binding is fixed for the lifetime of the session.
+      operationId: createAISession
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AISessionCreateRequest'
+      responses:
+        '201':
+          description: Session created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AISession'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /ai/sessions/{sessionId}:
+    get:
+      tags: [AI Assistant]
+      summary: Get a session and its full message history
+      operationId: getAISession
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+      responses:
+        '200':
+          description: Session with messages, oldest first
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AISession'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    delete:
+      tags: [AI Assistant]
+      summary: Delete a session and its messages
+      operationId: deleteAISession
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+      responses:
+        '204':
+          description: Session deleted
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /ai/sessions/{sessionId}/messages:
+    post:
+      tags: [AI Assistant]
+      summary: Send a message in a session and get the assistant's reply
+      description: >
+        Appends the user's message to the conversation and returns the assistant's
+        answer, grounded in the session's bound patient/appointment context (re-fetched
+        live) and the full prior conversation. Both messages are persisted.
+        When the client sends `Accept: text/event-stream` the answer is streamed as
+        Server-Sent Events (a `sources` event, then `token` events, then `done`).
+      operationId: createAISessionMessage
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AIMessageRequest'
+      responses:
+        '200':
+          description: >
+            The assistant's reply. Returned as a single JSON object by default, or
+            as a Server-Sent Events stream when the client sends
+            `Accept: text/event-stream`.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AIMessageResponse'
+            text/event-stream:
+              schema:
+                $ref: '#/components/schemas/AISSEEvent'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '502':
+          $ref: '#/components/responses/BadGateway'
 components:
   securitySchemes:
     bearerAuth:
@@ -845,6 +958,13 @@ components:
         format: uuid
     AppointmentId:
       name: appointmentId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    SessionId:
+      name: sessionId
       in: path
       required: true
       schema:
@@ -909,6 +1029,12 @@ components:
             $ref: '#/components/schemas/ProblemDetail'
     InternalServerError:
       description: An unexpected error occurred while processing the request.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetail'
+    BadGateway:
+      description: An upstream service the request depends on could not be reached.
       content:
         application/problem+json:
           schema:
@@ -1266,9 +1392,11 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/ClinicalNote'
-    AIQueryRequest:
+    AISessionCreateRequest:
       type: object
-      required: [query]
+      description: >
+        Options for a new conversation. Binding a patient and/or appointment
+        grounds every message in the session in that record's live data.
       properties:
         patientId:
           type: string
@@ -1276,9 +1404,82 @@ components:
         appointmentId:
           type: string
           format: uuid
+        title:
+          type: string
+          description: Optional human-friendly label for the conversation.
+    AIMessageRole:
+      type: string
+      enum: [user, assistant]
+    AIMessage:
+      type: object
+      required: [id, role, content, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        role:
+          $ref: '#/components/schemas/AIMessageRole'
+        content:
+          type: string
+        sources:
+          type: array
+          description: Grounding sources cited for an assistant message.
+          items:
+            type: string
+        createdAt:
+          type: string
+          format: date-time
+    AISessionSummary:
+      type: object
+      required: [id, userId, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        patientId:
+          type: string
+          format: uuid
+        appointmentId:
+          type: string
+          format: uuid
+        title:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    AISession:
+      allOf:
+        - $ref: '#/components/schemas/AISessionSummary'
+        - type: object
+          required: [messages]
+          properties:
+            messages:
+              type: array
+              items:
+                $ref: '#/components/schemas/AIMessage'
+    PaginatedAISessionResponse:
+      type: object
+      required: [content, page]
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/AISessionSummary'
+        page:
+          $ref: '#/components/schemas/PageMeta'
+    AIMessageRequest:
+      type: object
+      required: [query]
+      properties:
         query:
           type: string
-    AIQueryResponse:
+    AIMessageResponse:
       type: object
       required: [answer]
       properties:
@@ -1291,6 +1492,42 @@ components:
         confidence:
           type: number
           format: float
+    AISSEEvent:
+      description: >
+        A single Server-Sent Event emitted when the reply is streamed
+        (`Accept: text/event-stream`). Each event is framed on the wire as
+        `event: <name>\ndata: <json>\n\n`; the schemas below describe the JSON
+        `data` payload for each `event` name. The stream emits one `sources`
+        event, followed by zero or more `token` events, and terminates with
+        either a `done` event or, on a mid-stream failure, an `error` event.
+      oneOf:
+        - $ref: '#/components/schemas/AISSESourcesEvent'
+        - $ref: '#/components/schemas/AISSETokenEvent'
+        - $ref: '#/components/schemas/AISSEDoneEvent'
+        - $ref: '#/components/schemas/AISSEErrorEvent'
+    AISSESourcesEvent:
+      description: >
+        `event: sources` — the source identifiers grounding the answer. Sent
+        once, before any token.
+      type: array
+      items:
+        type: string
+    AISSETokenEvent:
+      description: >
+        `event: token` — an incremental chunk of the answer text. Concatenate
+        all token events in order to reconstruct the full answer.
+      type: string
+    AISSEDoneEvent:
+      description: '`event: done` — terminal event signalling the stream completed successfully. Empty object.'
+      type: object
+    AISSEErrorEvent:
+      description: >
+        `event: error` — terminal event signalling a mid-stream failure. The
+        assistant reply is not persisted when this is emitted.
+      type: object
+      properties:
+        detail:
+          type: string
     RegisterRequest:
       type: object
       required: [name, email, password, phoneNumber, dateOfBirth]

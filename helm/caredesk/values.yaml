@@ -63,6 +63,8 @@ databases:
     database: patient_db
   notes-db:
     database: notes_db
+  ai-db:
+    database: ai_db
 
 # ─── NetworkPolicy ─────────────────────────────────────────────────────────────
 # Enforces the trusted-header model: backend services (auth/patient/notes/ai)
@@ -175,6 +177,8 @@ ai:
     tag: ""
   service:
     port: 8000
+  dbHost: caredesk-ai-db
+  dbName: ai_db
   env:
     llmProvider: openai
     llmModel: gpt-4o-mini

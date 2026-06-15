@@ -33,6 +33,8 @@ DOCTOR_PASSWORD="${DOCTOR_PASSWORD:-doctor123}"
 PATIENT_NAME="${PATIENT_NAME:-Maria Schmidt}"
 PATIENT_EMAIL="${PATIENT_EMAIL:-maria.schmidt@example.com}"
 PATIENT_PASSWORD="${PATIENT_PASSWORD:-patient123}"
+PATIENT_PHONE="${PATIENT_PHONE:-+49 89 1234567}"
+PATIENT_DOB="${PATIENT_DOB:-1985-04-12}"
 
 # ── Pretty output ────────────────────────────────────────────────────────────
 if [ -t 1 ]; then BOLD=$'\033[1m'; DIM=$'\033[2m'; GREEN=$'\033[32m'; CYAN=$'\033[36m'; RED=$'\033[31m'; RESET=$'\033[0m'
@@ -88,7 +90,8 @@ info "doctor id: $DOCTOR_ID"
 # ── 2. Patient (register, or reuse if already present) ───────────────────────
 step "Registering patient (${PATIENT_EMAIL})"
 register_body="$(jq -nc --arg n "$PATIENT_NAME" --arg e "$PATIENT_EMAIL" --arg p "$PATIENT_PASSWORD" \
-  '{name:$n,email:$e,password:$p}')"
+  --arg ph "$PATIENT_PHONE" --arg dob "$PATIENT_DOB" \
+  '{name:$n,email:$e,password:$p,phoneNumber:$ph,dateOfBirth:$dob}')"
 # Register is best-effort: a fresh run creates the patient; a repeat run fails
 # because the email already exists (auth-service currently returns 500 for that,
 # not 409). Either way we then log in with the known password — login is the
@@ -107,22 +110,46 @@ PATIENT_ID="$(jq -r '.user.id' <<<"$patient_session")"
 info "patient id: $PATIENT_ID"
 
 # ── 3. Book two appointments (as the doctor) ─────────────────────────────────
-# book_appointment DATETIME DURATION REASON  -> echoes the new appointment id
+# The backend only accepts a booking that lands exactly on an *available*
+# DoctorSlot, and slots are published for a fixed doctor by the dev data seeder
+# (not for the freshly-registered login account). So we book against that seeded
+# doctor and, rather than guessing times, read its schedule and book whatever
+# slots are actually free — which keeps the demo working no matter when it runs.
+SEED_DOCTOR_ID="${SEED_DOCTOR_ID:-22222222-2222-2222-2222-222222222222}"
+
+# book_appointment DATETIME DURATION REASON DOCTOR_ID  -> echoes the new appointment id
 book_appointment() {
-  local dt="$1" dur="$2" reason="$3" appt
+  local dt="$1" dur="$2" reason="$3" did="$4" appt
   appt="$(api POST /appointments \
-    "$(jq -nc --arg pid "$PATIENT_ID" --arg did "$DOCTOR_ID" --arg dt "$dt" \
+    "$(jq -nc --arg pid "$PATIENT_ID" --arg did "$did" --arg dt "$dt" \
               --argjson dur "$dur" --arg r "$reason" \
        '{patientId:$pid,doctorId:$did,dateTime:$dt,duration:$dur,reason:$r}')" \
     "$DOCTOR_TOKEN")"
   jq -r '.id' <<<"$appt"
 }
 
+step "Finding two open slots in the doctor's schedule"
+schedule="$(api GET "/doctors/${SEED_DOCTOR_ID}/schedule" "" "$DOCTOR_TOKEN")"
+# Earliest two available, *future* slots (the backend rejects past bookings),
+# each as "startAt durationMinutes".
+# Read into an array with a while-loop rather than `mapfile`/`readarray`, which
+# don't exist in bash 3.2 (the version macOS still ships at /usr/bin/env bash).
+SLOTS=()
+while IFS= read -r slot_line; do
+  [ -n "$slot_line" ] && SLOTS+=("$slot_line")
+done < <(jq -r '
+  [.slots[] | select(.available and ((.startAt|fromdateiso8601) > now))]
+  | sort_by(.startAt) | .[0:2][]
+  | "\(.startAt) \(((( .endAt|fromdateiso8601) - (.startAt|fromdateiso8601)) / 60) | floor)"' <<<"$schedule")
+[ "${#SLOTS[@]}" -ge 2 ] \
+  || die "doctor ${SEED_DOCTOR_ID} has fewer than 2 open future slots (found ${#SLOTS[@]}). Restart patient-service to reseed its schedule."
+info "using slots: ${SLOTS[0]} | ${SLOTS[1]}"
+
 step "Booking two appointments for the patient"
-APPT1_ID="$(book_appointment "2026-03-10T09:00:00Z" 30 "Annual check-up, persistent cough")"
-info "appointment #1: $APPT1_ID  (2026-03-10, persistent cough)"
-APPT2_ID="$(book_appointment "2026-05-22T14:30:00Z" 20 "Follow-up on blood pressure")"
-info "appointment #2: $APPT2_ID  (2026-05-22, blood pressure follow-up)"
+APPT1_ID="$(book_appointment "${SLOTS[0]% *}" "${SLOTS[0]#* }" "Annual check-up, persistent cough" "$SEED_DOCTOR_ID")"
+info "appointment #1: $APPT1_ID  (${SLOTS[0]% *}, persistent cough)"
+APPT2_ID="$(book_appointment "${SLOTS[1]% *}" "${SLOTS[1]#* }" "Follow-up on blood pressure" "$SEED_DOCTOR_ID")"
+info "appointment #2: $APPT2_ID  (${SLOTS[1]% *}, blood pressure follow-up)"
 
 # ── 4. Write a clinical note per appointment (as the doctor) ──────────────────
 # upsert_note APPOINTMENT_ID CONTENT DIAG_CODE DIAG_DESC
@@ -144,24 +171,36 @@ upsert_note "$APPT2_ID" \
 info "note saved for appointment #2 (I10 Hypertension)"
 
 # ── 5. Ask the AI assistant, as the doctor ───────────────────────────────────
-# ask JSON_BODY  -> prints answer + sources (single response, waits for the end)
+# Conversations are persistent now: open a session (optionally bound to a
+# patient/appointment) and post messages to it. The binding grounds every turn.
+#
+# new_session JSON_BODY -> prints the new session id
+new_session() {
+  api POST /ai/sessions "$1" "$DOCTOR_TOKEN" | jq -r '.id'
+}
+
+# ask SESSION_ID QUERY -> prints answer + sources (single response, waits for the end)
 ask() {
   local resp
-  resp="$(api POST /ai/query "$1" "$DOCTOR_TOKEN")"
+  resp="$(api POST "/ai/sessions/$1/messages" \
+    "$(jq -nc --arg q "$2" '{query:$q}')" "$DOCTOR_TOKEN")"
   printf '%s    sources:%s %s\n' "$BOLD" "$RESET" "$(jq -c '.sources // []' <<<"$resp")"
   printf '%s    answer:%s\n'      "$BOLD" "$RESET"
   jq -r '.answer' <<<"$resp" | sed 's/^/      /'
 }
 
-# ask_stream JSON_BODY -> prints sources, then the answer token-by-token as it
-# arrives. Sends `Accept: text/event-stream`; `curl -N` keeps the stream
+# ask_stream SESSION_ID QUERY -> prints sources, then the answer token-by-token as
+# it arrives. Sends `Accept: text/event-stream`; `curl -N` keeps the stream
 # unbuffered so the tokens appear live instead of all at once.
 ask_stream() {
-  curl -sS -N -X POST "${BASE_URL}/ai/query" \
+  # --fail makes curl exit non-zero on an HTTP 4xx/5xx instead of feeding the
+  # error body to the SSE parser (which would silently match nothing); combined
+  # with `set -o pipefail` this aborts the smoke test on a failed stream.
+  curl --fail -sS -N -X POST "${BASE_URL}/ai/sessions/$1/messages" \
     -H "Content-Type: application/json" \
     -H "Accept: text/event-stream" \
     -H "Authorization: Bearer ${DOCTOR_TOKEN}" \
-    -d "$1" \
+    -d "$(jq -nc --arg q "$2" '{query:$q}')" \
   | { event=""
       while IFS= read -r line; do
         case "$line" in
@@ -179,14 +218,29 @@ ask_stream() {
       done; }
 }
 
-step "AI query #1 — by patient_id, STREAMED (expects profile + BOTH appointments + BOTH notes)"
-ask_stream "$(jq -nc --arg pid "$PATIENT_ID" \
-  '{patientId:$pid, query:"Summarise this patient'\''s visit history and list every diagnosis on record."}')"
+step "AI session #1 — bound to patient_id, STREAMED (expects profile + BOTH appointments + BOTH notes)"
+PATIENT_SESSION="$(new_session "$(jq -nc --arg pid "$PATIENT_ID" '{patientId:$pid}')")"
+info "session id: $PATIENT_SESSION"
+ask_stream "$PATIENT_SESSION" \
+  "Summarise this patient's visit history and list every diagnosis on record."
 
-step "AI query #2 — by appointment_id, single JSON response (single appointment + its note)"
-ask "$(jq -nc --arg aid "$APPT2_ID" \
-  '{appointmentId:$aid, query:"What happened at this appointment and what was prescribed?"}')"
+step "Follow-up in the SAME session — proves the conversation has memory"
+ask "$PATIENT_SESSION" \
+  "Of those diagnoses, which one needs follow-up soonest and why?"
+
+step "AI session #2 — bound to appointment_id, single JSON response (single appointment + its note)"
+APPT_SESSION="$(new_session "$(jq -nc --arg aid "$APPT2_ID" '{appointmentId:$aid}')")"
+info "session id: $APPT_SESSION"
+ask "$APPT_SESSION" "What happened at this appointment and what was prescribed?"
+
+# ── 6. Clean up so the demo is re-runnable ───────────────────────────────────
+# Cancelling releases the doctor slots we consumed, so the next run finds them
+# free again instead of failing with "slot unavailable".
+step "Cleaning up (cancelling the demo appointments to free the slots)"
+api POST "/appointments/${APPT1_ID}/cancel" "" "$DOCTOR_TOKEN" >/dev/null && info "cancelled appointment #1"
+api POST "/appointments/${APPT2_ID}/cancel" "" "$DOCTOR_TOKEN" >/dev/null && info "cancelled appointment #2"
 
 printf '\n%s✓ Done.%s If the sources include "Clinical note" and "Appointment record" and the\n' "$GREEN" "$RESET"
 printf '  answer mentions the cough and the hypertension, the grounding context is working.\n'
-printf '  Query #1 streamed token-by-token (SSE); query #2 used the buffered JSON response.\n'
+printf '  Session #1 streamed token-by-token (SSE), then a follow-up reused the conversation;\n'
+printf '  session #2 used the buffered JSON response.\n'

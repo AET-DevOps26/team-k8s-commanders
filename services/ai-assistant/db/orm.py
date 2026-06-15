@@ -13,7 +13,7 @@ is wiped and regenerated from the OpenAPI spec by ``api/scripts/gen-all.sh``.
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import DateTime, ForeignKey, String, Text
+from sqlalchemy import CheckConstraint, DateTime, ForeignKey, String, Text
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from sqlalchemy.types import JSON
 from sqlalchemy import Uuid
@@ -53,6 +53,13 @@ class ConversationSession(Base):
 
 class ConversationMessage(Base):
     __tablename__ = "conversation_messages"
+    # Enforce the AIMessageRole domain at the DB layer so a stray value can never
+    # be persisted and break _api_message()'s AIMessageRole(...) wrap on read.
+    __table_args__ = (
+        CheckConstraint(
+            "role IN ('user', 'assistant')", name="ck_conversation_messages_role"
+        ),
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
     session_id: Mapped[uuid.UUID] = mapped_column(

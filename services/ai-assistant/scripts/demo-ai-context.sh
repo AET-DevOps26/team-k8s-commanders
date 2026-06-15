@@ -193,7 +193,10 @@ ask() {
 # it arrives. Sends `Accept: text/event-stream`; `curl -N` keeps the stream
 # unbuffered so the tokens appear live instead of all at once.
 ask_stream() {
-  curl -sS -N -X POST "${BASE_URL}/ai/sessions/$1/messages" \
+  # --fail makes curl exit non-zero on an HTTP 4xx/5xx instead of feeding the
+  # error body to the SSE parser (which would silently match nothing); combined
+  # with `set -o pipefail` this aborts the smoke test on a failed stream.
+  curl --fail -sS -N -X POST "${BASE_URL}/ai/sessions/$1/messages" \
     -H "Content-Type: application/json" \
     -H "Accept: text/event-stream" \
     -H "Authorization: Bearer ${DOCTOR_TOKEN}" \

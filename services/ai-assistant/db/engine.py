@@ -8,6 +8,7 @@ connection — handy for tests, which point ``DATABASE_URL`` at SQLite.
 
 import os
 from collections.abc import AsyncIterator
+from urllib.parse import quote_plus
 
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
@@ -32,7 +33,10 @@ def _database_url() -> str:
     name = os.getenv("DB_NAME", "ai_db")
     user = os.getenv("DB_USER", "caredesk")
     password = os.getenv("DB_PASSWORD", "caredesk")
-    return f"postgresql+asyncpg://{user}:{password}@{host}:{port}/{name}"
+    return (
+        f"postgresql+asyncpg://{quote_plus(user)}:{quote_plus(password)}"
+        f"@{host}:{port}/{name}"
+    )
 
 
 def get_engine() -> AsyncEngine:

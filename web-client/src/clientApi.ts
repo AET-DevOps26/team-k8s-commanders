@@ -20,8 +20,20 @@ export type PaginatedAppointmentResponse =
 export type ClinicalNote = components['schemas']['ClinicalNote']
 export type ClinicalNoteInput = components['schemas']['ClinicalNoteInput']
 export type Diagnosis = components['schemas']['Diagnosis']
-export type AIQueryRequest = components['schemas']['AIQueryRequest']
-export type AIQueryResponse = components['schemas']['AIQueryResponse']
+export type AISession = components['schemas']['AISession']
+export type AIMessageResponse = components['schemas']['AIMessageResponse']
+export type UserCreate = components['schemas']['UserCreate']
+export type UserStats = components['schemas']['UserStats']
+export type UserRole = components['schemas']['UserRole']
+
+/** Legacy shape kept for the doctor dashboard; maps to the sessions API. */
+export type AIQueryRequest = {
+  patientId?: string
+  appointmentId?: string
+  query: string
+}
+
+export type AIQueryResponse = AIMessageResponse
 
 type RequestOptions = {
   method?: string
@@ -70,9 +82,10 @@ async function getErrorMessage(response: Response) {
       title?: string
       detail?: string
       message?: string
+      error?: string
     }
 
-    return payload.detail ?? payload.message ?? payload.title ?? fallback
+    return payload.detail ?? payload.message ?? payload.error ?? payload.title ?? fallback
   } catch {
     return fallback
   }
@@ -119,9 +132,47 @@ export function getPatientVisitHistory(patientId: string, token: string) {
   })
 }
 
-export function listUsers(token: string, size = 100) {
-  return request<PaginatedUserProfileResponse>(`/users?size=${size}`, { token })
+// --- Admin user management (ADMIN role only) ---
+
+export function listUsers(token: string, page = 0, size = 100) {
+  return request<PaginatedUserProfileResponse>(
+    `/users?page=${page}&size=${size}`,
+    { token },
+  )
 }
+
+export function getUserStats(token: string) {
+  return request<UserStats>('/users/stats', { token })
+}
+
+export function createUser(payload: UserCreate, token: string) {
+  return request<UserProfile>('/users', {
+    method: 'POST',
+    body: payload,
+    token,
+  })
+}
+
+export function replaceUser(
+  userId: string,
+  payload: UserProfile,
+  token: string,
+) {
+  return request<UserProfile>(`/users/${userId}`, {
+    method: 'PUT',
+    body: payload,
+    token,
+  })
+}
+
+export function deactivateUser(userId: string, token: string) {
+  return request<void>(`/users/${userId}`, {
+    method: 'DELETE',
+    token,
+  })
+}
+
+// --- Doctor dashboard ---
 
 export function getDoctorAppointments(token: string, size = 100) {
   return request<PaginatedAppointmentResponse>(`/appointments?size=${size}`, {
@@ -158,14 +209,25 @@ export function upsertAppointmentNote(
   })
 }
 
-export function queryAi(payload: AIQueryRequest, token: string) {
-  return request<AIQueryResponse>('/ai/query', {
+/** One-shot AI query via a transient session (doctor dashboard compatibility). */
+export async function queryAi(payload: AIQueryRequest, token: string) {
+  const session = await request<AISession>('/ai/sessions', {
     method: 'POST',
-    body: payload,
+    body: {
+      patientId: payload.patientId,
+      appointmentId: payload.appointmentId,
+    },
+    token,
+  })
+
+  return request<AIMessageResponse>(`/ai/sessions/${session.id}/messages`, {
+    method: 'POST',
+    body: { query: payload.query },
     token,
   })
 }
 
+// --- Account self-service ---
 export function getUserProfile(userId: string, token: string) {
   return request<UserProfile>(`/users/${userId}`, { token })
 }
@@ -189,6 +251,8 @@ export function changeUserPassword(
     body: payload,
   })
 }
+
+// --- Doctors and appointments ---
 
 export function listDoctors(
   token: string,

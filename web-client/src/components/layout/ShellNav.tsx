@@ -19,7 +19,11 @@ export function ShellNav({ session, onNavigate, onLogout }: ShellNavProps) {
         <a href="/#features">Features</a>
         {session ? (
           <>
-            {session.user.role === 'DOCTOR' ? (
+            {session.user.role === 'ADMIN' ? (
+              <AppLink to="/admin" onNavigate={onNavigate}>
+                Admin dashboard
+              </AppLink>
+            ) : session.user.role === 'DOCTOR' ? (
               <AppLink to="/doctor" onNavigate={onNavigate}>
                 Doctor dashboard
               </AppLink>

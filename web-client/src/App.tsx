@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import './App.css'
+import { AdminDashboard } from './admin'
 import type { AuthSession } from './clientApi'
 import { logout } from './clientApi'
 import { AuthForm } from './components/auth/AuthForm'
@@ -40,7 +41,13 @@ export default function App() {
   function handleAuthenticated(nextSession: AuthSession) {
     saveSession(nextSession)
     setSession(nextSession)
-    navigate(nextSession.user.role === 'DOCTOR' ? '/doctor' : '/patient')
+    navigate(
+      nextSession.user.role === 'ADMIN'
+        ? '/admin'
+        : nextSession.user.role === 'DOCTOR'
+          ? '/doctor'
+          : '/patient',
+    )
   }
 
   function handleSessionUpdated(nextSession: AuthSession) {
@@ -69,12 +76,52 @@ export default function App() {
     )
   }
 
+  if (route === '/admin') {
+    if (!session) {
+      return (
+        <AuthForm
+          mode="login"
+          onAuthenticated={handleAuthenticated}
+          onNavigate={navigate}
+        />
+      )
+    }
+
+    return (
+      <AdminDashboard
+        session={session}
+        onLogout={handleLogout}
+        onNavigate={navigate}
+      />
+    )
+  }
+
   if (route === '/patient' || route === '/patient/profile' || route === '/patient/book') {
     if (!session) {
       return (
         <AuthForm
           mode="login"
           onAuthenticated={handleAuthenticated}
+          onNavigate={navigate}
+        />
+      )
+    }
+
+    if (session.user.role !== 'PATIENT') {
+      if (session.user.role === 'DOCTOR') {
+        return (
+          <DoctorDashboard
+            session={session}
+            onLogout={handleLogout}
+            onNavigate={navigate}
+          />
+        )
+      }
+
+      return (
+        <AdminDashboard
+          session={session}
+          onLogout={handleLogout}
           onNavigate={navigate}
         />
       )

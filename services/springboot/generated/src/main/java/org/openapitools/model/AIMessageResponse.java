@@ -19,11 +19,11 @@ import java.util.*;
 import jakarta.annotation.Generated;
 
 /**
- * AIQueryResponse
+ * AIMessageResponse
  */
 
 @Generated(value = "org.openapitools.codegen.languages.SpringCodegen", comments = "Generator version: 7.22.0")
-public class AIQueryResponse {
+public class AIMessageResponse {
 
   private String answer;
 
@@ -32,18 +32,18 @@ public class AIQueryResponse {
 
   private @Nullable Float confidence;
 
-  public AIQueryResponse() {
+  public AIMessageResponse() {
     super();
   }
 
   /**
    * Constructor with only required parameters
    */
-  public AIQueryResponse(String answer) {
+  public AIMessageResponse(String answer) {
     this.answer = answer;
   }
 
-  public AIQueryResponse answer(String answer) {
+  public AIMessageResponse answer(String answer) {
     this.answer = answer;
     return this;
   }
@@ -64,12 +64,12 @@ public class AIQueryResponse {
     this.answer = answer;
   }
 
-  public AIQueryResponse sources(List<String> sources) {
+  public AIMessageResponse sources(List<String> sources) {
     this.sources = sources;
     return this;
   }
 
-  public AIQueryResponse addSourcesItem(String sourcesItem) {
+  public AIMessageResponse addSourcesItem(String sourcesItem) {
     if (this.sources == null) {
       this.sources = new ArrayList<>();
     }
@@ -93,7 +93,7 @@ public class AIQueryResponse {
     this.sources = sources;
   }
 
-  public AIQueryResponse confidence(@Nullable Float confidence) {
+  public AIMessageResponse confidence(@Nullable Float confidence) {
     this.confidence = confidence;
     return this;
   }
@@ -122,10 +122,10 @@ public class AIQueryResponse {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    AIQueryResponse aiQueryResponse = (AIQueryResponse) o;
-    return Objects.equals(this.answer, aiQueryResponse.answer) &&
-        Objects.equals(this.sources, aiQueryResponse.sources) &&
-        Objects.equals(this.confidence, aiQueryResponse.confidence);
+    AIMessageResponse aiMessageResponse = (AIMessageResponse) o;
+    return Objects.equals(this.answer, aiMessageResponse.answer) &&
+        Objects.equals(this.sources, aiMessageResponse.sources) &&
+        Objects.equals(this.confidence, aiMessageResponse.confidence);
   }
 
   @Override
@@ -136,7 +136,7 @@ public class AIQueryResponse {
   @Override
   public String toString() {
     StringBuilder sb = new StringBuilder();
-    sb.append("class AIQueryResponse {\n");
+    sb.append("class AIMessageResponse {\n");
     sb.append("    answer: ").append(toIndentedString(answer)).append("\n");
     sb.append("    sources: ").append(toIndentedString(sources)).append("\n");
     sb.append("    confidence: ").append(toIndentedString(confidence)).append("\n");

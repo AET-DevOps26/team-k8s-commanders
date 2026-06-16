@@ -20,21 +20,26 @@ import json
 
 
 
-from pydantic import BaseModel, ConfigDict, StrictFloat, StrictInt, StrictStr
-from typing import Any, ClassVar, Dict, List, Optional, Union
+from datetime import datetime
+from pydantic import BaseModel, ConfigDict, Field, StrictStr
+from typing import Any, ClassVar, Dict, List, Optional
+from uuid import UUID
+from models.ai_message_role import AIMessageRole
 try:
     from typing import Self
 except ImportError:
     from typing_extensions import Self
 
-class AIQueryResponse(BaseModel):
+class AIMessage(BaseModel):
     """
-    AIQueryResponse
+    AIMessage
     """ # noqa: E501
-    answer: StrictStr
-    sources: Optional[List[StrictStr]] = None
-    confidence: Optional[Union[StrictFloat, StrictInt]] = None
-    __properties: ClassVar[List[str]] = ["answer", "sources", "confidence"]
+    id: UUID
+    role: AIMessageRole
+    content: StrictStr
+    sources: Optional[List[StrictStr]] = Field(default=None, description="Grounding sources cited for an assistant message.")
+    created_at: datetime = Field(alias="createdAt")
+    __properties: ClassVar[List[str]] = ["id", "role", "content", "sources", "createdAt"]
 
     model_config = {
         "populate_by_name": True,
@@ -54,7 +59,7 @@ class AIQueryResponse(BaseModel):
 
     @classmethod
     def from_json(cls, json_str: str) -> Self:
-        """Create an instance of AIQueryResponse from a JSON string"""
+        """Create an instance of AIMessage from a JSON string"""
         return cls.from_dict(json.loads(json_str))
 
     def to_dict(self) -> Dict[str, Any]:
@@ -77,7 +82,7 @@ class AIQueryResponse(BaseModel):
 
     @classmethod
     def from_dict(cls, obj: Dict) -> Self:
-        """Create an instance of AIQueryResponse from a dict"""
+        """Create an instance of AIMessage from a dict"""
         if obj is None:
             return None
 
@@ -85,9 +90,11 @@ class AIQueryResponse(BaseModel):
             return cls.model_validate(obj)
 
         _obj = cls.model_validate({
-            "answer": obj.get("answer"),
+            "id": obj.get("id"),
+            "role": obj.get("role"),
+            "content": obj.get("content"),
             "sources": obj.get("sources"),
-            "confidence": obj.get("confidence")
+            "createdAt": obj.get("createdAt")
         })
         return _obj
 

@@ -33,6 +33,7 @@ spec:
             - configMapRef:
                 name: {{ include "caredesk.fullname" . }}-config
           env:
+            {{- include "caredesk.dbEnv" (dict "root" $ "host" .Values.ai.dbHost "name" .Values.ai.dbName) | nindent 12 }}
             {{- if .Values.ai.secrets.llmApiKey }}
             - name: LLM_API_KEY
               valueFrom:

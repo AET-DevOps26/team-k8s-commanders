@@ -104,7 +104,7 @@ public interface DoctorsApi {
         getRequest().ifPresent(request -> {
             for (MediaType mediaType: MediaType.parseMediaTypes(request.getHeader("Accept"))) {
                 if (mediaType.isCompatibleWith(MediaType.valueOf("application/json"))) {
-                    String exampleString = "{ \"clinicId\" : \"046b6c7f-0b8a-43b9-b35d-6489e6daee91\", \"password\" : \"password\", \"role\" : \"PATIENT\", \"phoneNumber\" : \"phoneNumber\", \"name\" : \"name\", \"specialization\" : \"specialization\", \"dateOfBirth\" : \"2000-01-23\", \"licenseNumber\" : \"licenseNumber\", \"id\" : \"046b6c7f-0b8a-43b9-b35d-6489e6daee91\", \"email\" : \"email\" }";
+                    String exampleString = "{ \"clinicId\" : \"046b6c7f-0b8a-43b9-b35d-6489e6daee91\", \"password\" : \"password\", \"role\" : \"PATIENT\", \"phoneNumber\" : \"phoneNumber\", \"name\" : \"name\", \"specialization\" : \"specialization\", \"dateOfBirth\" : \"2000-01-23\", \"licenseNumber\" : \"licenseNumber\", \"id\" : \"046b6c7f-0b8a-43b9-b35d-6489e6daee91\", \"email\" : \"email\", \"enabled\" : true }";
                     ApiUtil.setExampleResponse(request, "application/json", exampleString);
                     break;
                 }
@@ -291,7 +291,7 @@ public interface DoctorsApi {
         getRequest().ifPresent(request -> {
             for (MediaType mediaType: MediaType.parseMediaTypes(request.getHeader("Accept"))) {
                 if (mediaType.isCompatibleWith(MediaType.valueOf("application/json"))) {
-                    String exampleString = "{ \"page\" : { \"size\" : 1, \"totalPages\" : 0, \"page\" : 0, \"totalElements\" : 0 }, \"content\" : [ { \"clinicId\" : \"046b6c7f-0b8a-43b9-b35d-6489e6daee91\", \"password\" : \"password\", \"role\" : \"PATIENT\", \"phoneNumber\" : \"phoneNumber\", \"name\" : \"name\", \"specialization\" : \"specialization\", \"dateOfBirth\" : \"2000-01-23\", \"licenseNumber\" : \"licenseNumber\", \"id\" : \"046b6c7f-0b8a-43b9-b35d-6489e6daee91\", \"email\" : \"email\" }, { \"clinicId\" : \"046b6c7f-0b8a-43b9-b35d-6489e6daee91\", \"password\" : \"password\", \"role\" : \"PATIENT\", \"phoneNumber\" : \"phoneNumber\", \"name\" : \"name\", \"specialization\" : \"specialization\", \"dateOfBirth\" : \"2000-01-23\", \"licenseNumber\" : \"licenseNumber\", \"id\" : \"046b6c7f-0b8a-43b9-b35d-6489e6daee91\", \"email\" : \"email\" } ] }";
+                    String exampleString = "{ \"page\" : { \"size\" : 1, \"totalPages\" : 0, \"page\" : 0, \"totalElements\" : 0 }, \"content\" : [ { \"clinicId\" : \"046b6c7f-0b8a-43b9-b35d-6489e6daee91\", \"password\" : \"password\", \"role\" : \"PATIENT\", \"phoneNumber\" : \"phoneNumber\", \"name\" : \"name\", \"specialization\" : \"specialization\", \"dateOfBirth\" : \"2000-01-23\", \"licenseNumber\" : \"licenseNumber\", \"id\" : \"046b6c7f-0b8a-43b9-b35d-6489e6daee91\", \"email\" : \"email\", \"enabled\" : true }, { \"clinicId\" : \"046b6c7f-0b8a-43b9-b35d-6489e6daee91\", \"password\" : \"password\", \"role\" : \"PATIENT\", \"phoneNumber\" : \"phoneNumber\", \"name\" : \"name\", \"specialization\" : \"specialization\", \"dateOfBirth\" : \"2000-01-23\", \"licenseNumber\" : \"licenseNumber\", \"id\" : \"046b6c7f-0b8a-43b9-b35d-6489e6daee91\", \"email\" : \"email\", \"enabled\" : true } ] }";
                     ApiUtil.setExampleResponse(request, "application/json", exampleString);
                     break;
                 }

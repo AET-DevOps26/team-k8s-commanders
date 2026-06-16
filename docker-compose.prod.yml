@@ -27,9 +27,30 @@ services:
     networks:
       - caredesk
 
+  ai-db:
+    image: postgres:16-alpine
+    restart: always
+    environment:
+      POSTGRES_DB: ${AI_DB_NAME:?AI_DB_NAME must be set}
+      POSTGRES_USER: ${AI_DB_USER:?AI_DB_USER must be set}
+      POSTGRES_PASSWORD: ${AI_DB_PASSWORD:?AI_DB_PASSWORD must be set}
+    volumes:
+      - ai-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - caredesk
+
   ai-assistant:
     image: ghcr.io/aet-devops26/team-k8s-commanders/ai-assistant:${IMAGE_TAG:-latest}
     restart: always
+    depends_on:
+      ai-db:
+        condition: service_healthy
     environment:
       LLM_PROVIDER: ${LLM_PROVIDER:?LLM_PROVIDER must be set}
       LLM_MODEL: ${LLM_MODEL:?LLM_MODEL must be set}
@@ -38,6 +59,12 @@ services:
       # Source-of-truth services the assistant pulls live patient context from.
       PATIENT_SERVICE_URL: http://patient-service:8082
       NOTES_SERVICE_URL: http://notes-service:8083
+      # Persistent conversation sessions.
+      DB_HOST: ai-db
+      DB_PORT: 5432
+      DB_NAME: ${AI_DB_NAME:?AI_DB_NAME must be set}
+      DB_USER: ${AI_DB_USER:?AI_DB_USER must be set}
+      DB_PASSWORD: ${AI_DB_PASSWORD:?AI_DB_PASSWORD must be set}
     healthcheck:
       test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/ai/health')\""]
       interval: 30s
@@ -207,6 +234,7 @@ volumes:
   auth-db-data:
   patient-db-data:
   notes-db-data:
+  ai-db-data:
 
 networks:
   caredesk:

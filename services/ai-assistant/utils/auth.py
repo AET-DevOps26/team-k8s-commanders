@@ -7,14 +7,39 @@ JWT; it authorizes requests based on that header alone, so the header must
 never be exposed to untrusted callers bypassing the gateway.
 """
 
+import uuid
 from collections.abc import Iterable
 
 from fastapi import Header, HTTPException, status
 
 from models.user_role import UserRole
 
-# Header set by the API gateway after JWT validation.
+# Headers set by the API gateway after JWT validation.
 USER_ROLE_HEADER = "X-User-Role"
+USER_ID_HEADER = "X-User-Id"
+
+
+def require_user_id(
+    x_user_id: str | None = Header(default=None, alias=USER_ID_HEADER),
+) -> uuid.UUID:
+    """FastAPI dependency resolving the authenticated caller's id.
+
+    Sessions are owned per-user, so endpoints need the gateway-supplied
+    ``X-User-Id``. A missing or non-UUID value means the request did not arrive
+    with a valid identity from the gateway and is rejected as unauthenticated.
+    """
+    if x_user_id is None or not x_user_id.strip():
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Missing user id",
+        )
+    try:
+        return uuid.UUID(x_user_id)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid user id",
+        )
 
 
 def require_roles(*allowed_roles: UserRole):

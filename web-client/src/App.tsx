@@ -5,6 +5,8 @@ import type { AuthSession } from './clientApi'
 import { logout } from './clientApi'
 import { AuthForm } from './components/auth/AuthForm'
 import { DoctorDashboard } from './components/doctor/DoctorDashboard'
+import { DoctorPatientsPage } from './components/doctor/DoctorPatientsPage'
+import { DoctorSchedulePage } from './components/doctor/DoctorSchedulePage'
 import { LandingPage } from './components/landing/LandingPage'
 import { PatientBookingPage } from './components/patient/PatientBookingPage'
 import { PatientDashboard } from './components/patient/PatientDashboard'
@@ -157,12 +159,32 @@ export default function App() {
     )
   }
 
-  if (route === '/doctor') {
+  if (route === '/doctor' || route === '/doctor/schedule' || route === '/doctor/patients') {
     if (!session) {
       return (
         <AuthForm
           mode="login"
           onAuthenticated={handleAuthenticated}
+          onNavigate={navigate}
+        />
+      )
+    }
+
+    if (route === '/doctor/schedule') {
+      return (
+        <DoctorSchedulePage
+          session={session}
+          onLogout={handleLogout}
+          onNavigate={navigate}
+        />
+      )
+    }
+
+    if (route === '/doctor/patients') {
+      return (
+        <DoctorPatientsPage
+          session={session}
+          onLogout={handleLogout}
           onNavigate={navigate}
         />
       )

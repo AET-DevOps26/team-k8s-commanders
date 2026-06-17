@@ -14,6 +14,7 @@ export type PaginatedUserProfileResponse =
 export type PasswordChangeRequest = components['schemas']['PasswordChangeRequest']
 export type Schedule = components['schemas']['Schedule']
 export type ScheduleSlot = components['schemas']['ScheduleSlot']
+export type ScheduleSlotCreate = components['schemas']['ScheduleSlotCreate']
 export type VisitHistory = components['schemas']['VisitHistory']
 export type PaginatedAppointmentResponse =
   components['schemas']['PaginatedAppointmentResponse']
@@ -21,7 +22,13 @@ export type ClinicalNote = components['schemas']['ClinicalNote']
 export type ClinicalNoteInput = components['schemas']['ClinicalNoteInput']
 export type Diagnosis = components['schemas']['Diagnosis']
 export type AISession = components['schemas']['AISession']
+export type AISessionCreateRequest =
+  components['schemas']['AISessionCreateRequest']
+export type AISessionSummary = components['schemas']['AISessionSummary']
+export type AIMessage = components['schemas']['AIMessage']
 export type AIMessageResponse = components['schemas']['AIMessageResponse']
+export type PaginatedAISessionResponse =
+  components['schemas']['PaginatedAISessionResponse']
 export type UserCreate = components['schemas']['UserCreate']
 export type UserStats = components['schemas']['UserStats']
 export type UserRole = components['schemas']['UserRole']
@@ -34,6 +41,12 @@ export type AIQueryRequest = {
 }
 
 export type AIQueryResponse = AIMessageResponse
+
+export type AIStreamEventHandlers = {
+  onSources?: (sources: string[]) => void
+  onToken?: (token: string) => void
+  onDone?: () => void
+}
 
 type RequestOptions = {
   method?: string
@@ -182,13 +195,15 @@ export function getDoctorAppointments(token: string, size = 100) {
 
 /**
  * Reads the clinical note for an appointment. Returns null when none has been
- * written yet (the API answers 404 in that case).
+ * written yet. Older API versions answered 404; current notes-service answers
+ * 204 so the browser console stays clean for normal empty notes.
  */
 export async function getAppointmentNote(appointmentId: string, token: string) {
   try {
-    return await request<ClinicalNote>(`/appointments/${appointmentId}/note`, {
+    const note = await request<ClinicalNote | undefined>(`/appointments/${appointmentId}/note`, {
       token,
     })
+    return note ?? null
   } catch (error) {
     if (error instanceof RequestError && error.status === 404) {
       return null
@@ -225,6 +240,124 @@ export async function queryAi(payload: AIQueryRequest, token: string) {
     body: { query: payload.query },
     token,
   })
+}
+
+export function listAiSessions(token: string, page = 0, size = 100) {
+  return request<PaginatedAISessionResponse>(
+    `/ai/sessions?page=${page}&size=${size}`,
+    { token },
+  )
+}
+
+export function createAiSession(payload: AISessionCreateRequest, token: string) {
+  return request<AISession>('/ai/sessions', {
+    method: 'POST',
+    body: payload,
+    token,
+  })
+}
+
+export function getAiSession(sessionId: string, token: string) {
+  return request<AISession>(`/ai/sessions/${sessionId}`, { token })
+}
+
+export function deleteAiSession(sessionId: string, token: string) {
+  return request<void>(`/ai/sessions/${sessionId}`, {
+    method: 'DELETE',
+    token,
+  })
+}
+
+export function sendAiMessage(sessionId: string, query: string, token: string) {
+  return request<AIMessageResponse>(`/ai/sessions/${sessionId}/messages`, {
+    method: 'POST',
+    body: { query },
+    token,
+  })
+}
+
+export async function streamAiMessage(
+  sessionId: string,
+  query: string,
+  token: string,
+  handlers: AIStreamEventHandlers = {},
+) {
+  const response = await fetch(`${API_URL}/ai/sessions/${sessionId}/messages`, {
+    method: 'POST',
+    headers: {
+      Accept: 'text/event-stream',
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ query }),
+  })
+
+  if (!response.ok) {
+    throw new RequestError(response.status, await getErrorMessage(response))
+  }
+
+  if (!response.body) {
+    throw new RequestError(response.status, 'Streaming response body is unavailable')
+  }
+
+  const reader = response.body.getReader()
+  const decoder = new TextDecoder()
+  let buffer = ''
+
+  while (true) {
+    const { done, value } = await reader.read()
+    buffer += decoder.decode(value ?? new Uint8Array(), { stream: !done })
+    buffer = buffer.replace(/\r\n/g, '\n')
+
+    const events = buffer.split('\n\n')
+    buffer = events.pop() ?? ''
+
+    for (const eventBlock of events) {
+      handleAiSseEvent(eventBlock, handlers)
+    }
+
+    if (done) {
+      if (buffer.trim()) {
+        handleAiSseEvent(buffer, handlers)
+      }
+      break
+    }
+  }
+}
+
+function handleAiSseEvent(
+  eventBlock: string,
+  handlers: AIStreamEventHandlers,
+) {
+  const lines = eventBlock.split('\n')
+  const event = lines
+    .find((line) => line.startsWith('event:'))
+    ?.slice('event:'.length)
+    .trim()
+  const data = lines
+    .filter((line) => line.startsWith('data:'))
+    .map((line) => line.slice('data:'.length).trimStart())
+    .join('\n')
+  const payload = data ? JSON.parse(data) : null
+
+  if (event === 'sources') {
+    handlers.onSources?.(Array.isArray(payload) ? payload : [])
+    return
+  }
+
+  if (event === 'token') {
+    handlers.onToken?.(typeof payload === 'string' ? payload : '')
+    return
+  }
+
+  if (event === 'done') {
+    handlers.onDone?.()
+    return
+  }
+
+  if (event === 'error') {
+    throw new RequestError(500, payload?.detail ?? 'AI stream failed')
+  }
 }
 
 // --- Account self-service ---
@@ -278,6 +411,18 @@ export function listDoctors(
 
 export function getDoctorSchedule(doctorId: string, token: string) {
   return request<Schedule>(`/doctors/${doctorId}/schedule`, { token })
+}
+
+export function createDoctorScheduleSlot(
+  doctorId: string,
+  token: string,
+  payload: ScheduleSlotCreate,
+) {
+  return request<ScheduleSlot>(`/doctors/${doctorId}/schedule`, {
+    method: 'POST',
+    token,
+    body: payload,
+  })
 }
 
 export function bookAppointment(token: string, payload: AppointmentCreate) {

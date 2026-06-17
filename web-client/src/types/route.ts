@@ -9,6 +9,8 @@ export type Route =
   | '/patient/book'
   | '/admin'
   | '/doctor'
+  | '/doctor/schedule'
+  | '/doctor/patients'
 
 export type NavigateHandler = (path: Route) => void
 

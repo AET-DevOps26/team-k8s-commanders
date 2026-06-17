@@ -12,7 +12,9 @@ export function getInitialRoute(): Route {
     path === '/patient/profile' ||
     path === '/patient/book' ||
     path === '/admin' ||
-    path === '/doctor'
+    path === '/doctor' ||
+    path === '/doctor/schedule' ||
+    path === '/doctor/patients'
   ) {
     return path
   }

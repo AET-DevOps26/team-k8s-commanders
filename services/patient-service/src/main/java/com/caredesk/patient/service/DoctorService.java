@@ -8,6 +8,7 @@ import org.openapitools.model.PageMeta;
 import org.openapitools.model.PaginatedUserProfileResponse;
 import org.openapitools.model.Schedule;
 import org.openapitools.model.ScheduleSlot;
+import org.openapitools.model.ScheduleSlotCreate;
 import org.openapitools.model.UserProfile;
 import org.openapitools.model.UserRole;
 import org.springframework.data.domain.Page;
@@ -16,6 +17,7 @@ import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.OffsetDateTime;
 import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
@@ -27,7 +29,8 @@ import java.util.UUID;
  * {@code getProfile} fetches identity fields from auth-service via
  * {@link AuthServiceClient} and falls back to an id-only response when the
  * lookup fails. {@code getSchedule} returns available slots sorted by start
- * time.
+ * time. Doctors can also publish new available slots without assigning a
+ * patient.
  */
 @Service
 @Transactional(readOnly = true)
@@ -77,6 +80,36 @@ public class DoctorService {
                 .map(scheduleSlotMapper::toApi)
                 .toList();
         return new Schedule(doctorId, slots);
+    }
+
+    @Transactional
+    public ScheduleSlot createScheduleSlot(UUID doctorId, ScheduleSlotCreate request) {
+        if (request == null || request.getStartAt() == null || request.getEndAt() == null) {
+            throw new IllegalArgumentException("Schedule slot startAt and endAt are required");
+        }
+
+        OffsetDateTime startAt = request.getStartAt();
+        OffsetDateTime endAt = request.getEndAt();
+
+        if (!endAt.isAfter(startAt)) {
+            throw new IllegalArgumentException("Schedule slot endAt must be after startAt");
+        }
+
+        if (startAt.isBefore(OffsetDateTime.now())) {
+            throw new AppointmentStateConflictException("Past schedule slots cannot be created");
+        }
+
+        if (doctorSlotRepository.existsOverlappingSlot(doctorId, startAt, endAt)) {
+            throw new AppointmentStateConflictException("Schedule slot overlaps an existing slot");
+        }
+
+        DoctorSlot slot = new DoctorSlot();
+        slot.setDoctorId(doctorId);
+        slot.setStartAt(startAt);
+        slot.setEndAt(endAt);
+        slot.setAvailable(true);
+
+        return scheduleSlotMapper.toApi(doctorSlotRepository.save(slot));
     }
 
     private UserProfile toProfile(DoctorProfile doctor) {

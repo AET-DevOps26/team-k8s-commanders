@@ -7,6 +7,8 @@ import com.caredesk.patient.repository.DoctorSlotRepository;
 import org.junit.jupiter.api.Test;
 import org.openapitools.model.PaginatedUserProfileResponse;
 import org.openapitools.model.Schedule;
+import org.openapitools.model.ScheduleSlot;
+import org.openapitools.model.ScheduleSlotCreate;
 import org.openapitools.model.UserProfile;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -15,10 +17,13 @@ import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class DoctorServiceTest {
@@ -110,6 +115,49 @@ class DoctorServiceTest {
 
         assertThat(schedule.getDoctorId()).isEqualTo(doctorId);
         assertThat(schedule.getSlots()).isEmpty();
+    }
+
+    @Test
+    void createScheduleSlot_persistsAvailableSlot() {
+        UUID doctorId = UUID.randomUUID();
+        OffsetDateTime startAt = OffsetDateTime.parse("2035-06-08T09:00:00Z");
+        OffsetDateTime endAt = startAt.plusMinutes(45);
+        ScheduleSlotCreate request = new ScheduleSlotCreate(startAt, endAt);
+        when(doctorSlotRepository.existsOverlappingSlot(doctorId, startAt, endAt)).thenReturn(false);
+        when(doctorSlotRepository.save(any(DoctorSlot.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        ScheduleSlot slot = service.createScheduleSlot(doctorId, request);
+
+        assertThat(slot.getStartAt()).isEqualTo(startAt);
+        assertThat(slot.getEndAt()).isEqualTo(endAt);
+        assertThat(slot.getAvailable()).isTrue();
+        verify(doctorSlotRepository).save(any(DoctorSlot.class));
+    }
+
+    @Test
+    void createScheduleSlot_rejectsOverlappingSlot() {
+        UUID doctorId = UUID.randomUUID();
+        OffsetDateTime startAt = OffsetDateTime.parse("2035-06-08T09:00:00Z");
+        OffsetDateTime endAt = startAt.plusMinutes(30);
+        ScheduleSlotCreate request = new ScheduleSlotCreate(startAt, endAt);
+        when(doctorSlotRepository.existsOverlappingSlot(doctorId, startAt, endAt)).thenReturn(true);
+
+        assertThatThrownBy(() -> service.createScheduleSlot(doctorId, request))
+                .isInstanceOf(AppointmentStateConflictException.class)
+                .hasMessageContaining("overlaps");
+        verify(doctorSlotRepository, never()).save(any());
+    }
+
+    @Test
+    void createScheduleSlot_rejectsPastSlot() {
+        UUID doctorId = UUID.randomUUID();
+        OffsetDateTime startAt = OffsetDateTime.parse("2020-06-08T09:00:00Z");
+        ScheduleSlotCreate request = new ScheduleSlotCreate(startAt, startAt.plusMinutes(30));
+
+        assertThatThrownBy(() -> service.createScheduleSlot(doctorId, request))
+                .isInstanceOf(AppointmentStateConflictException.class)
+                .hasMessageContaining("Past schedule slots");
+        verify(doctorSlotRepository, never()).save(any());
     }
 
     private static DoctorProfile doctor() {

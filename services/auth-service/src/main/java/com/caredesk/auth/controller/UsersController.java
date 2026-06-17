@@ -56,7 +56,10 @@ public class UsersController implements UsersApi {
 
     @Override
     public ResponseEntity<PaginatedUserProfileResponse> listUsers(Integer page, Integer size) {
-        return ResponseEntity.ok(userAdminService.listUsers(page, size));
+        if (isAdmin()) {
+            return ResponseEntity.ok(userAdminService.listUsers(page, size));
+        }
+        return ResponseEntity.ok(userAccountService.listUsers(page, size));
     }
 
     @Override

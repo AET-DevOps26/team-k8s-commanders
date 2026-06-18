@@ -31,9 +31,12 @@ spring:
       hibernate:
         format_sql: true
 
-# Actuator health is permitted in SecurityConfig for the Docker healthcheck.
+# Actuator health and prometheus are permitted in SecurityConfig for Docker healthcheck and scraping.
 management:
   endpoints:
     web:
       exposure:
-        include: health
+        include: health,prometheus
+  endpoint:
+    prometheus:
+      enabled: true

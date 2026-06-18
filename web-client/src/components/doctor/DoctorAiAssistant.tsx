@@ -13,10 +13,15 @@ import { EmptyPanel } from '../ui/EmptyPanel'
 import { StatusPanel } from '../ui/StatusPanel'
 
 type DoctorAiAssistantProps = {
-  patientId: string
+  patientId?: string | null
   appointmentId: string | null
-  patientName: string
+  patientName?: string
   token: string
+  contextKey?: string
+  title?: string
+  prompts?: string[]
+  inputLabel?: string
+  placeholder?: string
 }
 
 type StreamingReply = {
@@ -24,6 +29,12 @@ type StreamingReply = {
   question: string
   answer: string
   sources: string[]
+  failed?: boolean
+}
+
+type RenderedAIMessage = AIMessage & {
+  failed?: boolean
+  retryQuestion?: string
 }
 
 const quickPrompts = [
@@ -32,76 +43,157 @@ const quickPrompts = [
   'Draft questions for the next consultation.',
 ]
 
+type DoctorAiState = {
+  activeSession: AISession | null
+  error: string
+  isLoadingSessions: boolean
+  isStreaming: boolean
+  loadedFor: string | null
+  query: string
+  sessions: AISessionSummary[]
+  streamingReply: StreamingReply | null
+}
+
+const defaultDoctorAiState = (): DoctorAiState => ({
+  activeSession: null,
+  error: '',
+  isLoadingSessions: true,
+  isStreaming: false,
+  loadedFor: null,
+  query: '',
+  sessions: [],
+  streamingReply: null,
+})
+
+const doctorAiStates = new Map<string, DoctorAiState>()
+const doctorAiListeners = new Map<string, Set<() => void>>()
+
+function getDoctorAiState(contextKey: string) {
+  const existing = doctorAiStates.get(contextKey)
+  if (existing) {
+    return existing
+  }
+
+  const next = defaultDoctorAiState()
+  doctorAiStates.set(contextKey, next)
+  return next
+}
+
+function updateDoctorAiState(
+  contextKey: string,
+  updater: (state: DoctorAiState) => DoctorAiState,
+) {
+  const next = updater(getDoctorAiState(contextKey))
+  doctorAiStates.set(contextKey, next)
+  doctorAiListeners.get(contextKey)?.forEach((listener) => listener())
+}
+
+function subscribeDoctorAiState(contextKey: string, listener: () => void) {
+  const listeners = doctorAiListeners.get(contextKey) ?? new Set<() => void>()
+  listeners.add(listener)
+  doctorAiListeners.set(contextKey, listeners)
+
+  return () => {
+    listeners.delete(listener)
+  }
+}
+
 export function DoctorAiAssistant({
   patientId,
   appointmentId,
-  patientName,
+  patientName = 'Doctor AI',
   token,
+  contextKey,
+  title = patientName,
+  prompts = quickPrompts,
+  inputLabel = 'Ask about this context',
+  placeholder = 'Summarize the current context and flag anything I should review.',
 }: DoctorAiAssistantProps) {
-  const [query, setQuery] = useState('')
-  const [sessions, setSessions] = useState<AISessionSummary[]>([])
-  const [activeSession, setActiveSession] = useState<AISession | null>(null)
-  const [streamingReply, setStreamingReply] = useState<StreamingReply | null>(null)
-  const [error, setError] = useState('')
-  const [isLoadingSessions, setLoadingSessions] = useState(true)
-  const [isStreaming, setStreaming] = useState(false)
+  const resolvedContextKey =
+    contextKey ??
+    (patientId
+      ? `patient:${patientId}:appointment:${appointmentId ?? 'none'}`
+      : 'doctor:general')
+  const [state, setState] = useState(() => getDoctorAiState(resolvedContextKey))
+  const {
+    activeSession,
+    error,
+    isLoadingSessions,
+    isStreaming,
+    query,
+    sessions,
+    streamingReply,
+  } = state
+
+  useEffect(
+    () =>
+      subscribeDoctorAiState(resolvedContextKey, () => {
+        setState(getDoctorAiState(resolvedContextKey))
+      }),
+    [resolvedContextKey],
+  )
 
   useEffect(() => {
-    let isActive = true
+    setState(getDoctorAiState(resolvedContextKey))
+  }, [resolvedContextKey])
+
+  useEffect(() => {
+    const loadKey = `${token}:${patientId ?? ''}:${appointmentId ?? ''}`
+    const currentState = getDoctorAiState(resolvedContextKey)
+    if (currentState.loadedFor === loadKey || currentState.isStreaming) {
+      return
+    }
 
     async function loadSessions() {
-      setLoadingSessions(true)
-      setError('')
-      setActiveSession(null)
-      setStreamingReply(null)
+      updateDoctorAiState(resolvedContextKey, (current) => ({
+        ...current,
+        error: '',
+        isLoadingSessions: true,
+        loadedFor: loadKey,
+      }))
 
       try {
         const response = await listAiSessions(token, 0, 100)
-        const patientSessions = response.content.filter(
-          (session) => session.patientId === patientId,
+        const contextSessions = response.content.filter(
+          (session) =>
+            patientId ? session.patientId === patientId : !session.patientId,
         )
 
-        if (!isActive) {
-          return
-        }
-
-        setSessions(patientSessions)
-
         const preferredSession =
-          patientSessions.find(
+          contextSessions.find(
             (session) => appointmentId && session.appointmentId === appointmentId,
           ) ??
-          patientSessions.find((session) => !session.appointmentId) ??
-          patientSessions[0] ??
+          contextSessions.find((session) => !session.appointmentId) ??
+          contextSessions[0] ??
           null
 
+        let loadedSession: AISession | null = null
         if (preferredSession) {
-          const loadedSession = await getAiSession(preferredSession.id, token)
-          if (isActive) {
-            setActiveSession(loadedSession)
-          }
+          loadedSession = await getAiSession(preferredSession.id, token)
         }
+
+        updateDoctorAiState(resolvedContextKey, (current) => ({
+          ...current,
+          activeSession: loadedSession,
+          error: '',
+          isLoadingSessions: false,
+          sessions: contextSessions,
+        }))
       } catch {
-        if (isActive) {
-          setError(userMessage('AI sessions could not be loaded. Please try again.'))
-          setSessions([])
-          setActiveSession(null)
-        }
-      } finally {
-        if (isActive) {
-          setLoadingSessions(false)
-        }
+        updateDoctorAiState(resolvedContextKey, (current) => ({
+          ...current,
+          activeSession: null,
+          error: userMessage('AI sessions could not be loaded. Please try again.'),
+          isLoadingSessions: false,
+          sessions: [],
+        }))
       }
     }
 
     loadSessions()
+  }, [appointmentId, patientId, resolvedContextKey, token])
 
-    return () => {
-      isActive = false
-    }
-  }, [appointmentId, patientId, token])
-
-  const renderedMessages = useMemo(() => {
+  const renderedMessages = useMemo<RenderedAIMessage[]>(() => {
     const messages = activeSession?.messages ?? []
 
     if (!streamingReply) {
@@ -119,127 +211,191 @@ export function DoctorAiAssistant({
       {
         id: `${streamingReply.id}-assistant`,
         role: 'assistant',
-        content: streamingReply.answer,
+        content: streamingReply.failed
+          ? 'AI assistant is unavailable. Please try again.'
+          : streamingReply.answer,
         sources: streamingReply.sources,
         createdAt: new Date().toISOString(),
-      } satisfies AIMessage,
+        failed: streamingReply.failed,
+        retryQuestion: streamingReply.question,
+      } satisfies RenderedAIMessage,
     ]
   }, [activeSession, streamingReply])
 
-  const sessionContextLabel = activeSession?.appointmentId
-    ? 'Appointment context'
-    : 'Patient context'
-
   async function loadSession(sessionId: string) {
-    setError('')
-    setStreamingReply(null)
+    updateDoctorAiState(resolvedContextKey, (current) => ({
+      ...current,
+      error: '',
+      streamingReply: null,
+    }))
 
     try {
-      setActiveSession(await getAiSession(sessionId, token))
+      const loadedSession = await getAiSession(sessionId, token)
+      updateDoctorAiState(resolvedContextKey, (current) => ({
+        ...current,
+        activeSession: loadedSession,
+      }))
     } catch {
-      setError(userMessage('AI session could not be opened. Please try again.'))
+      updateDoctorAiState(resolvedContextKey, (current) => ({
+        ...current,
+        error: userMessage('AI session could not be opened. Please try again.'),
+      }))
     }
   }
 
   async function createSession() {
-    setError('')
-    setStreamingReply(null)
+    updateDoctorAiState(resolvedContextKey, (current) => ({
+      ...current,
+      error: '',
+    }))
 
     const session = await createAiSession(
       {
-        patientId,
+        ...(patientId ? { patientId } : {}),
         ...(appointmentId ? { appointmentId } : {}),
-        title: appointmentId ? `${patientName} appointment` : `${patientName} record`,
+        title: appointmentId ? `${title} appointment` : `${title} chat`,
       },
       token,
     )
 
-    setSessions((current) => [session, ...current])
-    setActiveSession(session)
+    updateDoctorAiState(resolvedContextKey, (current) => ({
+      ...current,
+      activeSession: session,
+      sessions: [session, ...current.sessions],
+    }))
     return session
   }
 
   async function handleNewSession() {
     try {
+      updateDoctorAiState(resolvedContextKey, (current) => ({
+        ...current,
+        streamingReply: null,
+      }))
       await createSession()
     } catch {
-      setError(userMessage('AI session could not be created. Please try again.'))
+      updateDoctorAiState(resolvedContextKey, (current) => ({
+        ...current,
+        error: userMessage('AI session could not be created. Please try again.'),
+      }))
     }
   }
 
   async function handleDeleteSession() {
-    if (!activeSession || isStreaming) {
+    const currentState = getDoctorAiState(resolvedContextKey)
+    if (!currentState.activeSession || currentState.isStreaming) {
       return
     }
 
-    setError('')
+    updateDoctorAiState(resolvedContextKey, (current) => ({
+      ...current,
+      error: '',
+    }))
 
     try {
-      await deleteAiSession(activeSession.id, token)
-      const remainingSessions = sessions.filter(
-        (session) => session.id !== activeSession.id,
+      await deleteAiSession(currentState.activeSession.id, token)
+      const remainingSessions = currentState.sessions.filter(
+        (session) => session.id !== currentState.activeSession?.id,
       )
-      setSessions(remainingSessions)
-      setActiveSession(null)
+      let nextActiveSession: AISession | null = null
 
       if (remainingSessions[0]) {
-        setActiveSession(await getAiSession(remainingSessions[0].id, token))
+        nextActiveSession = await getAiSession(remainingSessions[0].id, token)
       }
+
+      updateDoctorAiState(resolvedContextKey, (current) => ({
+        ...current,
+        activeSession: nextActiveSession,
+        sessions: remainingSessions,
+      }))
     } catch {
-      setError(userMessage('AI session could not be deleted. Please try again.'))
+      updateDoctorAiState(resolvedContextKey, (current) => ({
+        ...current,
+        error: userMessage('AI session could not be deleted. Please try again.'),
+      }))
     }
   }
 
-  async function askAi(nextQuery: string) {
+  async function askAi(nextQuery: string, retryReplyId?: string) {
     const trimmed = nextQuery.trim()
+    const currentState = getDoctorAiState(resolvedContextKey)
 
-    if (!trimmed || isStreaming) {
+    if (!trimmed || currentState.isStreaming) {
       return
     }
 
-    setError('')
-    setStreaming(true)
-    setStreamingReply({
-      id: `streaming-${Date.now()}`,
-      question: trimmed,
-      answer: '',
-      sources: [],
-    })
+    updateDoctorAiState(resolvedContextKey, (current) => ({
+      ...current,
+      error: '',
+      isStreaming: true,
+      streamingReply: {
+        id: retryReplyId ?? `streaming-${Date.now()}`,
+        question: trimmed,
+        answer: '',
+        sources: [],
+        failed: false,
+      },
+    }))
 
     try {
-      const session = activeSession ?? (await createSession())
+      const session = currentState.activeSession ?? (await createSession())
 
       await streamAiMessage(session.id, trimmed, token, {
         onSources: (sources) => {
-          setStreamingReply((current) =>
-            current ? { ...current, sources } : current,
-          )
+          updateDoctorAiState(resolvedContextKey, (current) => ({
+            ...current,
+            streamingReply: current.streamingReply
+              ? { ...current.streamingReply, sources }
+              : current.streamingReply,
+          }))
         },
         onToken: (nextToken) => {
-          setStreamingReply((current) =>
-            current
-              ? { ...current, answer: `${current.answer}${nextToken}` }
-              : current,
-          )
+          updateDoctorAiState(resolvedContextKey, (current) => ({
+            ...current,
+            streamingReply: current.streamingReply
+              ? {
+                  ...current.streamingReply,
+                  answer: `${current.streamingReply.answer}${nextToken}`,
+                }
+              : current.streamingReply,
+          }))
         },
       })
 
       const refreshedSession = await getAiSession(session.id, token)
-      setActiveSession(refreshedSession)
-      setSessions((current) =>
-        [refreshedSession, ...current.filter((item) => item.id !== session.id)].sort(
+      updateDoctorAiState(resolvedContextKey, (current) => ({
+        ...current,
+        activeSession: refreshedSession,
+        isStreaming: false,
+        query: '',
+        sessions: [refreshedSession, ...current.sessions.filter((item) => item.id !== session.id)].sort(
           (first, second) =>
             new Date(second.updatedAt).getTime() -
             new Date(first.updatedAt).getTime(),
         ),
-      )
-      setQuery('')
-      setStreamingReply(null)
+        streamingReply: null,
+      }))
     } catch {
-      setError(userMessage('AI assistant is unavailable. Please try again.'))
-    } finally {
-      setStreaming(false)
+      updateDoctorAiState(resolvedContextKey, (current) => ({
+        ...current,
+        isStreaming: false,
+        streamingReply: current.streamingReply
+          ? {
+              ...current.streamingReply,
+              answer: '',
+              failed: true,
+              sources: [],
+            }
+          : current.streamingReply,
+      }))
     }
+  }
+
+  function retryMessage(message: RenderedAIMessage) {
+    const retryId = message.id.endsWith('-assistant')
+      ? message.id.slice(0, -'-assistant'.length)
+      : undefined
+    askAi(message.retryQuestion ?? '', retryId)
   }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -249,16 +405,6 @@ export function DoctorAiAssistant({
 
   return (
     <section className="doctor-ai-chat">
-      <div className="doctor-ai-head">
-        <div>
-          <p className="eyebrow">AI assistant</p>
-          <h3>{patientName}</h3>
-        </div>
-        <span className={isStreaming ? 'ai-live-badge is-live' : 'ai-live-badge'}>
-          {isStreaming ? 'Streaming' : sessionContextLabel}
-        </span>
-      </div>
-
       {error && <StatusPanel title="AI assistant unavailable" text={error} />}
 
       <div className="ai-workbench">
@@ -304,14 +450,24 @@ export function DoctorAiAssistant({
                 >
                   <strong>{session.title ?? 'Clinical chat'}</strong>
                   <span>
-                    {session.appointmentId ? 'Appointment' : 'Patient'} ·{' '}
+                    {session.appointmentId
+                      ? 'Appointment'
+                      : session.patientId
+                        ? 'Patient'
+                        : 'General'} ·{' '}
                     {formatAppointmentDate(session.updatedAt)}
                   </span>
                 </button>
               ))}
             </div>
           ) : (
-            <EmptyPanel text="No saved AI chats for this patient yet." />
+            <EmptyPanel
+              text={
+                patientId
+                  ? 'No saved AI chats for this patient yet.'
+                  : 'No saved AI chats for this context yet.'
+              }
+            />
           )}
         </aside>
 
@@ -321,28 +477,42 @@ export function DoctorAiAssistant({
               <span>Conversation</span>
               <small>{renderedMessages.length} messages</small>
             </div>
-            <div className="ai-prompt-strip" aria-label="Suggested prompts">
-              {quickPrompts.map((prompt) => (
-                <button
-                  disabled={isStreaming}
-                  key={prompt}
-                  onClick={() => askAi(prompt)}
-                  type="button"
-                >
-                  {prompt}
-                </button>
-              ))}
-            </div>
+            {prompts.length ? (
+              <div className="ai-prompt-strip" aria-label="Suggested prompts">
+                {prompts.map((prompt) => (
+                  <button
+                    disabled={isStreaming}
+                    key={prompt}
+                    onClick={() => askAi(prompt)}
+                    type="button"
+                  >
+                    {prompt}
+                  </button>
+                ))}
+              </div>
+            ) : null}
           </div>
 
           <div className="ai-thread" aria-live="polite">
             {renderedMessages.length ? (
               renderedMessages.map((message) => (
                 <article
-                  className={`ai-message ai-message-${message.role}`}
+                  className={`ai-message ai-message-${message.role}${
+                    message.failed ? ' ai-message-failed' : ''
+                  }`}
                   key={message.id}
                 >
                   <p>{message.content || (isStreaming ? 'Thinking...' : '')}</p>
+                  {message.failed ? (
+                    <button
+                      className="secondary-button compact-button ai-retry-button"
+                      disabled={isStreaming}
+                      onClick={() => retryMessage(message)}
+                      type="button"
+                    >
+                      Retry
+                    </button>
+                  ) : null}
                   {message.sources?.length ? (
                     <div className="ai-source-chips" aria-label="AI sources">
                       {message.sources.map((source, index) => (
@@ -364,10 +534,15 @@ export function DoctorAiAssistant({
 
           <form className="ai-compose" onSubmit={handleSubmit}>
             <label className="ai-compose-field">
-              <span>Ask about this patient</span>
+              <span>{inputLabel}</span>
               <textarea
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder="Summarize the last three visits and flag anything I should review."
+                onChange={(event) =>
+                  updateDoctorAiState(resolvedContextKey, (current) => ({
+                    ...current,
+                    query: event.target.value,
+                  }))
+                }
+                placeholder={placeholder}
                 required
                 rows={4}
                 value={query}

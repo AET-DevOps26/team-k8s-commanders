@@ -11,7 +11,6 @@ import { userMessage } from '../../lib/messages'
 import { EmptyPanel } from '../ui/EmptyPanel'
 import { StatusPanel } from '../ui/StatusPanel'
 import { SummaryCard } from '../ui/SummaryCard'
-import { DoctorAiAssistant } from './DoctorAiAssistant'
 import { NoteEditor } from './NoteEditor'
 import { PatientAppointmentTimeline } from './PatientAppointmentTimeline'
 import { byDateDesc, isUpcomingAppointment } from './doctorUtils'
@@ -25,12 +24,20 @@ type PatientRecordData = {
 type PatientWorkspaceProps = {
   patientId: string | null
   directoryProfile: UserProfile | null
+  onAiContextChange?: (context: PatientAiContext | null) => void
   token: string
+}
+
+export type PatientAiContext = {
+  appointmentId: string | null
+  patientId: string
+  patientName: string
 }
 
 export function PatientWorkspace({
   patientId,
   directoryProfile,
+  onAiContextChange,
   token,
 }: PatientWorkspaceProps) {
   const [data, setData] = useState<PatientRecordData | null>(null)
@@ -120,6 +127,12 @@ export function PatientWorkspace({
     [sortedAppointments],
   )
 
+  const displayProfile = data?.profile ?? directoryProfile
+  const displayName = displayProfile?.name ?? patientId ?? 'Patient'
+  const selectedAppointment =
+    sortedAppointments.find((appointment) => appointment.id === selectedAppointmentId) ??
+    null
+
   useEffect(() => {
     if (!sortedAppointments.length) {
       setSelectedAppointmentId(null)
@@ -134,6 +147,19 @@ export function PatientWorkspace({
       return upcomingAppointments[0]?.id ?? sortedAppointments[0].id
     })
   }, [sortedAppointments, upcomingAppointments])
+
+  useEffect(() => {
+    if (!patientId) {
+      onAiContextChange?.(null)
+      return
+    }
+
+    onAiContextChange?.({
+      appointmentId: selectedAppointmentId,
+      patientId,
+      patientName: displayName,
+    })
+  }, [displayName, onAiContextChange, patientId, selectedAppointmentId])
 
   function handleNoteSaved(appointmentId: string) {
     setNotedAppointmentIds((current) => {
@@ -150,12 +176,6 @@ export function PatientWorkspace({
       </section>
     )
   }
-
-  const displayProfile = data?.profile ?? directoryProfile
-  const displayName = displayProfile?.name ?? patientId
-  const selectedAppointment =
-    sortedAppointments.find((appointment) => appointment.id === selectedAppointmentId) ??
-    null
 
   return (
     <section className="dashboard-panel patient-workspace">
@@ -239,13 +259,6 @@ export function PatientWorkspace({
                   <EmptyPanel text="Select an appointment to write a clinical note." />
                 )}
               </section>
-
-              <DoctorAiAssistant
-                appointmentId={selectedAppointmentId}
-                patientId={patientId}
-                patientName={displayName}
-                token={token}
-              />
             </div>
           </section>
 

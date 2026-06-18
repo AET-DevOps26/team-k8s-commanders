@@ -102,7 +102,6 @@
   .doctor-appointment-row,
   .availability-slot-card,
   .doctor-row-actions,
-  .doctor-ai-head,
   .ai-session-actions,
   .note-form-head {
     display: grid;
@@ -149,5 +148,18 @@
   .quick-actions .primary-button,
   .quick-actions .secondary-button {
     flex: 1 1 100%;
+  }
+
+  .doctor-ai-fab {
+    right: 1rem;
+    bottom: 1rem;
+  }
+
+  .doctor-ai-modal-backdrop {
+    padding: 0.75rem;
+  }
+
+  .doctor-ai-modal-head {
+    display: grid;
   }
 }

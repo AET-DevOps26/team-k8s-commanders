@@ -7,6 +7,7 @@ import { DoctorSubNav } from '../layout/DoctorSubNav'
 import { ShellNav } from '../layout/ShellNav'
 import { StatusPanel } from '../ui/StatusPanel'
 import { SummaryCard } from '../ui/SummaryCard'
+import { DoctorAiFloatingAssistant } from './DoctorAiFloatingAssistant'
 import { DoctorSchedulePanel } from './DoctorSchedulePanel'
 import { buildPatientSummaries, isToday, isUpcomingAppointment } from './doctorUtils'
 
@@ -206,6 +207,13 @@ export function DoctorDashboard({
           </>
         )}
       </section>
+      <DoctorAiFloatingAssistant
+        contextKey="doctor:general-medical"
+        inputLabel="Ask a medical question"
+        placeholder="Ask a general medical question or clarify clinical guidance."
+        title="Medical assistant"
+        token={token}
+      />
     </main>
   )
 }

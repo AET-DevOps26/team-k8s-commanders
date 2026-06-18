@@ -8,6 +8,7 @@ import { ShellNav } from '../layout/ShellNav'
 import { StatusPanel } from '../ui/StatusPanel'
 import { AvailabilitySlotCreator } from './AvailabilitySlotCreator'
 import { AvailabilitySlotsPanel } from './AvailabilitySlotsPanel'
+import { DoctorAiFloatingAssistant } from './DoctorAiFloatingAssistant'
 
 export function DoctorSchedulePage({
   session,
@@ -99,6 +100,13 @@ export function DoctorSchedulePage({
           </section>
         )}
       </section>
+      <DoctorAiFloatingAssistant
+        contextKey="doctor:general-medical"
+        inputLabel="Ask a medical question"
+        placeholder="Ask a general medical question or clarify clinical guidance."
+        title="Medical assistant"
+        token={token}
+      />
     </main>
   )
 }

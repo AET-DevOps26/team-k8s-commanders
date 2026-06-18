@@ -6,8 +6,9 @@ import type { DoctorDashboardProps } from '../../types/route'
 import { DoctorSubNav } from '../layout/DoctorSubNav'
 import { ShellNav } from '../layout/ShellNav'
 import { StatusPanel } from '../ui/StatusPanel'
+import { DoctorAiFloatingAssistant } from './DoctorAiFloatingAssistant'
 import { PatientDirectory } from './PatientDirectory'
-import { PatientWorkspace } from './PatientWorkspace'
+import { PatientWorkspace, type PatientAiContext } from './PatientWorkspace'
 import { buildPatientSummaries } from './doctorUtils'
 
 export function DoctorPatientsPage({
@@ -18,6 +19,7 @@ export function DoctorPatientsPage({
   const [appointments, setAppointments] = useState<Appointment[]>([])
   const [users, setUsers] = useState<UserProfile[]>([])
   const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null)
+  const [aiContext, setAiContext] = useState<PatientAiContext | null>(null)
   const [error, setError] = useState('')
   const [isLoading, setLoading] = useState(true)
   const doctorId = session.user.id
@@ -131,12 +133,32 @@ export function DoctorPatientsPage({
             />
             <PatientWorkspace
               directoryProfile={selectedDirectoryProfile}
+              onAiContextChange={setAiContext}
               patientId={selectedPatientId}
               token={token}
             />
           </section>
         )}
       </section>
+      <DoctorAiFloatingAssistant
+        appointmentId={aiContext?.appointmentId ?? null}
+        contextKey={
+          aiContext?.patientId
+            ? `doctor:patient:${aiContext.patientId}:appointment:${aiContext.appointmentId ?? 'none'}`
+            : 'doctor:patient:none'
+        }
+        inputLabel="Ask about this patient"
+        patientId={aiContext?.patientId ?? selectedPatientId}
+        patientName={aiContext?.patientName ?? selectedDirectoryProfile?.name ?? 'Patient'}
+        placeholder="Summarize the patient record and flag anything I should review."
+        prompts={[
+          'Summarize recent visits and open risks.',
+          'What changed since the last appointment?',
+          'Draft questions for the next consultation.',
+        ]}
+        title={aiContext?.patientName ?? selectedDirectoryProfile?.name ?? 'Patient assistant'}
+        token={token}
+      />
     </main>
   )
 }

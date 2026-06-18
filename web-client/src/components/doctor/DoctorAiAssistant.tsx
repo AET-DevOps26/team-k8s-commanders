@@ -185,6 +185,7 @@ export function DoctorAiAssistant({
           activeSession: null,
           error: userMessage('AI sessions could not be loaded. Please try again.'),
           isLoadingSessions: false,
+          loadedFor: null,
           sessions: [],
         }))
       }

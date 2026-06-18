@@ -56,6 +56,8 @@ export function PatientWorkspace({
       return
     }
 
+    setData(null)
+
     const activePatientId = patientId
     let isActive = true
 

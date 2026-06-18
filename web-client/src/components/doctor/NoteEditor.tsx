@@ -159,7 +159,7 @@ export function NoteEditor({
       {error && <p className="form-error">{error}</p>}
       {status && <p className="form-status">{status}</p>}
 
-      <button className="primary-button" disabled={isSubmitting} type="submit">
+      <button className="primary-button" disabled={isSubmitting || isDrafting} type="submit">
         {isSubmitting ? 'Saving' : 'Save note'}
       </button>
     </form>

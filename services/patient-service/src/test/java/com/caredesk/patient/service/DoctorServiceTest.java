@@ -15,6 +15,7 @@ import org.springframework.data.domain.PageRequest;
 
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -123,6 +124,7 @@ class DoctorServiceTest {
         OffsetDateTime startAt = OffsetDateTime.parse("2035-06-08T09:00:00Z");
         OffsetDateTime endAt = startAt.plusMinutes(45);
         ScheduleSlotCreate request = new ScheduleSlotCreate(startAt, endAt);
+        when(doctorProfileRepository.findByIdForUpdate(doctorId)).thenReturn(Optional.of(doctor()));
         when(doctorSlotRepository.existsOverlappingSlot(doctorId, startAt, endAt)).thenReturn(false);
         when(doctorSlotRepository.save(any(DoctorSlot.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -140,6 +142,7 @@ class DoctorServiceTest {
         OffsetDateTime startAt = OffsetDateTime.parse("2035-06-08T09:00:00Z");
         OffsetDateTime endAt = startAt.plusMinutes(30);
         ScheduleSlotCreate request = new ScheduleSlotCreate(startAt, endAt);
+        when(doctorProfileRepository.findByIdForUpdate(doctorId)).thenReturn(Optional.of(doctor()));
         when(doctorSlotRepository.existsOverlappingSlot(doctorId, startAt, endAt)).thenReturn(true);
 
         assertThatThrownBy(() -> service.createScheduleSlot(doctorId, request))

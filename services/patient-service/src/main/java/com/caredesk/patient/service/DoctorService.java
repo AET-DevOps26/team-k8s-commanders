@@ -99,6 +99,9 @@ public class DoctorService {
             throw new AppointmentStateConflictException("Past schedule slots cannot be created");
         }
 
+        doctorProfileRepository.findByIdForUpdate(doctorId)
+                .orElseThrow(() -> new DoctorNotFoundException(doctorId));
+
         if (doctorSlotRepository.existsOverlappingSlot(doctorId, startAt, endAt)) {
             throw new AppointmentStateConflictException("Schedule slot overlaps an existing slot");
         }

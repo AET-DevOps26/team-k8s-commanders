@@ -625,15 +625,6 @@
   min-height: 0;
 }
 
-.ai-source-chips span {
-  border-radius: 999px;
-  padding: 0.35rem 0.7rem;
-  color: #14615b;
-  background: rgba(20, 97, 91, 0.12);
-  font-size: 0.75rem;
-  font-weight: 900;
-}
-
 .ai-workbench {
   display: grid;
   grid-template-columns: minmax(13rem, 0.28fr) minmax(0, 0.72fr);
@@ -844,6 +835,7 @@
 
 .ai-source-chips span {
   border: 1px solid rgba(65, 89, 86, 0.12);
+  border-radius: 999px;
   padding: 0.16rem 0.45rem;
   color: rgba(65, 89, 86, 0.74);
   background: rgba(255, 255, 255, 0.48);
@@ -959,6 +951,7 @@
   place-items: end center;
   padding: 1.5rem;
   background: rgba(19, 35, 34, 0.36);
+  -webkit-backdrop-filter: blur(6px);
   backdrop-filter: blur(6px);
 }
 

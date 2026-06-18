@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { Appointment, UserProfile } from '../../clientApi'
-import { getDoctorAppointments, listUsers } from '../../clientApi'
+import { fetchAllAppointmentPages, fetchAllUserPages } from '../../clientApi'
 import { userMessage } from '../../lib/messages'
 import type { DoctorDashboardProps } from '../../types/route'
 import { DoctorSubNav } from '../layout/DoctorSubNav'
@@ -33,14 +33,14 @@ export function DoctorPatientsPage({
       setError('')
 
       try {
-        const [appointmentsResponse, usersResponse] = await Promise.all([
-          getDoctorAppointments(token),
-          listUsers(token),
+        const [loadedAppointments, loadedUsers] = await Promise.all([
+          fetchAllAppointmentPages(token),
+          fetchAllUserPages(token),
         ])
 
         if (isActive) {
-          setAppointments(appointmentsResponse.content)
-          setUsers(usersResponse.content)
+          setAppointments(loadedAppointments)
+          setUsers(loadedUsers)
         }
       } catch {
         if (isActive) {

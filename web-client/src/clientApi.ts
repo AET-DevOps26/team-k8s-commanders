@@ -154,6 +154,18 @@ export function listUsers(token: string, page = 0, size = 100) {
   )
 }
 
+export async function fetchAllUserPages(token: string, size = 100) {
+  const firstPage = await listUsers(token, 0, size)
+  const users = [...firstPage.content]
+
+  for (let page = 1; page < firstPage.page.totalPages; page += 1) {
+    const nextPage = await listUsers(token, page, size)
+    users.push(...nextPage.content)
+  }
+
+  return users
+}
+
 export function getUserStats(token: string) {
   return request<UserStats>('/users/stats', { token })
 }
@@ -187,10 +199,23 @@ export function deactivateUser(userId: string, token: string) {
 
 // --- Doctor dashboard ---
 
-export function getDoctorAppointments(token: string, size = 100) {
-  return request<PaginatedAppointmentResponse>(`/appointments?size=${size}`, {
-    token,
-  })
+export function getDoctorAppointments(token: string, page = 0, size = 100) {
+  return request<PaginatedAppointmentResponse>(
+    `/appointments?page=${page}&size=${size}`,
+    { token },
+  )
+}
+
+export async function fetchAllAppointmentPages(token: string, size = 100) {
+  const firstPage = await getDoctorAppointments(token, 0, size)
+  const appointments = [...firstPage.content]
+
+  for (let page = 1; page < firstPage.page.totalPages; page += 1) {
+    const nextPage = await getDoctorAppointments(token, page, size)
+    appointments.push(...nextPage.content)
+  }
+
+  return appointments
 }
 
 /**

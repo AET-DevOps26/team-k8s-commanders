@@ -1,0 +1,53 @@
+{{- if .Values.ai.enabled -}}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "caredesk.fullname" . }}-ai-ingest
+  labels:
+    {{- include "caredesk.labels" . | nindent 4 }}
+    app.kubernetes.io/component: ai-ingest
+  annotations:
+    helm.sh/hook: post-install,post-upgrade
+    helm.sh/hook-delete-policy: before-hook-creation
+spec:
+  # Retry until the DB is ready and the embedding API is reachable.
+  backoffLimit: 6
+  # Clean up the completed Job pod automatically.
+  ttlSecondsAfterFinished: 120
+  template:
+    metadata:
+      labels:
+        {{- include "caredesk.selectorLabels" (dict "root" . "component" "ai-ingest") | nindent 8 }}
+    spec:
+      restartPolicy: OnFailure
+      {{- include "caredesk.imagePullSecrets" . | nindent 6 }}
+      containers:
+        - name: ai-ingest
+          image: {{ include "caredesk.image" (dict "root" $ "image" .Values.ai.image) | quote }}
+          imagePullPolicy: {{ .Values.images.pullPolicy }}
+          command: ["python", "scripts/ingest_guidelines.py"]
+          envFrom:
+            - configMapRef:
+                name: {{ include "caredesk.fullname" . }}-config
+          env:
+            - name: DB_HOST
+              value: {{ .Values.ai.dbHost | quote }}
+            - name: DB_PORT
+              value: "5432"
+            - name: DB_NAME
+              value: {{ .Values.ai.dbName | quote }}
+            - name: DB_USER
+              value: {{ .Values.postgres.username | quote }}
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "caredesk.fullname" . }}-db
+                  key: password
+            {{- if .Values.ai.secrets.llmApiKey }}
+            - name: LLM_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "caredesk.fullname" . }}-app
+                  key: LLM_API_KEY
+            {{- end }}
+{{- end }}

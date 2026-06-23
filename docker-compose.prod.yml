@@ -80,6 +80,27 @@ services:
     networks:
       - caredesk
 
+  ai-ingest:
+    image: ghcr.io/aet-devops26/team-k8s-commanders/ai-assistant:${IMAGE_TAG:-latest}
+    restart: "no"
+    command: python scripts/ingest_guidelines.py
+    environment:
+      LLM_PROVIDER: ${LLM_PROVIDER:?LLM_PROVIDER must be set}
+      LLM_API_KEY: ${LLM_API_KEY:?LLM_API_KEY must be set}
+      OPENWEBUI_BASE_URL: ${OPENWEBUI_BASE_URL:-}
+      EMBEDDING_MODEL: ${EMBEDDING_MODEL:-text-embedding-3-small}
+      EMBEDDING_DIM: ${EMBEDDING_DIM:-1536}
+      DB_HOST: ai-db
+      DB_PORT: 5432
+      DB_NAME: ${AI_DB_NAME:?AI_DB_NAME must be set}
+      DB_USER: ${AI_DB_USER:?AI_DB_USER must be set}
+      DB_PASSWORD: ${AI_DB_PASSWORD:?AI_DB_PASSWORD must be set}
+    depends_on:
+      ai-db:
+        condition: service_healthy
+    networks:
+      - caredesk
+
   auth-db:
     image: postgres:16-alpine
     restart: always

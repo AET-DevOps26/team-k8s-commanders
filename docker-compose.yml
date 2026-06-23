@@ -89,6 +89,31 @@ services:
     networks:
       - caredesk
 
+  ai-ingest:
+    build:
+      context: ./services/ai-assistant
+      dockerfile: Dockerfile
+    restart: "no"
+    command: python scripts/ingest_guidelines.py
+    environment:
+      LLM_PROVIDER: openwebui
+      LLM_API_KEY: ollama
+      OPENWEBUI_BASE_URL: http://ollama:11434/v1
+      EMBEDDING_MODEL: nomic-embed-text
+      EMBEDDING_DIM: "768"
+      DB_HOST: ai-db
+      DB_PORT: 5432
+      DB_NAME: ai_db
+      DB_USER: caredesk
+      DB_PASSWORD: caredesk
+    depends_on:
+      ai-db:
+        condition: service_healthy
+      ollama:
+        condition: service_healthy
+    networks:
+      - caredesk
+
   ollama:
     image: ollama/ollama
     environment:

@@ -5,9 +5,15 @@
  */
 package org.openapitools.api;
 
-import org.openapitools.model.AIQueryRequest;
-import org.openapitools.model.AIQueryResponse;
+import org.openapitools.model.AIMessageRequest;
+import org.openapitools.model.AIMessageResponse;
+import org.openapitools.model.AISSEEvent;
+import org.openapitools.model.AISession;
+import org.openapitools.model.AISessionCreateRequest;
+import org.springframework.lang.Nullable;
+import org.openapitools.model.PaginatedAISessionResponse;
 import org.openapitools.model.ProblemDetail;
+import java.util.UUID;
 import io.swagger.v3.oas.annotations.ExternalDocumentation;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -44,25 +50,27 @@ public interface AiApi {
         return Optional.empty();
     }
 
-    String PATH_QUERY_AI_ASSISTANT = "/ai/query";
+    String PATH_CREATE_AI_SESSION = "/ai/sessions";
     /**
-     * POST /ai/query : Query patient history using AI
+     * POST /ai/sessions : Start a new AI conversation session
+     * Creates a conversation, optionally bound to a patient and/or appointment. When bound, every message in the session is grounded in live data fetched for those ids; the binding is fixed for the lifetime of the session. 
      *
-     * @param aiQueryRequest  (required)
-     * @return AI response (status code 200)
+     * @param aiSessionCreateRequest  (required)
+     * @return Session created (status code 201)
      *         or The request is malformed or fails validation. (status code 400)
      *         or Authentication is required or has failed. (status code 401)
      *         or The caller is authenticated but not allowed to access the resource. (status code 403)
      *         or An unexpected error occurred while processing the request. (status code 500)
      */
     @Operation(
-        operationId = "queryAIAssistant",
-        summary = "Query patient history using AI",
+        operationId = "createAISession",
+        summary = "Start a new AI conversation session",
+        description = "Creates a conversation, optionally bound to a patient and/or appointment. When bound, every message in the session is grounded in live data fetched for those ids; the binding is fixed for the lifetime of the session. ",
         tags = { "AI Assistant" },
         responses = {
-            @ApiResponse(responseCode = "200", description = "AI response", content = {
-                @Content(mediaType = "application/json", schema = @Schema(implementation = AIQueryResponse.class)),
-                @Content(mediaType = "application/problem+json", schema = @Schema(implementation = AIQueryResponse.class))
+            @ApiResponse(responseCode = "201", description = "Session created", content = {
+                @Content(mediaType = "application/json", schema = @Schema(implementation = AISession.class)),
+                @Content(mediaType = "application/problem+json", schema = @Schema(implementation = AISession.class))
             }),
             @ApiResponse(responseCode = "400", description = "The request is malformed or fails validation.", content = {
                 @Content(mediaType = "application/json", schema = @Schema(implementation = ProblemDetail.class)),
@@ -87,17 +95,395 @@ public interface AiApi {
     )
     @RequestMapping(
         method = RequestMethod.POST,
-        value = AiApi.PATH_QUERY_AI_ASSISTANT,
+        value = AiApi.PATH_CREATE_AI_SESSION,
         produces = { "application/json", "application/problem+json" },
         consumes = { "application/json" }
     )
-    default ResponseEntity<AIQueryResponse> queryAIAssistant(
-        @Parameter(name = "AIQueryRequest", description = "", required = true) @Valid @RequestBody AIQueryRequest aiQueryRequest
+    default ResponseEntity<AISession> createAISession(
+        @Parameter(name = "AISessionCreateRequest", description = "", required = true) @Valid @RequestBody AISessionCreateRequest aiSessionCreateRequest
+    ) {
+        getRequest().ifPresent(request -> {
+            for (MediaType mediaType: MediaType.parseMediaTypes(request.getHeader("Accept"))) {
+                if (mediaType.isCompatibleWith(MediaType.valueOf("application/json"))) {
+                    String exampleString = "{ \"createdAt\" : \"2000-01-23T04:56:07.000+00:00\", \"patientId\" : \"046b6c7f-0b8a-43b9-b35d-6489e6daee91\", \"appointmentId\" : \"046b6c7f-0b8a-43b9-b35d-6489e6daee91\", \"messages\" : [ { \"createdAt\" : \"2000-01-23T04:56:07.000+00:00\", \"role\" : \"user\", \"sources\" : [ \"sources\", \"sources\" ], \"id\" : \"046b6c7f-0b8a-43b9-b35d-6489e6daee91\", \"content\" : \"content\" }, { \"createdAt\" : \"2000-01-23T04:56:07.000+00:00\", \"role\" : \"user\", \"sources\" : [ \"sources\", \"sources\" ], \"id\" : \"046b6c7f-0b8a-43b9-b35d-6489e6daee91\", \"content\" : \"content\" } ], \"id\" : \"046b6c7f-0b8a-43b9-b35d-6489e6daee91\", \"title\" : \"title\", \"userId\" : \"046b6c7f-0b8a-43b9-b35d-6489e6daee91\", \"updatedAt\" : \"2000-01-23T04:56:07.000+00:00\" }";
+                    ApiUtil.setExampleResponse(request, "application/json", exampleString);
+                    break;
+                }
+                if (mediaType.isCompatibleWith(MediaType.valueOf("application/problem+json"))) {
+                    String exampleString = "Custom MIME type example not yet supported: application/problem+json";
+                    ApiUtil.setExampleResponse(request, "application/problem+json", exampleString);
+                    break;
+                }
+                if (mediaType.isCompatibleWith(MediaType.valueOf("application/problem+json"))) {
+                    String exampleString = "Custom MIME type example not yet supported: application/problem+json";
+                    ApiUtil.setExampleResponse(request, "application/problem+json", exampleString);
+                    break;
+                }
+                if (mediaType.isCompatibleWith(MediaType.valueOf("application/problem+json"))) {
+                    String exampleString = "Custom MIME type example not yet supported: application/problem+json";
+                    ApiUtil.setExampleResponse(request, "application/problem+json", exampleString);
+                    break;
+                }
+                if (mediaType.isCompatibleWith(MediaType.valueOf("application/problem+json"))) {
+                    String exampleString = "Custom MIME type example not yet supported: application/problem+json";
+                    ApiUtil.setExampleResponse(request, "application/problem+json", exampleString);
+                    break;
+                }
+            }
+        });
+        return new ResponseEntity<>(HttpStatus.NOT_IMPLEMENTED);
+
+    }
+
+
+    String PATH_CREATE_AI_SESSION_MESSAGE = "/ai/sessions/{sessionId}/messages";
+    /**
+     * POST /ai/sessions/{sessionId}/messages : Send a message in a session and get the assistant&#39;s reply
+     * Appends the user&#39;s message to the conversation and returns the assistant&#39;s answer, grounded in the session&#39;s bound patient/appointment context (re-fetched live) and the full prior conversation. Both messages are persisted. When the client sends &#x60;Accept: text/event-stream&#x60; the answer is streamed as Server-Sent Events (a &#x60;sources&#x60; event, then &#x60;token&#x60; events, then &#x60;done&#x60;). 
+     *
+     * @param sessionId  (required)
+     * @param aiMessageRequest  (required)
+     * @return The assistant&#39;s reply. Returned as a single JSON object by default, or as a Server-Sent Events stream when the client sends &#x60;Accept: text/event-stream&#x60;.  (status code 200)
+     *         or The request is malformed or fails validation. (status code 400)
+     *         or Authentication is required or has failed. (status code 401)
+     *         or The caller is authenticated but not allowed to access the resource. (status code 403)
+     *         or The requested resource does not exist. (status code 404)
+     *         or An unexpected error occurred while processing the request. (status code 500)
+     *         or An upstream service the request depends on could not be reached. (status code 502)
+     */
+    @Operation(
+        operationId = "createAISessionMessage",
+        summary = "Send a message in a session and get the assistant's reply",
+        description = "Appends the user's message to the conversation and returns the assistant's answer, grounded in the session's bound patient/appointment context (re-fetched live) and the full prior conversation. Both messages are persisted. When the client sends `Accept: text/event-stream` the answer is streamed as Server-Sent Events (a `sources` event, then `token` events, then `done`). ",
+        tags = { "AI Assistant" },
+        responses = {
+            @ApiResponse(responseCode = "200", description = "The assistant's reply. Returned as a single JSON object by default, or as a Server-Sent Events stream when the client sends `Accept: text/event-stream`. ", content = {
+                @Content(mediaType = "application/json", schema = @Schema(implementation = AIMessageResponse.class)),
+                @Content(mediaType = "text/event-stream", schema = @Schema(implementation = AIMessageResponse.class)),
+                @Content(mediaType = "application/problem+json", schema = @Schema(implementation = AIMessageResponse.class))
+            }),
+            @ApiResponse(responseCode = "400", description = "The request is malformed or fails validation.", content = {
+                @Content(mediaType = "application/json", schema = @Schema(implementation = ProblemDetail.class)),
+                @Content(mediaType = "text/event-stream", schema = @Schema(implementation = ProblemDetail.class)),
+                @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class))
+            }),
+            @ApiResponse(responseCode = "401", description = "Authentication is required or has failed.", content = {
+                @Content(mediaType = "application/json", schema = @Schema(implementation = ProblemDetail.class)),
+                @Content(mediaType = "text/event-stream", schema = @Schema(implementation = ProblemDetail.class)),
+                @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class))
+            }),
+            @ApiResponse(responseCode = "403", description = "The caller is authenticated but not allowed to access the resource.", content = {
+                @Content(mediaType = "application/json", schema = @Schema(implementation = ProblemDetail.class)),
+                @Content(mediaType = "text/event-stream", schema = @Schema(implementation = ProblemDetail.class)),
+                @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class))
+            }),
+            @ApiResponse(responseCode = "404", description = "The requested resource does not exist.", content = {
+                @Content(mediaType = "application/json", schema = @Schema(implementation = ProblemDetail.class)),
+                @Content(mediaType = "text/event-stream", schema = @Schema(implementation = ProblemDetail.class)),
+                @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class))
+            }),
+            @ApiResponse(responseCode = "500", description = "An unexpected error occurred while processing the request.", content = {
+                @Content(mediaType = "application/json", schema = @Schema(implementation = ProblemDetail.class)),
+                @Content(mediaType = "text/event-stream", schema = @Schema(implementation = ProblemDetail.class)),
+                @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class))
+            }),
+            @ApiResponse(responseCode = "502", description = "An upstream service the request depends on could not be reached.", content = {
+                @Content(mediaType = "application/json", schema = @Schema(implementation = ProblemDetail.class)),
+                @Content(mediaType = "text/event-stream", schema = @Schema(implementation = ProblemDetail.class)),
+                @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class))
+            })
+        },
+        security = {
+            @SecurityRequirement(name = "bearerAuth")
+        }
+    )
+    @RequestMapping(
+        method = RequestMethod.POST,
+        value = AiApi.PATH_CREATE_AI_SESSION_MESSAGE,
+        produces = { "application/json", "text/event-stream", "application/problem+json" },
+        consumes = { "application/json" }
+    )
+    default ResponseEntity<AIMessageResponse> createAISessionMessage(
+        @Parameter(name = "sessionId", description = "", required = true, in = ParameterIn.PATH) @PathVariable("sessionId") UUID sessionId,
+        @Parameter(name = "AIMessageRequest", description = "", required = true) @Valid @RequestBody AIMessageRequest aiMessageRequest
     ) {
         getRequest().ifPresent(request -> {
             for (MediaType mediaType: MediaType.parseMediaTypes(request.getHeader("Accept"))) {
                 if (mediaType.isCompatibleWith(MediaType.valueOf("application/json"))) {
                     String exampleString = "{ \"answer\" : \"answer\", \"sources\" : [ \"sources\", \"sources\" ], \"confidence\" : 0.8008282 }";
+                    ApiUtil.setExampleResponse(request, "application/json", exampleString);
+                    break;
+                }
+                if (mediaType.isCompatibleWith(MediaType.valueOf("text/event-stream"))) {
+                    String exampleString = "Custom MIME type example not yet supported: text/event-stream";
+                    ApiUtil.setExampleResponse(request, "text/event-stream", exampleString);
+                    break;
+                }
+                if (mediaType.isCompatibleWith(MediaType.valueOf("application/problem+json"))) {
+                    String exampleString = "Custom MIME type example not yet supported: application/problem+json";
+                    ApiUtil.setExampleResponse(request, "application/problem+json", exampleString);
+                    break;
+                }
+                if (mediaType.isCompatibleWith(MediaType.valueOf("application/problem+json"))) {
+                    String exampleString = "Custom MIME type example not yet supported: application/problem+json";
+                    ApiUtil.setExampleResponse(request, "application/problem+json", exampleString);
+                    break;
+                }
+                if (mediaType.isCompatibleWith(MediaType.valueOf("application/problem+json"))) {
+                    String exampleString = "Custom MIME type example not yet supported: application/problem+json";
+                    ApiUtil.setExampleResponse(request, "application/problem+json", exampleString);
+                    break;
+                }
+                if (mediaType.isCompatibleWith(MediaType.valueOf("application/problem+json"))) {
+                    String exampleString = "Custom MIME type example not yet supported: application/problem+json";
+                    ApiUtil.setExampleResponse(request, "application/problem+json", exampleString);
+                    break;
+                }
+                if (mediaType.isCompatibleWith(MediaType.valueOf("application/problem+json"))) {
+                    String exampleString = "Custom MIME type example not yet supported: application/problem+json";
+                    ApiUtil.setExampleResponse(request, "application/problem+json", exampleString);
+                    break;
+                }
+                if (mediaType.isCompatibleWith(MediaType.valueOf("application/problem+json"))) {
+                    String exampleString = "Custom MIME type example not yet supported: application/problem+json";
+                    ApiUtil.setExampleResponse(request, "application/problem+json", exampleString);
+                    break;
+                }
+            }
+        });
+        return new ResponseEntity<>(HttpStatus.NOT_IMPLEMENTED);
+
+    }
+
+
+    String PATH_DELETE_AI_SESSION = "/ai/sessions/{sessionId}";
+    /**
+     * DELETE /ai/sessions/{sessionId} : Delete a session and its messages
+     *
+     * @param sessionId  (required)
+     * @return Session deleted (status code 204)
+     *         or The request is malformed or fails validation. (status code 400)
+     *         or Authentication is required or has failed. (status code 401)
+     *         or The caller is authenticated but not allowed to access the resource. (status code 403)
+     *         or The requested resource does not exist. (status code 404)
+     *         or An unexpected error occurred while processing the request. (status code 500)
+     */
+    @Operation(
+        operationId = "deleteAISession",
+        summary = "Delete a session and its messages",
+        tags = { "AI Assistant" },
+        responses = {
+            @ApiResponse(responseCode = "204", description = "Session deleted"),
+            @ApiResponse(responseCode = "400", description = "The request is malformed or fails validation.", content = {
+                @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class))
+            }),
+            @ApiResponse(responseCode = "401", description = "Authentication is required or has failed.", content = {
+                @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class))
+            }),
+            @ApiResponse(responseCode = "403", description = "The caller is authenticated but not allowed to access the resource.", content = {
+                @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class))
+            }),
+            @ApiResponse(responseCode = "404", description = "The requested resource does not exist.", content = {
+                @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class))
+            }),
+            @ApiResponse(responseCode = "500", description = "An unexpected error occurred while processing the request.", content = {
+                @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class))
+            })
+        },
+        security = {
+            @SecurityRequirement(name = "bearerAuth")
+        }
+    )
+    @RequestMapping(
+        method = RequestMethod.DELETE,
+        value = AiApi.PATH_DELETE_AI_SESSION,
+        produces = { "application/problem+json" }
+    )
+    default ResponseEntity<Void> deleteAISession(
+        @Parameter(name = "sessionId", description = "", required = true, in = ParameterIn.PATH) @PathVariable("sessionId") UUID sessionId
+    ) {
+        getRequest().ifPresent(request -> {
+            for (MediaType mediaType: MediaType.parseMediaTypes(request.getHeader("Accept"))) {
+                if (mediaType.isCompatibleWith(MediaType.valueOf("application/problem+json"))) {
+                    String exampleString = "Custom MIME type example not yet supported: application/problem+json";
+                    ApiUtil.setExampleResponse(request, "application/problem+json", exampleString);
+                    break;
+                }
+                if (mediaType.isCompatibleWith(MediaType.valueOf("application/problem+json"))) {
+                    String exampleString = "Custom MIME type example not yet supported: application/problem+json";
+                    ApiUtil.setExampleResponse(request, "application/problem+json", exampleString);
+                    break;
+                }
+                if (mediaType.isCompatibleWith(MediaType.valueOf("application/problem+json"))) {
+                    String exampleString = "Custom MIME type example not yet supported: application/problem+json";
+                    ApiUtil.setExampleResponse(request, "application/problem+json", exampleString);
+                    break;
+                }
+                if (mediaType.isCompatibleWith(MediaType.valueOf("application/problem+json"))) {
+                    String exampleString = "Custom MIME type example not yet supported: application/problem+json";
+                    ApiUtil.setExampleResponse(request, "application/problem+json", exampleString);
+                    break;
+                }
+                if (mediaType.isCompatibleWith(MediaType.valueOf("application/problem+json"))) {
+                    String exampleString = "Custom MIME type example not yet supported: application/problem+json";
+                    ApiUtil.setExampleResponse(request, "application/problem+json", exampleString);
+                    break;
+                }
+            }
+        });
+        return new ResponseEntity<>(HttpStatus.NOT_IMPLEMENTED);
+
+    }
+
+
+    String PATH_GET_AI_SESSION = "/ai/sessions/{sessionId}";
+    /**
+     * GET /ai/sessions/{sessionId} : Get a session and its full message history
+     *
+     * @param sessionId  (required)
+     * @return Session with messages, oldest first (status code 200)
+     *         or The request is malformed or fails validation. (status code 400)
+     *         or Authentication is required or has failed. (status code 401)
+     *         or The caller is authenticated but not allowed to access the resource. (status code 403)
+     *         or The requested resource does not exist. (status code 404)
+     *         or An unexpected error occurred while processing the request. (status code 500)
+     */
+    @Operation(
+        operationId = "getAISession",
+        summary = "Get a session and its full message history",
+        tags = { "AI Assistant" },
+        responses = {
+            @ApiResponse(responseCode = "200", description = "Session with messages, oldest first", content = {
+                @Content(mediaType = "application/json", schema = @Schema(implementation = AISession.class)),
+                @Content(mediaType = "application/problem+json", schema = @Schema(implementation = AISession.class))
+            }),
+            @ApiResponse(responseCode = "400", description = "The request is malformed or fails validation.", content = {
+                @Content(mediaType = "application/json", schema = @Schema(implementation = ProblemDetail.class)),
+                @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class))
+            }),
+            @ApiResponse(responseCode = "401", description = "Authentication is required or has failed.", content = {
+                @Content(mediaType = "application/json", schema = @Schema(implementation = ProblemDetail.class)),
+                @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class))
+            }),
+            @ApiResponse(responseCode = "403", description = "The caller is authenticated but not allowed to access the resource.", content = {
+                @Content(mediaType = "application/json", schema = @Schema(implementation = ProblemDetail.class)),
+                @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class))
+            }),
+            @ApiResponse(responseCode = "404", description = "The requested resource does not exist.", content = {
+                @Content(mediaType = "application/json", schema = @Schema(implementation = ProblemDetail.class)),
+                @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class))
+            }),
+            @ApiResponse(responseCode = "500", description = "An unexpected error occurred while processing the request.", content = {
+                @Content(mediaType = "application/json", schema = @Schema(implementation = ProblemDetail.class)),
+                @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class))
+            })
+        },
+        security = {
+            @SecurityRequirement(name = "bearerAuth")
+        }
+    )
+    @RequestMapping(
+        method = RequestMethod.GET,
+        value = AiApi.PATH_GET_AI_SESSION,
+        produces = { "application/json", "application/problem+json" }
+    )
+    default ResponseEntity<AISession> getAISession(
+        @Parameter(name = "sessionId", description = "", required = true, in = ParameterIn.PATH) @PathVariable("sessionId") UUID sessionId
+    ) {
+        getRequest().ifPresent(request -> {
+            for (MediaType mediaType: MediaType.parseMediaTypes(request.getHeader("Accept"))) {
+                if (mediaType.isCompatibleWith(MediaType.valueOf("application/json"))) {
+                    String exampleString = "{ \"createdAt\" : \"2000-01-23T04:56:07.000+00:00\", \"patientId\" : \"046b6c7f-0b8a-43b9-b35d-6489e6daee91\", \"appointmentId\" : \"046b6c7f-0b8a-43b9-b35d-6489e6daee91\", \"messages\" : [ { \"createdAt\" : \"2000-01-23T04:56:07.000+00:00\", \"role\" : \"user\", \"sources\" : [ \"sources\", \"sources\" ], \"id\" : \"046b6c7f-0b8a-43b9-b35d-6489e6daee91\", \"content\" : \"content\" }, { \"createdAt\" : \"2000-01-23T04:56:07.000+00:00\", \"role\" : \"user\", \"sources\" : [ \"sources\", \"sources\" ], \"id\" : \"046b6c7f-0b8a-43b9-b35d-6489e6daee91\", \"content\" : \"content\" } ], \"id\" : \"046b6c7f-0b8a-43b9-b35d-6489e6daee91\", \"title\" : \"title\", \"userId\" : \"046b6c7f-0b8a-43b9-b35d-6489e6daee91\", \"updatedAt\" : \"2000-01-23T04:56:07.000+00:00\" }";
+                    ApiUtil.setExampleResponse(request, "application/json", exampleString);
+                    break;
+                }
+                if (mediaType.isCompatibleWith(MediaType.valueOf("application/problem+json"))) {
+                    String exampleString = "Custom MIME type example not yet supported: application/problem+json";
+                    ApiUtil.setExampleResponse(request, "application/problem+json", exampleString);
+                    break;
+                }
+                if (mediaType.isCompatibleWith(MediaType.valueOf("application/problem+json"))) {
+                    String exampleString = "Custom MIME type example not yet supported: application/problem+json";
+                    ApiUtil.setExampleResponse(request, "application/problem+json", exampleString);
+                    break;
+                }
+                if (mediaType.isCompatibleWith(MediaType.valueOf("application/problem+json"))) {
+                    String exampleString = "Custom MIME type example not yet supported: application/problem+json";
+                    ApiUtil.setExampleResponse(request, "application/problem+json", exampleString);
+                    break;
+                }
+                if (mediaType.isCompatibleWith(MediaType.valueOf("application/problem+json"))) {
+                    String exampleString = "Custom MIME type example not yet supported: application/problem+json";
+                    ApiUtil.setExampleResponse(request, "application/problem+json", exampleString);
+                    break;
+                }
+                if (mediaType.isCompatibleWith(MediaType.valueOf("application/problem+json"))) {
+                    String exampleString = "Custom MIME type example not yet supported: application/problem+json";
+                    ApiUtil.setExampleResponse(request, "application/problem+json", exampleString);
+                    break;
+                }
+            }
+        });
+        return new ResponseEntity<>(HttpStatus.NOT_IMPLEMENTED);
+
+    }
+
+
+    String PATH_LIST_AI_SESSIONS = "/ai/sessions";
+    /**
+     * GET /ai/sessions : List the caller&#39;s AI conversation sessions
+     *
+     * @param page Zero-based page index. (optional, default to 0)
+     * @param size Number of items per page. (optional, default to 20)
+     * @return Paginated list of the caller&#39;s sessions, newest first (status code 200)
+     *         or The request is malformed or fails validation. (status code 400)
+     *         or Authentication is required or has failed. (status code 401)
+     *         or The caller is authenticated but not allowed to access the resource. (status code 403)
+     *         or An unexpected error occurred while processing the request. (status code 500)
+     */
+    @Operation(
+        operationId = "listAISessions",
+        summary = "List the caller's AI conversation sessions",
+        tags = { "AI Assistant" },
+        responses = {
+            @ApiResponse(responseCode = "200", description = "Paginated list of the caller's sessions, newest first", content = {
+                @Content(mediaType = "application/json", schema = @Schema(implementation = PaginatedAISessionResponse.class)),
+                @Content(mediaType = "application/problem+json", schema = @Schema(implementation = PaginatedAISessionResponse.class))
+            }),
+            @ApiResponse(responseCode = "400", description = "The request is malformed or fails validation.", content = {
+                @Content(mediaType = "application/json", schema = @Schema(implementation = ProblemDetail.class)),
+                @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class))
+            }),
+            @ApiResponse(responseCode = "401", description = "Authentication is required or has failed.", content = {
+                @Content(mediaType = "application/json", schema = @Schema(implementation = ProblemDetail.class)),
+                @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class))
+            }),
+            @ApiResponse(responseCode = "403", description = "The caller is authenticated but not allowed to access the resource.", content = {
+                @Content(mediaType = "application/json", schema = @Schema(implementation = ProblemDetail.class)),
+                @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class))
+            }),
+            @ApiResponse(responseCode = "500", description = "An unexpected error occurred while processing the request.", content = {
+                @Content(mediaType = "application/json", schema = @Schema(implementation = ProblemDetail.class)),
+                @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class))
+            })
+        },
+        security = {
+            @SecurityRequirement(name = "bearerAuth")
+        }
+    )
+    @RequestMapping(
+        method = RequestMethod.GET,
+        value = AiApi.PATH_LIST_AI_SESSIONS,
+        produces = { "application/json", "application/problem+json" }
+    )
+    default ResponseEntity<PaginatedAISessionResponse> listAISessions(
+        @Min(value = 0) @Parameter(name = "page", description = "Zero-based page index.", in = ParameterIn.QUERY) @Valid @RequestParam(value = "page", required = false, defaultValue = "0") Integer page,
+        @Min(value = 1) @Max(value = 100) @Parameter(name = "size", description = "Number of items per page.", in = ParameterIn.QUERY) @Valid @RequestParam(value = "size", required = false, defaultValue = "20") Integer size
+    ) {
+        getRequest().ifPresent(request -> {
+            for (MediaType mediaType: MediaType.parseMediaTypes(request.getHeader("Accept"))) {
+                if (mediaType.isCompatibleWith(MediaType.valueOf("application/json"))) {
+                    String exampleString = "{ \"page\" : { \"size\" : 1, \"totalPages\" : 0, \"page\" : 0, \"totalElements\" : 0 }, \"content\" : [ { \"createdAt\" : \"2000-01-23T04:56:07.000+00:00\", \"patientId\" : \"046b6c7f-0b8a-43b9-b35d-6489e6daee91\", \"appointmentId\" : \"046b6c7f-0b8a-43b9-b35d-6489e6daee91\", \"id\" : \"046b6c7f-0b8a-43b9-b35d-6489e6daee91\", \"title\" : \"title\", \"userId\" : \"046b6c7f-0b8a-43b9-b35d-6489e6daee91\", \"updatedAt\" : \"2000-01-23T04:56:07.000+00:00\" }, { \"createdAt\" : \"2000-01-23T04:56:07.000+00:00\", \"patientId\" : \"046b6c7f-0b8a-43b9-b35d-6489e6daee91\", \"appointmentId\" : \"046b6c7f-0b8a-43b9-b35d-6489e6daee91\", \"id\" : \"046b6c7f-0b8a-43b9-b35d-6489e6daee91\", \"title\" : \"title\", \"userId\" : \"046b6c7f-0b8a-43b9-b35d-6489e6daee91\", \"updatedAt\" : \"2000-01-23T04:56:07.000+00:00\" } ] }";
                     ApiUtil.setExampleResponse(request, "application/json", exampleString);
                     break;
                 }

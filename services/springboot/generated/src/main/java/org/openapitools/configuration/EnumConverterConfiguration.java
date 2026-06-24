@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.net.URI;
 import java.util.UUID;
 
+import org.openapitools.model.AIMessageRole;
 import org.openapitools.model.AppointmentStatus;
 import org.openapitools.model.NotificationChannel;
 import org.openapitools.model.UserRole;
@@ -22,6 +23,15 @@ import org.springframework.core.convert.converter.Converter;
 @Configuration(value = "org.openapitools.configuration.enumConverterConfiguration")
 public class EnumConverterConfiguration {
 
+    @Bean(name = "org.openapitools.configuration.EnumConverterConfiguration.aiMessageRoleConverter")
+    Converter<String, AIMessageRole> aiMessageRoleConverter() {
+        return new Converter<String, AIMessageRole>() {
+            @Override
+            public AIMessageRole convert(String source) {
+                return AIMessageRole.fromValue(source);
+            }
+        };
+    }
     @Bean(name = "org.openapitools.configuration.EnumConverterConfiguration.appointmentStatusConverter")
     Converter<String, AppointmentStatus> appointmentStatusConverter() {
         return new Converter<String, AppointmentStatus>() {

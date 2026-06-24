@@ -24,6 +24,15 @@ final class GatewayIdentity {
     /** Trusted role injected by the gateway after it validates the JWT. */
     static final String ROLE_HEADER = "X-User-Role";
 
+    /**
+     * Pagination fallbacks matching the OpenAPI {@code defaultValue}s. The
+     * generated {@code @RequestParam}s supply these over HTTP, but applying them
+     * defensively keeps the primitive-int service calls null-safe regardless of
+     * how the controller is invoked.
+     */
+    static final int DEFAULT_PAGE = 0;
+    static final int DEFAULT_SIZE = 20;
+
     private GatewayIdentity() {
     }
 

@@ -82,7 +82,7 @@ public class NotificationsController implements NotificationsApi {
         return ResponseEntity.ok(notificationsService.list(
                 GatewayIdentity.role(request),
                 GatewayIdentity.userId(request),
-                page,
-                size));
+                page != null ? page : GatewayIdentity.DEFAULT_PAGE,
+                size != null ? size : GatewayIdentity.DEFAULT_SIZE));
     }
 }

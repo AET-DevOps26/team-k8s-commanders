@@ -67,6 +67,9 @@ jobs:
             echo "AI_DB_NAME=${{ vars.AI_DB_NAME }}" >> .env.prod
             echo "AI_DB_USER=${{ vars.AI_DB_USER }}" >> .env.prod
             echo "AI_DB_PASSWORD=${{ secrets.AI_DB_PASSWORD }}" >> .env.prod
+            echo "AI_DDL_AUTO=${{ vars.AI_DDL_AUTO }}" >> .env.prod
+            echo "GRAFANA_ADMIN_USER=${{ vars.GRAFANA_ADMIN_USER }}" >> .env.prod
+            echo "GRAFANA_ADMIN_PASSWORD=${{ secrets.GRAFANA_ADMIN_PASSWORD }}" >> .env.prod
 
       - name: Deploy with Docker Compose
         uses: appleboy/ssh-action@v1.2.5

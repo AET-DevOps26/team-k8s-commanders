@@ -169,11 +169,10 @@ notes:
     limits:   { cpu: 400m, memory: 768Mi }
 
 # ─── Monitoring (Prometheus + Grafana) ───────────────────────────────────────
-# Disabled by default so the core stack installs within the AET 4-CPU quota.
-# Enable both with: --set monitoring.enabled=true
-# CPU budget with monitoring: ~350m extra → ~3550m total (450m spare).
+# Enabled by default. Adds ~350m CPU → ~3550m total, within the AET 4-CPU
+# quota (~450m spare). Disable with: --set monitoring.enabled=false
 monitoring:
-  enabled: false
+  enabled: true
   image: prom/prometheus:v3.3.1
   retention: 7d
   storage: 2Gi

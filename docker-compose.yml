@@ -260,8 +260,10 @@ services:
 
   api-gateway:
     build:
-      context: ./services/api-gateway
-      dockerfile: Dockerfile
+      # Build context is the repo root so the Dockerfile can reach api/openapi.yaml
+      # and bundle it (served at /api/v1/openapi.yaml with Swagger UI at /api/v1/docs).
+      context: .
+      dockerfile: services/api-gateway/Dockerfile
     restart: unless-stopped
     depends_on:
       auth-service:

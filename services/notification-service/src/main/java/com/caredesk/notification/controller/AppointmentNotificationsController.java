@@ -54,7 +54,7 @@ public class AppointmentNotificationsController implements AppointmentsApi {
                 appointmentId,
                 GatewayIdentity.role(request),
                 GatewayIdentity.userId(request),
-                page,
-                size));
+                page != null ? page : GatewayIdentity.DEFAULT_PAGE,
+                size != null ? size : GatewayIdentity.DEFAULT_SIZE));
     }
 }

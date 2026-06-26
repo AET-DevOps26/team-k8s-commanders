@@ -20,22 +20,22 @@ import json
 
 
 
-from pydantic import BaseModel, ConfigDict, Field, StrictStr
-from typing import Any, ClassVar, Dict, List, Optional
-from uuid import UUID
+from pydantic import BaseModel, ConfigDict
+from typing import Any, ClassVar, Dict, List
+from models.ai_session_summary import AISessionSummary
+from models.page_meta import PageMeta
 try:
     from typing import Self
 except ImportError:
     from typing_extensions import Self
 
-class AIQueryRequest(BaseModel):
+class PaginatedAISessionResponse(BaseModel):
     """
-    AIQueryRequest
+    PaginatedAISessionResponse
     """ # noqa: E501
-    patient_id: Optional[UUID] = Field(default=None, alias="patientId")
-    appointment_id: Optional[UUID] = Field(default=None, alias="appointmentId")
-    query: StrictStr
-    __properties: ClassVar[List[str]] = ["patientId", "appointmentId", "query"]
+    content: List[AISessionSummary]
+    page: PageMeta
+    __properties: ClassVar[List[str]] = ["content", "page"]
 
     model_config = {
         "populate_by_name": True,
@@ -55,7 +55,7 @@ class AIQueryRequest(BaseModel):
 
     @classmethod
     def from_json(cls, json_str: str) -> Self:
-        """Create an instance of AIQueryRequest from a JSON string"""
+        """Create an instance of PaginatedAISessionResponse from a JSON string"""
         return cls.from_dict(json.loads(json_str))
 
     def to_dict(self) -> Dict[str, Any]:
@@ -74,11 +74,21 @@ class AIQueryRequest(BaseModel):
             },
             exclude_none=True,
         )
+        # override the default output from pydantic by calling `to_dict()` of each item in content (list)
+        _items = []
+        if self.content:
+            for _item in self.content:
+                if _item:
+                    _items.append(_item.to_dict())
+            _dict['content'] = _items
+        # override the default output from pydantic by calling `to_dict()` of page
+        if self.page:
+            _dict['page'] = self.page.to_dict()
         return _dict
 
     @classmethod
     def from_dict(cls, obj: Dict) -> Self:
-        """Create an instance of AIQueryRequest from a dict"""
+        """Create an instance of PaginatedAISessionResponse from a dict"""
         if obj is None:
             return None
 
@@ -86,9 +96,8 @@ class AIQueryRequest(BaseModel):
             return cls.model_validate(obj)
 
         _obj = cls.model_validate({
-            "patientId": obj.get("patientId"),
-            "appointmentId": obj.get("appointmentId"),
-            "query": obj.get("query")
+            "content": [AISessionSummary.from_dict(_item) for _item in obj.get("content")] if obj.get("content") is not None else None,
+            "page": PageMeta.from_dict(obj.get("page")) if obj.get("page") is not None else None
         })
         return _obj
 

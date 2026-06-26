@@ -9,6 +9,10 @@ openapi:
 spring:
   application:
     name: auth-service
+  # Render errors as RFC 9457 application/problem+json, matching the API contract.
+  mvc:
+    problemdetails:
+      enabled: true
   datasource:
     url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:auth_db}
     username: ${DB_USER:caredesk}

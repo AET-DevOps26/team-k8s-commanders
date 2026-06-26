@@ -37,16 +37,37 @@ src_models_dir="$fastapi_temp_dir/src/openapi_server/models"
 target_models_dir="$repo_root/services/ai-assistant/models"
 rm -rf "$target_models_dir"
 mkdir -p "$target_models_dir"
+# Model files the AI assistant needs: the session/message request & response
+# shapes plus their nested types, and UserRole for DOCTOR/ADMIN authorisation.
+# These must exist after generation — fail loudly if the contract drifted.
+required_models=(
+  ai_session.py
+  ai_session_summary.py
+  ai_session_create_request.py
+  ai_message.py
+  ai_message_role.py
+  ai_message_request.py
+  ai_message_response.py
+  paginated_ai_session_response.py
+  page_meta.py
+  user_role.py
+)
 if [ -d "$src_models_dir" ]; then
-  # copy only the model files needed by the AI query endpoint
-  cp "$src_models_dir/ai_query_request.py" "$target_models_dir" 2>/dev/null || true
-  cp "$src_models_dir/ai_query_response.py" "$target_models_dir" 2>/dev/null || true
-  # UserRole is used to authorise /ai/query (DOCTOR/ADMIN only); it must exist.
-  if [ ! -f "$src_models_dir/user_role.py" ]; then
-    echo "gen-all.sh: error: expected generated model '$src_models_dir/user_role.py' not found" >&2
-    exit 1
-  fi
-  cp "$src_models_dir/user_role.py" "$target_models_dir"
+  for model in "${required_models[@]}"; do
+    if [ ! -f "$src_models_dir/$model" ]; then
+      echo "gen-all.sh: error: expected generated model '$src_models_dir/$model' not found" >&2
+      exit 1
+    fi
+    cp "$src_models_dir/$model" "$target_models_dir"
+  done
+  # The generator emits cross-model imports rooted at the full `openapi_server`
+  # package; the AI service keeps only a flat `models/` package, so rewrite them.
+  # Use a backup suffix and delete it so this works with both GNU and BSD sed
+  # (BSD/macOS `sed -i` requires an explicit suffix argument).
+  for py in "$target_models_dir"/*.py; do
+    sed -i.bak 's/from openapi_server\.models\./from models./g' "$py"
+    rm -f "$py.bak"
+  done
 fi
 # ensure package init
 if [ ! -f "$target_models_dir/__init__.py" ]; then

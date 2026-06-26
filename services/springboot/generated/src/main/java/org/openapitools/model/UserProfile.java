@@ -46,6 +46,8 @@ public class UserProfile {
 
   private @Nullable String licenseNumber;
 
+  private @Nullable Boolean enabled;
+
   private @Nullable String password;
 
   public UserProfile() {
@@ -251,6 +253,27 @@ public class UserProfile {
     this.licenseNumber = licenseNumber;
   }
 
+  public UserProfile enabled(@Nullable Boolean enabled) {
+    this.enabled = enabled;
+    return this;
+  }
+
+  /**
+   * Whether the account is active. Disabled accounts cannot authenticate.
+   * @return enabled
+   */
+  
+  @Schema(name = "enabled", description = "Whether the account is active. Disabled accounts cannot authenticate.", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
+  @JsonProperty("enabled")
+  public @Nullable Boolean getEnabled() {
+    return enabled;
+  }
+
+  @JsonProperty("enabled")
+  public void setEnabled(@Nullable Boolean enabled) {
+    this.enabled = enabled;
+  }
+
   public UserProfile password(@Nullable String password) {
     this.password = password;
     return this;
@@ -290,12 +313,13 @@ public class UserProfile {
         Objects.equals(this.dateOfBirth, userProfile.dateOfBirth) &&
         Objects.equals(this.specialization, userProfile.specialization) &&
         Objects.equals(this.licenseNumber, userProfile.licenseNumber) &&
+        Objects.equals(this.enabled, userProfile.enabled) &&
         Objects.equals(this.password, userProfile.password);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(id, name, email, role, clinicId, phoneNumber, dateOfBirth, specialization, licenseNumber, password);
+    return Objects.hash(id, name, email, role, clinicId, phoneNumber, dateOfBirth, specialization, licenseNumber, enabled, password);
   }
 
   @Override
@@ -311,6 +335,7 @@ public class UserProfile {
     sb.append("    dateOfBirth: ").append(toIndentedString(dateOfBirth)).append("\n");
     sb.append("    specialization: ").append(toIndentedString(specialization)).append("\n");
     sb.append("    licenseNumber: ").append(toIndentedString(licenseNumber)).append("\n");
+    sb.append("    enabled: ").append(toIndentedString(enabled)).append("\n");
     sb.append("    password: ").append(toIndentedString(password)).append("\n");
     sb.append("}");
     return sb.toString();

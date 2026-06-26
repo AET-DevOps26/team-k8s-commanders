@@ -10,8 +10,15 @@ src/main/java/org/openapitools/api/NotificationsApi.java
 src/main/java/org/openapitools/api/PatientsApi.java
 src/main/java/org/openapitools/api/UsersApi.java
 src/main/java/org/openapitools/configuration/EnumConverterConfiguration.java
-src/main/java/org/openapitools/model/AIQueryRequest.java
-src/main/java/org/openapitools/model/AIQueryResponse.java
+src/main/java/org/openapitools/model/AIMessage.java
+src/main/java/org/openapitools/model/AIMessageRequest.java
+src/main/java/org/openapitools/model/AIMessageResponse.java
+src/main/java/org/openapitools/model/AIMessageRole.java
+src/main/java/org/openapitools/model/AISSEErrorEvent.java
+src/main/java/org/openapitools/model/AISSEEvent.java
+src/main/java/org/openapitools/model/AISession.java
+src/main/java/org/openapitools/model/AISessionCreateRequest.java
+src/main/java/org/openapitools/model/AISessionSummary.java
 src/main/java/org/openapitools/model/Appointment.java
 src/main/java/org/openapitools/model/AppointmentCreate.java
 src/main/java/org/openapitools/model/AppointmentRescheduleRequest.java
@@ -26,6 +33,7 @@ src/main/java/org/openapitools/model/Notification.java
 src/main/java/org/openapitools/model/NotificationChannel.java
 src/main/java/org/openapitools/model/NotificationCreate.java
 src/main/java/org/openapitools/model/PageMeta.java
+src/main/java/org/openapitools/model/PaginatedAISessionResponse.java
 src/main/java/org/openapitools/model/PaginatedAppointmentResponse.java
 src/main/java/org/openapitools/model/PaginatedNotificationResponse.java
 src/main/java/org/openapitools/model/PaginatedUserProfileResponse.java
@@ -34,7 +42,9 @@ src/main/java/org/openapitools/model/ProblemDetail.java
 src/main/java/org/openapitools/model/RegisterRequest.java
 src/main/java/org/openapitools/model/Schedule.java
 src/main/java/org/openapitools/model/ScheduleSlot.java
+src/main/java/org/openapitools/model/UserCreate.java
 src/main/java/org/openapitools/model/UserProfile.java
 src/main/java/org/openapitools/model/UserRole.java
+src/main/java/org/openapitools/model/UserStats.java
 src/main/java/org/openapitools/model/ValidationError.java
 src/main/java/org/openapitools/model/VisitHistory.java

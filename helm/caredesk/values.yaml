@@ -8,8 +8,8 @@ tumId: ge38yuc
 # Steady-state CPU limits must stay below that cap. Recreate (not RollingUpdate)
 # terminates the old pod before starting the new one, so rollouts do not need
 # temporary spare quota for overlapping pods.
-# Budget: 6×400m backends + 4×250m Postgres + 1×200m web + 1×100m mailpit
-# = 3700m (300m spare).
+# Budget: 6×400m backends + 5×250m Postgres + 1×200m web + 1×100m mailpit
+# = 3950m (50m spare).
 deploymentStrategy:
   type: Recreate
 
@@ -66,6 +66,8 @@ databases:
     database: notes_db
   notification-db:
     database: notification_db
+  ai-db:
+    database: ai_db
 
 # ─── NetworkPolicy ─────────────────────────────────────────────────────────────
 # Enforces the trusted-header model: backend services (auth/patient/notes/ai)
@@ -217,6 +219,8 @@ ai:
     tag: ""
   service:
     port: 8000
+  dbHost: caredesk-ai-db
+  dbName: ai_db
   env:
     llmProvider: openai
     llmModel: gpt-4o-mini

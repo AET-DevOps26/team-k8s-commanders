@@ -55,6 +55,7 @@ docker compose up --build
 | Notes service | http://localhost:8083 |
 | Notes database (Postgres) | localhost:5434 |
 | Notification database (Postgres) | localhost:5435 |
+| AI assistant database (Postgres) | localhost:5436 |
 | Mailpit web UI (caught emails) | http://localhost:8025 |
 
 The web client reads `PUBLIC_API_URL` at runtime (default `/api/v1`) and sends API requests through the gateway. Use `http://localhost` for the full compose setup; nginx serves the frontend and forwards `/api/v1/**` to the API gateway without requiring CORS. Copy `services/ai-assistant/.env.example` to `services/ai-assistant/.env` before the first run if you use the AI assistant service.

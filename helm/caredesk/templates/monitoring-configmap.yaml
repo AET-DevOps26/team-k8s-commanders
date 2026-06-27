@@ -1,0 +1,40 @@
+{{- if .Values.monitoring.enabled -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "caredesk.fullname" . }}-prometheus
+  labels:
+    {{- include "caredesk.labels" . | nindent 4 }}
+    app.kubernetes.io/component: prometheus
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: 15s
+      evaluation_interval: 15s
+
+    scrape_configs:
+      - job_name: api-gateway
+        metrics_path: /actuator/prometheus
+        static_configs:
+          - targets: ['{{ include "caredesk.fullname" . }}-gateway:{{ .Values.gateway.service.port }}']
+
+      - job_name: auth-service
+        metrics_path: /actuator/prometheus
+        static_configs:
+          - targets: ['{{ include "caredesk.fullname" . }}-auth:{{ .Values.auth.service.port }}']
+
+      - job_name: patient-service
+        metrics_path: /actuator/prometheus
+        static_configs:
+          - targets: ['{{ include "caredesk.fullname" . }}-patient:{{ .Values.patient.service.port }}']
+
+      - job_name: notes-service
+        metrics_path: /actuator/prometheus
+        static_configs:
+          - targets: ['{{ include "caredesk.fullname" . }}-notes:{{ .Values.notes.service.port }}']
+
+      - job_name: ai-assistant
+        metrics_path: /metrics
+        static_configs:
+          - targets: ['{{ include "caredesk.fullname" . }}-ai:{{ .Values.ai.service.port }}']
+{{- end }}

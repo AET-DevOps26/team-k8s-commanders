@@ -48,9 +48,10 @@ public class SecurityConfig {
                         // GET /users/{id} is an internal service-to-service endpoint that
                         // patient-service and notes-service call without a JWT.
                         .requestMatchers(HttpMethod.GET, "/users/**").permitAll()
-                        // Health endpoint must be reachable for the Docker healthcheck.
+                        // Health and Prometheus endpoints must be reachable without auth.
                         // Both forms needed: Spring Security 6 `/**` doesn't match the exact path without trailing slash.
                         .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
+                        .requestMatchers("/actuator/prometheus").permitAll()
                         // Spring forwards unhandled exceptions to /error. Without permitting
                         // it, error pages come back as 403 instead of the intended status.
                         .requestMatchers("/error").permitAll()

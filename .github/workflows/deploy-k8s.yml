@@ -98,6 +98,9 @@ jobs:
           if [ -n "${{ secrets.POSTGRES_PASSWORD }}" ]; then
             SET_FLAGS+=(--set "postgres.password=${{ secrets.POSTGRES_PASSWORD }}")
           fi
+          if [ -n "${{ secrets.GRAFANA_ADMIN_PASSWORD }}" ]; then
+            SET_FLAGS+=(--set "monitoring.grafana.adminPassword=${{ secrets.GRAFANA_ADMIN_PASSWORD }}")
+          fi
 
           if ! helm upgrade --install caredesk helm/caredesk \
             --namespace "${NS}" \

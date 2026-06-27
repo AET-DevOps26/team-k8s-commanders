@@ -46,6 +46,15 @@ export type PatientDashboardProps = {
   onNavigate: NavigateHandler
 }
 
+export type PatientBookingPageProps = PatientDashboardProps & {
+  onBooked: () => void
+}
+
+export type PatientDashboardViewProps = PatientDashboardProps & {
+  bookingSuccess?: boolean
+  onBookingSuccessAcknowledged?: () => void
+}
+
 export type PatientProfileProps = PatientDashboardProps & {
   onSessionUpdated: (session: AuthSession) => void
 }

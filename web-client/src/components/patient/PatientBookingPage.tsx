@@ -7,7 +7,7 @@ import {
 } from '../../clientApi'
 import { formatAppointmentDate, formatTimeRange, isPastDateTime } from '../../lib/dates'
 import { userMessage } from '../../lib/messages'
-import type { PatientDashboardProps } from '../../types/route'
+import type { PatientBookingPageProps } from '../../types/route'
 import { PatientSubNav } from '../layout/PatientSubNav'
 import { ShellNav } from '../layout/ShellNav'
 import { EmptyPanel } from '../ui/EmptyPanel'
@@ -17,7 +17,8 @@ export function PatientBookingPage({
   session,
   onLogout,
   onNavigate,
-}: PatientDashboardProps) {
+  onBooked,
+}: PatientBookingPageProps) {
   const [query, setQuery] = useState('')
   const [specialization, setSpecialization] = useState('')
   const [doctors, setDoctors] = useState<UserProfile[]>([])
@@ -25,7 +26,6 @@ export function PatientBookingPage({
   const [slots, setSlots] = useState<ScheduleSlot[]>([])
   const [selectedSlot, setSelectedSlot] = useState<ScheduleSlot | null>(null)
   const [reason, setReason] = useState('')
-  const [status, setStatus] = useState('')
   const [error, setError] = useState('')
   const [isLoading, setLoading] = useState(false)
   const futureSlots = useMemo(() => {
@@ -38,7 +38,6 @@ export function PatientBookingPage({
     event?.preventDefault()
     setLoading(true)
     setError('')
-    setStatus('')
 
     try {
       const response = await listDoctors(session.accessToken, {
@@ -63,7 +62,6 @@ export function PatientBookingPage({
     setSelectedDoctor(doctor)
     setSelectedSlot(null)
     setError('')
-    setStatus('')
 
     try {
       const schedule = await getDoctorSchedule(doctor.id, session.accessToken)
@@ -88,7 +86,6 @@ export function PatientBookingPage({
     }
 
     setError('')
-    setStatus('')
 
     try {
       const duration = Math.round(
@@ -101,9 +98,7 @@ export function PatientBookingPage({
         duration,
         reason: reason || undefined,
       })
-      setStatus('Appointment booked')
-      setReason('')
-      await selectDoctor(selectedDoctor)
+      onBooked()
     } catch {
       setError(userMessage('This appointment could not be booked. Please choose another time or try again.'))
     }
@@ -129,7 +124,6 @@ export function PatientBookingPage({
         </header>
 
         {error && <StatusPanel title="We could not complete your booking" text={error} />}
-        {status && <StatusPanel title={status} text="Your appointment is now listed in your dashboard." />}
 
         <section className="booking-grid">
           <form className="auth-card booking-search" onSubmit={searchDoctors}>

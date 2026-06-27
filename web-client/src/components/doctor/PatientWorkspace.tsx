@@ -25,6 +25,7 @@ type PatientWorkspaceProps = {
   patientId: string | null
   directoryProfile: UserProfile | null
   onAiContextChange?: (context: PatientAiContext | null) => void
+  onLoadingChange?: (isLoading: boolean) => void
   token: string
 }
 
@@ -38,6 +39,7 @@ export function PatientWorkspace({
   patientId,
   directoryProfile,
   onAiContextChange,
+  onLoadingChange,
   token,
 }: PatientWorkspaceProps) {
   const [data, setData] = useState<PatientRecordData | null>(null)
@@ -53,6 +55,7 @@ export function PatientWorkspace({
   useEffect(() => {
     if (!patientId) {
       setData(null)
+      onLoadingChange?.(false)
       return
     }
 
@@ -61,9 +64,11 @@ export function PatientWorkspace({
     const activePatientId = patientId
     let isActive = true
 
+    setLoading(true)
+    setError('')
+    onLoadingChange?.(true)
+
     async function loadRecord() {
-      setLoading(true)
-      setError('')
 
       try {
         const [profile, appointmentsResponse, visitHistory] = await Promise.all([
@@ -105,6 +110,7 @@ export function PatientWorkspace({
       } finally {
         if (isActive) {
           setLoading(false)
+          onLoadingChange?.(false)
         }
       }
     }
@@ -114,7 +120,7 @@ export function PatientWorkspace({
     return () => {
       isActive = false
     }
-  }, [patientId, token])
+  }, [onLoadingChange, patientId, token])
 
   const sortedAppointments = useMemo(() => {
     if (!data) {
@@ -180,7 +186,7 @@ export function PatientWorkspace({
   }
 
   return (
-    <section className="dashboard-panel patient-workspace">
+    <section className={`dashboard-panel patient-workspace${isLoading ? ' is-loading' : ''}`}>
       <div className="patient-workspace-head">
         <div>
           <p className="eyebrow">Patient view</p>

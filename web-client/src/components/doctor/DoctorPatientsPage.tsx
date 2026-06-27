@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { Appointment, UserProfile } from '../../clientApi'
 import { fetchAllAppointmentPages, fetchAllUserPages } from '../../clientApi'
 import { userMessage } from '../../lib/messages'
@@ -22,6 +22,8 @@ export function DoctorPatientsPage({
   const [aiContext, setAiContext] = useState<PatientAiContext | null>(null)
   const [error, setError] = useState('')
   const [isLoading, setLoading] = useState(true)
+  const [isWorkspaceLoading, setWorkspaceLoading] = useState(false)
+  const preservedScrollY = useRef<number | null>(null)
   const doctorId = session.user.id
   const token = session.accessToken
 
@@ -92,6 +94,27 @@ export function DoctorPatientsPage({
     }
   }, [patientSummaries, selectedPatientId])
 
+  useLayoutEffect(() => {
+    if (preservedScrollY.current === null) {
+      return
+    }
+
+    window.scrollTo(0, preservedScrollY.current)
+
+    if (!isWorkspaceLoading) {
+      preservedScrollY.current = null
+    }
+  }, [isWorkspaceLoading, selectedPatientId])
+
+  function handleSelectPatient(nextPatientId: string) {
+    if (nextPatientId === selectedPatientId) {
+      return
+    }
+
+    preservedScrollY.current = window.scrollY
+    setSelectedPatientId(nextPatientId)
+  }
+
   if (session.user.role !== 'DOCTOR') {
     return (
       <main className="landing-page app-page">
@@ -129,11 +152,12 @@ export function DoctorPatientsPage({
             <PatientDirectory
               summaries={patientSummaries}
               selectedPatientId={selectedPatientId}
-              onSelectPatient={setSelectedPatientId}
+              onSelectPatient={handleSelectPatient}
             />
             <PatientWorkspace
               directoryProfile={selectedDirectoryProfile}
               onAiContextChange={setAiContext}
+              onLoadingChange={setWorkspaceLoading}
               patientId={selectedPatientId}
               token={token}
             />

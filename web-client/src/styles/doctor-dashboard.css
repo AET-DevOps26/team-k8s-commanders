@@ -439,6 +439,10 @@
   gap: 1rem;
 }
 
+.patient-workspace.is-loading {
+  min-height: 32rem;
+}
+
 .empty-workspace {
   min-height: 22rem;
   align-content: center;

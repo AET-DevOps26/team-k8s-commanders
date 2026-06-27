@@ -58,6 +58,7 @@ export function PatientDirectory({
               }
               key={profile.id}
               onClick={() => onSelectPatient(profile.id)}
+              onMouseDown={(event) => event.preventDefault()}
               type="button"
             >
               <span className="patient-card-name">{profile.name}</span>

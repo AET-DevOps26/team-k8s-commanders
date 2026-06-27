@@ -22,6 +22,7 @@ import type { Route } from './types/route'
 export default function App() {
   const [route, setRoute] = useState<Route>(getInitialRoute)
   const [session, setSession] = useState<AuthSession | null>(getStoredSession)
+  const [patientBookingSuccess, setPatientBookingSuccess] = useState(false)
 
   useEffect(() => {
     function handlePopState() {
@@ -146,6 +147,10 @@ export default function App() {
           session={session}
           onLogout={handleLogout}
           onNavigate={navigate}
+          onBooked={() => {
+            setPatientBookingSuccess(true)
+            navigate('/patient')
+          }}
         />
       )
     }
@@ -155,6 +160,8 @@ export default function App() {
         session={session}
         onLogout={handleLogout}
         onNavigate={navigate}
+        bookingSuccess={patientBookingSuccess}
+        onBookingSuccessAcknowledged={() => setPatientBookingSuccess(false)}
       />
     )
   }

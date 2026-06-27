@@ -7,7 +7,7 @@ import {
 } from '../../clientApi'
 import { formatAppointmentDate, isPastDateTime } from '../../lib/dates'
 import { userMessage } from '../../lib/messages'
-import type { PatientDashboardProps } from '../../types/route'
+import type { PatientDashboardViewProps } from '../../types/route'
 import { AppointmentRow } from '../appointments/AppointmentRow'
 import { PatientSubNav } from '../layout/PatientSubNav'
 import { ShellNav } from '../layout/ShellNav'
@@ -25,9 +25,12 @@ export function PatientDashboard({
   session,
   onLogout,
   onNavigate,
-}: PatientDashboardProps) {
+  bookingSuccess = false,
+  onBookingSuccessAcknowledged,
+}: PatientDashboardViewProps) {
   const [patientData, setPatientData] = useState<PatientData | null>(null)
   const [error, setError] = useState('')
+  const [status, setStatus] = useState('')
   const [isLoading, setLoading] = useState(true)
   const [reloadKey, setReloadKey] = useState(0)
   const patientId = session.user.id
@@ -78,6 +81,23 @@ export function PatientDashboard({
   const nextAppointment = useMemo(() => {
     return upcomingAppointments[0] ?? null
   }, [upcomingAppointments])
+
+  useEffect(() => {
+    if (!bookingSuccess || isLoading || !patientData) {
+      return
+    }
+
+    setStatus('Appointment booked successfully.')
+    onBookingSuccessAcknowledged?.()
+  }, [bookingSuccess, isLoading, onBookingSuccessAcknowledged, patientData])
+
+  useEffect(() => {
+    if (!status || isLoading || !patientData) {
+      return
+    }
+
+    document.getElementById('patient-schedule')?.scrollIntoView({ behavior: 'smooth' })
+  }, [isLoading, patientData, status])
 
   useEffect(() => {
     let isActive = true
@@ -166,6 +186,12 @@ export function PatientDashboard({
 
         {isLoading && <StatusPanel title="Loading your dashboard" />}
         {error && <StatusPanel title="We could not load your dashboard" text={error} />}
+        {status && (
+          <StatusPanel
+            title={status}
+            text="Your appointment is now listed in your schedule below."
+          />
+        )}
 
         {patientData && (
           <>
@@ -191,25 +217,8 @@ export function PatientDashboard({
               />
             </section>
 
-            <section className="quick-actions" aria-label="Patient actions">
-              <button
-                className="secondary-button"
-                onClick={() => onNavigate('/patient/profile')}
-                type="button"
-              >
-                Edit profile
-              </button>
-              <button
-                className="primary-button"
-                onClick={() => onNavigate('/patient/book')}
-                type="button"
-              >
-                Book appointment
-              </button>
-            </section>
-
             <section className="dashboard-grid">
-              <article className="dashboard-panel wide-panel">
+              <article className="dashboard-panel wide-panel" id="patient-schedule">
                 <div className="panel-header">
                   <div>
                     <p className="eyebrow">Appointments</p>

@@ -41,60 +41,13 @@ metadata:
     {{- include "caredesk.labels" . | nindent 4 }}
     app.kubernetes.io/component: grafana
 data:
-  caredesk-overview.json: |
-    {
-      "annotations": {"list": [{"builtIn": 1,"datasource": {"type": "grafana","uid": "-- Grafana --"},"enable": true,"hide": true,"iconColor": "rgba(0, 211, 255, 1)","name": "Annotations & Alerts","type": "dashboard"}]},
-      "description": "Cross-service health, HTTP traffic and latency for all CareDesk microservices.",
-      "editable": false,
-      "fiscalYearStartMonth": 0,
-      "graphTooltip": 1,
-      "id": null,
-      "links": [],
-      "panels": [
-        {"collapsed": false,"gridPos": {"h": 1,"w": 24,"x": 0,"y": 0},"id": 10,"title": "Service Health","type": "row"},
-        {"datasource": {"type": "prometheus","uid": "prometheus"},"fieldConfig": {"defaults": {"color": {"mode": "thresholds"},"mappings": [{"options": {"0": {"color": "red","index": 1,"text": "DOWN"},"1": {"color": "green","index": 0,"text": "UP"}},"type": "value"}],"thresholds": {"mode": "absolute","steps": [{"color": "red","value": null},{"color": "green","value": 1}]}},"overrides": []},"gridPos": {"h": 4,"w": 24,"x": 0,"y": 1},"id": 1,"options": {"colorMode": "background","graphMode": "none","justifyMode": "center","orientation": "horizontal","reduceOptions": {"calcs": ["lastNotNull"],"fields": "","values": false},"textMode": "auto"},"targets": [{"datasource": {"type": "prometheus","uid": "prometheus"},"expr": "up{job=\"api-gateway\"}","legendFormat": "API Gateway","refId": "A"},{"datasource": {"type": "prometheus","uid": "prometheus"},"expr": "up{job=\"auth-service\"}","legendFormat": "Auth Service","refId": "B"},{"datasource": {"type": "prometheus","uid": "prometheus"},"expr": "up{job=\"patient-service\"}","legendFormat": "Patient Service","refId": "C"},{"datasource": {"type": "prometheus","uid": "prometheus"},"expr": "up{job=\"notes-service\"}","legendFormat": "Notes Service","refId": "D"},{"datasource": {"type": "prometheus","uid": "prometheus"},"expr": "up{job=\"ai-assistant\"}","legendFormat": "AI Assistant","refId": "E"}],"title": "Service Status","type": "stat"},
-        {"collapsed": false,"gridPos": {"h": 1,"w": 24,"x": 0,"y": 5},"id": 11,"title": "HTTP Traffic","type": "row"},
-        {"datasource": {"type": "prometheus","uid": "prometheus"},"fieldConfig": {"defaults": {"color": {"mode": "palette-classic"},"custom": {"axisPlacement": "auto","drawStyle": "line","fillOpacity": 10,"lineInterpolation": "linear","lineWidth": 1,"pointSize": 5,"showPoints": "never","spanNulls": false},"unit": "reqps"},"overrides": []},"gridPos": {"h": 8,"w": 12,"x": 0,"y": 6},"id": 2,"options": {"legend": {"calcs": ["mean","max"],"displayMode": "table","placement": "bottom"},"tooltip": {"mode": "multi","sort": "desc"}},"targets": [{"datasource": {"type": "prometheus","uid": "prometheus"},"expr": "sum(rate(http_server_requests_seconds_count{job=~\"api-gateway|auth-service|patient-service|notes-service\"}[5m])) by (job)","legendFormat": "{{ "{{" }}job{{ "}}" }}","refId": "A"}],"title": "HTTP Request Rate (Spring Services)","type": "timeseries"},
-        {"datasource": {"type": "prometheus","uid": "prometheus"},"fieldConfig": {"defaults": {"color": {"mode": "palette-classic"},"custom": {"axisPlacement": "auto","drawStyle": "line","fillOpacity": 10,"lineInterpolation": "linear","lineWidth": 1,"pointSize": 5,"showPoints": "never","spanNulls": false},"unit": "reqps"},"overrides": []},"gridPos": {"h": 8,"w": 12,"x": 12,"y": 6},"id": 3,"options": {"legend": {"calcs": ["mean","max"],"displayMode": "table","placement": "bottom"},"tooltip": {"mode": "multi","sort": "desc"}},"targets": [{"datasource": {"type": "prometheus","uid": "prometheus"},"expr": "sum(rate(http_server_requests_seconds_count{job=~\"api-gateway|auth-service|patient-service|notes-service\",status=~\"5..\"}[5m])) by (job)","legendFormat": "{{ "{{" }}job{{ "}}" }}","refId": "A"}],"title": "HTTP 5xx Error Rate (Spring Services)","type": "timeseries"},
-        {"collapsed": false,"gridPos": {"h": 1,"w": 24,"x": 0,"y": 14},"id": 12,"title": "Latency","type": "row"},
-        {"datasource": {"type": "prometheus","uid": "prometheus"},"fieldConfig": {"defaults": {"color": {"mode": "palette-classic"},"custom": {"axisPlacement": "auto","drawStyle": "line","fillOpacity": 10,"lineInterpolation": "linear","lineWidth": 1,"pointSize": 5,"showPoints": "never","spanNulls": false},"unit": "s"},"overrides": []},"gridPos": {"h": 8,"w": 12,"x": 0,"y": 15},"id": 4,"options": {"legend": {"calcs": ["mean","max"],"displayMode": "table","placement": "bottom"},"tooltip": {"mode": "multi","sort": "desc"}},"targets": [{"datasource": {"type": "prometheus","uid": "prometheus"},"expr": "sum(rate(http_server_requests_seconds_sum{job=~\"api-gateway|auth-service|patient-service|notes-service\"}[5m])) by (job) / sum(rate(http_server_requests_seconds_count{job=~\"api-gateway|auth-service|patient-service|notes-service\"}[5m])) by (job)","legendFormat": "{{ "{{" }}job{{ "}}" }}","refId": "A"}],"title": "Avg HTTP Latency (Spring Services)","type": "timeseries"},
-        {"datasource": {"type": "prometheus","uid": "prometheus"},"fieldConfig": {"defaults": {"color": {"mode": "palette-classic"},"custom": {"axisPlacement": "auto","drawStyle": "line","fillOpacity": 10,"lineInterpolation": "linear","lineWidth": 1,"pointSize": 5,"showPoints": "never","spanNulls": false},"unit": "reqps"},"overrides": []},"gridPos": {"h": 8,"w": 12,"x": 12,"y": 15},"id": 5,"options": {"legend": {"calcs": ["mean","max"],"displayMode": "table","placement": "bottom"},"tooltip": {"mode": "multi","sort": "desc"}},"targets": [{"datasource": {"type": "prometheus","uid": "prometheus"},"expr": "sum(rate(http_request_duration_seconds_count{job=\"ai-assistant\"}[5m])) by (handler)","legendFormat": "{{ "{{" }}handler{{ "}}" }}","refId": "A"}],"title": "AI Assistant Request Rate","type": "timeseries"}
-      ],
-      "schemaVersion": 39,
-      "tags": ["caredesk"],
-      "time": {"from": "now-1h","to": "now"},
-      "timepicker": {},
-      "timezone": "browser",
-      "title": "CareDesk Services Overview",
-      "uid": "caredesk-overview",
-      "version": 1
-    }
-  jvm-metrics.json: |
-    {
-      "annotations": {"list": [{"builtIn": 1,"datasource": {"type": "grafana","uid": "-- Grafana --"},"enable": true,"hide": true,"iconColor": "rgba(0, 211, 255, 1)","name": "Annotations & Alerts","type": "dashboard"}]},
-      "description": "JVM heap, GC, CPU and thread metrics for the CareDesk Spring Boot services.",
-      "editable": false,
-      "fiscalYearStartMonth": 0,
-      "graphTooltip": 1,
-      "id": null,
-      "links": [],
-      "panels": [
-        {"collapsed": false,"gridPos": {"h": 1,"w": 24,"x": 0,"y": 0},"id": 10,"title": "Memory","type": "row"},
-        {"datasource": {"type": "prometheus","uid": "prometheus"},"fieldConfig": {"defaults": {"color": {"mode": "palette-classic"},"custom": {"axisPlacement": "auto","drawStyle": "line","fillOpacity": 10,"lineInterpolation": "linear","lineWidth": 1,"pointSize": 5,"showPoints": "never","spanNulls": false},"unit": "bytes"},"overrides": []},"gridPos": {"h": 8,"w": 12,"x": 0,"y": 1},"id": 1,"options": {"legend": {"calcs": ["mean","max"],"displayMode": "table","placement": "bottom"},"tooltip": {"mode": "multi","sort": "desc"}},"targets": [{"datasource": {"type": "prometheus","uid": "prometheus"},"expr": "sum(jvm_memory_used_bytes{job=~\"api-gateway|auth-service|patient-service|notes-service\",area=\"heap\"}) by (job)","legendFormat": "{{ "{{" }}job{{ "}}" }} used","refId": "A"},{"datasource": {"type": "prometheus","uid": "prometheus"},"expr": "sum(jvm_memory_max_bytes{job=~\"api-gateway|auth-service|patient-service|notes-service\",area=\"heap\"}) by (job)","legendFormat": "{{ "{{" }}job{{ "}}" }} max","refId": "B"}],"title": "JVM Heap (used vs max)","type": "timeseries"},
-        {"datasource": {"type": "prometheus","uid": "prometheus"},"fieldConfig": {"defaults": {"color": {"mode": "palette-classic"},"custom": {"axisPlacement": "auto","drawStyle": "line","fillOpacity": 10,"lineInterpolation": "linear","lineWidth": 1,"pointSize": 5,"showPoints": "never","spanNulls": false},"max": 100,"min": 0,"unit": "percent"},"overrides": []},"gridPos": {"h": 8,"w": 12,"x": 12,"y": 1},"id": 2,"options": {"legend": {"calcs": ["mean","max"],"displayMode": "table","placement": "bottom"},"tooltip": {"mode": "multi","sort": "desc"}},"targets": [{"datasource": {"type": "prometheus","uid": "prometheus"},"expr": "100 * sum(jvm_memory_used_bytes{job=~\"api-gateway|auth-service|patient-service|notes-service\",area=\"heap\"}) by (job) / sum(jvm_memory_max_bytes{job=~\"api-gateway|auth-service|patient-service|notes-service\",area=\"heap\"}) by (job)","legendFormat": "{{ "{{" }}job{{ "}}" }}","refId": "A"}],"title": "Heap Usage %","type": "timeseries"},
-        {"collapsed": false,"gridPos": {"h": 1,"w": 24,"x": 0,"y": 9},"id": 11,"title": "CPU & Threads","type": "row"},
-        {"datasource": {"type": "prometheus","uid": "prometheus"},"fieldConfig": {"defaults": {"color": {"mode": "palette-classic"},"custom": {"axisPlacement": "auto","drawStyle": "line","fillOpacity": 10,"lineInterpolation": "linear","lineWidth": 1,"pointSize": 5,"showPoints": "never","spanNulls": false},"max": 1,"min": 0,"unit": "percentunit"},"overrides": []},"gridPos": {"h": 8,"w": 12,"x": 0,"y": 10},"id": 3,"options": {"legend": {"calcs": ["mean","max"],"displayMode": "table","placement": "bottom"},"tooltip": {"mode": "multi","sort": "desc"}},"targets": [{"datasource": {"type": "prometheus","uid": "prometheus"},"expr": "process_cpu_usage{job=~\"api-gateway|auth-service|patient-service|notes-service\"}","legendFormat": "{{ "{{" }}job{{ "}}" }}","refId": "A"}],"title": "CPU Usage","type": "timeseries"},
-        {"datasource": {"type": "prometheus","uid": "prometheus"},"fieldConfig": {"defaults": {"color": {"mode": "palette-classic"},"custom": {"axisPlacement": "auto","drawStyle": "line","fillOpacity": 10,"lineInterpolation": "linear","lineWidth": 1,"pointSize": 5,"showPoints": "never","spanNulls": false},"unit": "short"},"overrides": []},"gridPos": {"h": 8,"w": 12,"x": 12,"y": 10},"id": 4,"options": {"legend": {"calcs": ["mean","max"],"displayMode": "table","placement": "bottom"},"tooltip": {"mode": "multi","sort": "desc"}},"targets": [{"datasource": {"type": "prometheus","uid": "prometheus"},"expr": "jvm_threads_live_threads{job=~\"api-gateway|auth-service|patient-service|notes-service\"}","legendFormat": "{{ "{{" }}job{{ "}}" }} live","refId": "A"},{"datasource": {"type": "prometheus","uid": "prometheus"},"expr": "jvm_threads_daemon_threads{job=~\"api-gateway|auth-service|patient-service|notes-service\"}","legendFormat": "{{ "{{" }}job{{ "}}" }} daemon","refId": "B"}],"title": "JVM Threads","type": "timeseries"},
-        {"collapsed": false,"gridPos": {"h": 1,"w": 24,"x": 0,"y": 18},"id": 12,"title": "Garbage Collection","type": "row"},
-        {"datasource": {"type": "prometheus","uid": "prometheus"},"fieldConfig": {"defaults": {"color": {"mode": "palette-classic"},"custom": {"axisPlacement": "auto","drawStyle": "line","fillOpacity": 10,"lineInterpolation": "linear","lineWidth": 1,"pointSize": 5,"showPoints": "never","spanNulls": false},"unit": "s"},"overrides": []},"gridPos": {"h": 8,"w": 24,"x": 0,"y": 19},"id": 5,"options": {"legend": {"calcs": ["mean","max"],"displayMode": "table","placement": "bottom"},"tooltip": {"mode": "multi","sort": "desc"}},"targets": [{"datasource": {"type": "prometheus","uid": "prometheus"},"expr": "rate(jvm_gc_pause_seconds_sum{job=~\"api-gateway|auth-service|patient-service|notes-service\"}[5m])","legendFormat": "{{ "{{" }}job{{ "}}" }} / {{ "{{" }}cause{{ "}}" }}","refId": "A"}],"title": "GC Pause Rate","type": "timeseries"}
-      ],
-      "schemaVersion": 39,
-      "tags": ["caredesk","jvm"],
-      "time": {"from": "now-1h","to": "now"},
-      "timepicker": {},
-      "timezone": "browser",
-      "title": "CareDesk JVM Metrics",
-      "uid": "jvm-metrics",
-      "version": 1
-    }
+  # Dashboards are loaded verbatim from the chart's `dashboards/` directory, which is a
+  # symlink to infra/grafana/dashboards — the single source of truth shared with the
+  # docker-compose stack. Glob picks up every *.json automatically, so adding a new
+  # dashboard file needs no template changes. .Files.Get returns raw bytes without
+  # template processing, so Grafana's double-brace legend tokens in the JSON pass through as-is.
+{{- range $path, $_ := .Files.Glob "dashboards/*.json" }}
+  {{ base $path }}: |
+{{ $.Files.Get $path | indent 4 }}
+{{- end }}
 {{- end }}

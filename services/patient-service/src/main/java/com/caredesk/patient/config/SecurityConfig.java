@@ -52,11 +52,12 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        // Health endpoint must be reachable for the Docker healthcheck.
+                        // Health and Prometheus endpoints must be reachable without auth.
                         // Both forms needed: Spring Security 6 `/**` does not match the
                         // exact path without a trailing segment, so the bare /actuator/health
                         // would otherwise return 401 and break the prod healthcheck.
                         .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
+                        .requestMatchers("/actuator/prometheus").permitAll()
                         // Spring forwards unhandled exceptions to /error. Without permitting
                         // it, error pages come back as 403 instead of the intended status.
                         .requestMatchers("/error").permitAll()

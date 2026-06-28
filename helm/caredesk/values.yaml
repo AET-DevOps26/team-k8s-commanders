@@ -210,6 +210,19 @@ mailpit:
     requests: { cpu: 25m,  memory: 32Mi }
     limits:   { cpu: 100m, memory: 128Mi }
 
+# ─── Prometheus (metrics collection, port 9090) ───────────────────────────────
+# Disabled by default so the core stack installs within the AET 4-CPU quota.
+# Enable with: --set monitoring.enabled=true
+# CPU budget: ~150m limit leaves the cluster at ~3100m total (900m spare).
+monitoring:
+  enabled: false
+  image: prom/prometheus:v3.3.1
+  retention: 7d
+  storage: 2Gi
+  resources:
+    requests: { cpu: 50m,  memory: 128Mi }
+    limits:   { cpu: 150m, memory: 512Mi }
+
 # ─── ai-assistant (FastAPI, port 8000) ─────────────────────────────────────────
 ai:
   enabled: true

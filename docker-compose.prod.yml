@@ -291,12 +291,29 @@ services:
     networks:
       - caredesk
 
+  prometheus:
+    image: prom/prometheus:v3.3.1
+    volumes:
+      - ./infra/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=15d'
+    restart: always
+    depends_on:
+      api-gateway:
+        condition: service_healthy
+    networks:
+      - caredesk
+
 volumes:
   auth-db-data:
   patient-db-data:
   notes-db-data:
   notification-db-data:
   ai-db-data:
+  prometheus-data:
 
 networks:
   caredesk:

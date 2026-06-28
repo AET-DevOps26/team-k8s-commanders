@@ -29,44 +29,73 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
-      - name: Copy compose file and nginx config to VM
+      # Build the env file in the runner's own shell (full control, no SSH
+      # env-forwarding quirks). Values come through `env:` and are written with
+      # printf '%s' so quotes/newlines/$ in secrets stay literal. umask 077
+      # creates the file 0600 so it isn't world-readable on the VM.
+      - name: Generate .env.prod
+        env:
+          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+          LLM_PROVIDER: ${{ vars.LLM_PROVIDER }}
+          LLM_MODEL: ${{ vars.LLM_MODEL }}
+          OPENWEBUI_BASE_URL: ${{ vars.OPENWEBUI_BASE_URL }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          AUTH_DB_NAME: ${{ vars.AUTH_DB_NAME }}
+          AUTH_DB_USER: ${{ vars.AUTH_DB_USER }}
+          AUTH_DB_PASSWORD: ${{ secrets.AUTH_DB_PASSWORD }}
+          AUTH_DDL_AUTO: ${{ vars.AUTH_DDL_AUTO }}
+          PATIENT_DB_NAME: ${{ vars.PATIENT_DB_NAME }}
+          PATIENT_DB_USER: ${{ vars.PATIENT_DB_USER }}
+          PATIENT_DB_PASSWORD: ${{ secrets.PATIENT_DB_PASSWORD }}
+          PATIENT_DDL_AUTO: ${{ vars.PATIENT_DDL_AUTO }}
+          NOTES_DB_NAME: ${{ vars.NOTES_DB_NAME }}
+          NOTES_DB_USER: ${{ vars.NOTES_DB_USER }}
+          NOTES_DB_PASSWORD: ${{ secrets.NOTES_DB_PASSWORD }}
+          NOTES_DDL_AUTO: ${{ vars.NOTES_DDL_AUTO }}
+          NOTIFICATION_DB_NAME: ${{ vars.NOTIFICATION_DB_NAME }}
+          NOTIFICATION_DB_USER: ${{ vars.NOTIFICATION_DB_USER }}
+          NOTIFICATION_DB_PASSWORD: ${{ secrets.NOTIFICATION_DB_PASSWORD }}
+          NOTIFICATION_DDL_AUTO: ${{ vars.NOTIFICATION_DDL_AUTO }}
+          AI_DB_NAME: ${{ vars.AI_DB_NAME }}
+          AI_DB_USER: ${{ vars.AI_DB_USER }}
+          AI_DB_PASSWORD: ${{ secrets.AI_DB_PASSWORD }}
+        run: |
+          umask 077
+          rm -f .env.prod
+          printf 'LLM_API_KEY=%s\n' "$LLM_API_KEY" >> .env.prod
+          printf 'LLM_PROVIDER=%s\n' "$LLM_PROVIDER" >> .env.prod
+          printf 'LLM_MODEL=%s\n' "$LLM_MODEL" >> .env.prod
+          printf 'OPENWEBUI_BASE_URL=%s\n' "$OPENWEBUI_BASE_URL" >> .env.prod
+          printf 'PUBLIC_API_URL=%s\n' "/api/v1" >> .env.prod
+          printf 'JWT_SECRET=%s\n' "$JWT_SECRET" >> .env.prod
+          printf 'AUTH_DB_NAME=%s\n' "$AUTH_DB_NAME" >> .env.prod
+          printf 'AUTH_DB_USER=%s\n' "$AUTH_DB_USER" >> .env.prod
+          printf 'AUTH_DB_PASSWORD=%s\n' "$AUTH_DB_PASSWORD" >> .env.prod
+          printf 'AUTH_DDL_AUTO=%s\n' "$AUTH_DDL_AUTO" >> .env.prod
+          printf 'PATIENT_DB_NAME=%s\n' "$PATIENT_DB_NAME" >> .env.prod
+          printf 'PATIENT_DB_USER=%s\n' "$PATIENT_DB_USER" >> .env.prod
+          printf 'PATIENT_DB_PASSWORD=%s\n' "$PATIENT_DB_PASSWORD" >> .env.prod
+          printf 'PATIENT_DDL_AUTO=%s\n' "$PATIENT_DDL_AUTO" >> .env.prod
+          printf 'NOTES_DB_NAME=%s\n' "$NOTES_DB_NAME" >> .env.prod
+          printf 'NOTES_DB_USER=%s\n' "$NOTES_DB_USER" >> .env.prod
+          printf 'NOTES_DB_PASSWORD=%s\n' "$NOTES_DB_PASSWORD" >> .env.prod
+          printf 'NOTES_DDL_AUTO=%s\n' "$NOTES_DDL_AUTO" >> .env.prod
+          printf 'NOTIFICATION_DB_NAME=%s\n' "$NOTIFICATION_DB_NAME" >> .env.prod
+          printf 'NOTIFICATION_DB_USER=%s\n' "$NOTIFICATION_DB_USER" >> .env.prod
+          printf 'NOTIFICATION_DB_PASSWORD=%s\n' "$NOTIFICATION_DB_PASSWORD" >> .env.prod
+          printf 'NOTIFICATION_DDL_AUTO=%s\n' "$NOTIFICATION_DDL_AUTO" >> .env.prod
+          printf 'AI_DB_NAME=%s\n' "$AI_DB_NAME" >> .env.prod
+          printf 'AI_DB_USER=%s\n' "$AI_DB_USER" >> .env.prod
+          printf 'AI_DB_PASSWORD=%s\n' "$AI_DB_PASSWORD" >> .env.prod
+
+      - name: Copy compose file, nginx config and env file to VM
         uses: appleboy/scp-action@v1.0.0
         with:
           host: ${{ vars.AZURE_PUBLIC_IP }}
           username: ${{ vars.AZURE_USER }}
           key: ${{ secrets.AZURE_PRIVATE_KEY }}
-          source: "docker-compose.prod.yml,infra/nginx/"
+          source: "docker-compose.prod.yml,infra/nginx/,.env.prod"
           target: /home/${{ vars.AZURE_USER }}
-
-      - name: Create .env.prod on VM
-        uses: appleboy/ssh-action@v1.2.5
-        with:
-          host: ${{ vars.AZURE_PUBLIC_IP }}
-          username: ${{ vars.AZURE_USER }}
-          key: ${{ secrets.AZURE_PRIVATE_KEY }}
-          script: |
-            rm -f .env.prod
-            echo "LLM_API_KEY=${{ secrets.LLM_API_KEY }}" >> .env.prod
-            echo "LLM_PROVIDER=${{ vars.LLM_PROVIDER }}" >> .env.prod
-            echo "LLM_MODEL=${{ vars.LLM_MODEL }}" >> .env.prod
-            echo "OPENWEBUI_BASE_URL=${{ vars.OPENWEBUI_BASE_URL }}" >> .env.prod
-            echo "PUBLIC_API_URL=/api/v1" >> .env.prod
-            echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> .env.prod
-            echo "AUTH_DB_NAME=${{ vars.AUTH_DB_NAME }}" >> .env.prod
-            echo "AUTH_DB_USER=${{ vars.AUTH_DB_USER }}" >> .env.prod
-            echo "AUTH_DB_PASSWORD=${{ secrets.AUTH_DB_PASSWORD }}" >> .env.prod
-            echo "AUTH_DDL_AUTO=${{ vars.AUTH_DDL_AUTO }}" >> .env.prod
-            echo "PATIENT_DB_NAME=${{ vars.PATIENT_DB_NAME }}" >> .env.prod
-            echo "PATIENT_DB_USER=${{ vars.PATIENT_DB_USER }}" >> .env.prod
-            echo "PATIENT_DB_PASSWORD=${{ secrets.PATIENT_DB_PASSWORD }}" >> .env.prod
-            echo "PATIENT_DDL_AUTO=${{ vars.PATIENT_DDL_AUTO }}" >> .env.prod
-            echo "NOTES_DB_NAME=${{ vars.NOTES_DB_NAME }}" >> .env.prod
-            echo "NOTES_DB_USER=${{ vars.NOTES_DB_USER }}" >> .env.prod
-            echo "NOTES_DB_PASSWORD=${{ secrets.NOTES_DB_PASSWORD }}" >> .env.prod
-            echo "NOTES_DDL_AUTO=${{ vars.NOTES_DDL_AUTO }}" >> .env.prod
-            echo "AI_DB_NAME=${{ vars.AI_DB_NAME }}" >> .env.prod
-            echo "AI_DB_USER=${{ vars.AI_DB_USER }}" >> .env.prod
-            echo "AI_DB_PASSWORD=${{ secrets.AI_DB_PASSWORD }}" >> .env.prod
 
       - name: Deploy with Docker Compose
         uses: appleboy/ssh-action@v1.2.5

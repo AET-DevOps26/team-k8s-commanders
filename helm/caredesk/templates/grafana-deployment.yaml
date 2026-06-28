@@ -37,7 +37,7 @@ spec:
             - name: GF_SECURITY_ADMIN_USER
               value: {{ .Values.monitoring.grafana.adminUser | quote }}
             - name: GF_SECURITY_ADMIN_PASSWORD
-              value: {{ .Values.monitoring.grafana.adminPassword | quote }}
+              value: {{ required "monitoring.grafana.adminPassword must be set (e.g. --set monitoring.grafana.adminPassword=<secret>)" .Values.monitoring.grafana.adminPassword | quote }}
             - name: GF_AUTH_ANONYMOUS_ENABLED
               value: "false"
             {{- if $ingressEnabled }}

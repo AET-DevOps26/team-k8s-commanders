@@ -203,8 +203,10 @@ monitoring:
     # case). Leave empty to use Grafana's built-in default (http://localhost:3000).
     rootUrl: ""
     adminUser: admin
-    # Override in production: --set monitoring.grafana.adminPassword=<secret>
-    adminPassword: caredesk-grafana-admin
+    # No default committed — must be supplied at install time, e.g.
+    #   --set monitoring.grafana.adminPassword=<secret>
+    # or from a secret-backed values override. Install fails if left empty.
+    adminPassword: ""
     resources:
       requests: { cpu: 50m,  memory: 64Mi }
       limits:   { cpu: 200m, memory: 256Mi }

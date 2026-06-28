@@ -77,8 +77,11 @@ jobs:
             context: .
             dockerfile: ./services/auth-service/Dockerfile
             image: ghcr.io/aet-devops26/team-k8s-commanders/auth-service
+          # api-gateway is built from the repo root so the Dockerfile can reach
+          # api/openapi.yaml and bundle it (served at /api/v1/openapi.yaml with
+          # Swagger UI at /api/v1/docs).
           - service: api-gateway
-            context: ./services/api-gateway
+            context: .
             dockerfile: ./services/api-gateway/Dockerfile
             image: ghcr.io/aet-devops26/team-k8s-commanders/api-gateway
           # patient-service is built from the repo root for the same reason as

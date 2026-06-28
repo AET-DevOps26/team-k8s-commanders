@@ -9,7 +9,7 @@ import { StatusPanel } from '../ui/StatusPanel'
 import { DoctorAiFloatingAssistant } from './DoctorAiFloatingAssistant'
 import { PatientDirectory } from './PatientDirectory'
 import { PatientWorkspace, type PatientAiContext } from './PatientWorkspace'
-import { buildPatientSummaries } from './doctorUtils'
+import { buildPatientDirectory, buildPatientSummaries } from './doctorUtils'
 
 export function DoctorPatientsPage({
   session,
@@ -83,16 +83,21 @@ export function DoctorPatientsPage({
     [doctorAppointments, patients],
   )
 
+  const patientQueue = useMemo(
+    () => buildPatientDirectory(patientSummaries),
+    [patientSummaries],
+  )
+
   const selectedDirectoryProfile = useMemo(
     () => userMap.get(selectedPatientId ?? '') ?? null,
     [selectedPatientId, userMap],
   )
 
   useEffect(() => {
-    if (!selectedPatientId && patientSummaries.length) {
-      setSelectedPatientId(patientSummaries[0].profile.id)
+    if (!selectedPatientId && patientQueue.length) {
+      setSelectedPatientId(patientQueue[0].summary.profile.id)
     }
-  }, [patientSummaries, selectedPatientId])
+  }, [patientQueue, selectedPatientId])
 
   useLayoutEffect(() => {
     if (preservedScrollY.current === null) {
@@ -112,6 +117,7 @@ export function DoctorPatientsPage({
     }
 
     preservedScrollY.current = window.scrollY
+    setAiContext(null)
     setSelectedPatientId(nextPatientId)
   }
 
@@ -150,12 +156,14 @@ export function DoctorPatientsPage({
         {!isLoading && !error && (
           <section className="doctor-patient-page-layout">
             <PatientDirectory
+              queue={patientQueue}
               summaries={patientSummaries}
               selectedPatientId={selectedPatientId}
               onSelectPatient={handleSelectPatient}
             />
             <PatientWorkspace
               directoryProfile={selectedDirectoryProfile}
+              key={selectedPatientId ?? 'no-patient'}
               onAiContextChange={setAiContext}
               onLoadingChange={setWorkspaceLoading}
               patientId={selectedPatientId}

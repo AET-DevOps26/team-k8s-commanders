@@ -59,6 +59,9 @@ jobs:
           AI_DB_NAME: ${{ vars.AI_DB_NAME }}
           AI_DB_USER: ${{ vars.AI_DB_USER }}
           AI_DB_PASSWORD: ${{ secrets.AI_DB_PASSWORD }}
+          AI_DDL_AUTO: ${{ vars.AI_DDL_AUTO }}
+          GRAFANA_ADMIN_USER: ${{ vars.GRAFANA_ADMIN_USER }}
+          GRAFANA_ADMIN_PASSWORD: ${{ secrets.GRAFANA_ADMIN_PASSWORD }}
         run: |
           umask 077
           rm -f .env.prod
@@ -87,6 +90,9 @@ jobs:
           printf 'AI_DB_NAME=%s\n' "$AI_DB_NAME" >> .env.prod
           printf 'AI_DB_USER=%s\n' "$AI_DB_USER" >> .env.prod
           printf 'AI_DB_PASSWORD=%s\n' "$AI_DB_PASSWORD" >> .env.prod
+          printf 'AI_DDL_AUTO=%s\n' "$AI_DDL_AUTO" >> .env.prod
+          printf 'GRAFANA_ADMIN_USER=%s\n' "$GRAFANA_ADMIN_USER" >> .env.prod
+          printf 'GRAFANA_ADMIN_PASSWORD=%s\n' "$GRAFANA_ADMIN_PASSWORD" >> .env.prod
 
       - name: Copy compose file, nginx config and env file to VM
         uses: appleboy/scp-action@v1.0.0

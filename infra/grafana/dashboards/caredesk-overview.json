@@ -67,31 +67,31 @@
       "targets": [
         {
           "datasource": {"type": "prometheus", "uid": "prometheus"},
-          "expr": "up{job=\"api-gateway\"}",
+          "expr": "min(up{job=\"api-gateway\"})",
           "legendFormat": "API Gateway",
           "refId": "A"
         },
         {
           "datasource": {"type": "prometheus", "uid": "prometheus"},
-          "expr": "up{job=\"auth-service\"}",
+          "expr": "min(up{job=\"auth-service\"})",
           "legendFormat": "Auth Service",
           "refId": "B"
         },
         {
           "datasource": {"type": "prometheus", "uid": "prometheus"},
-          "expr": "up{job=\"patient-service\"}",
+          "expr": "min(up{job=\"patient-service\"})",
           "legendFormat": "Patient Service",
           "refId": "C"
         },
         {
           "datasource": {"type": "prometheus", "uid": "prometheus"},
-          "expr": "up{job=\"notes-service\"}",
+          "expr": "min(up{job=\"notes-service\"})",
           "legendFormat": "Notes Service",
           "refId": "D"
         },
         {
           "datasource": {"type": "prometheus", "uid": "prometheus"},
-          "expr": "up{job=\"ai-assistant\"}",
+          "expr": "min(up{job=\"ai-assistant\"})",
           "legendFormat": "AI Assistant",
           "refId": "E"
         }

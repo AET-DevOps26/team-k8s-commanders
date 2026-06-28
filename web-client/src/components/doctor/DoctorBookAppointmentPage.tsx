@@ -151,7 +151,6 @@ export function DoctorBookAppointmentPage({
     <main className="landing-page app-page">
       <ShellNav session={session} onNavigate={onNavigate} onLogout={onLogout} />
       <section className="dashboard-shell doctor-dashboard-shell">
-        <DoctorSubNav active="book" onNavigate={onNavigate} />
         <header className="patient-hero doctor-hero">
           <div>
             <p className="eyebrow">Booking</p>
@@ -159,6 +158,8 @@ export function DoctorBookAppointmentPage({
             <p>Choose a patient, pick one of your available slots, and create the appointment.</p>
           </div>
         </header>
+
+        <DoctorSubNav active="book" onNavigate={onNavigate} />
 
         {error && <StatusPanel title="We could not complete your booking" text={error} />}
 

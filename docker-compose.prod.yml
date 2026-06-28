@@ -203,6 +203,48 @@ services:
     networks:
       - caredesk
 
+  notification-db:
+    image: postgres:16-alpine
+    restart: always
+    environment:
+      POSTGRES_DB: ${NOTIFICATION_DB_NAME:?NOTIFICATION_DB_NAME must be set}
+      POSTGRES_USER: ${NOTIFICATION_DB_USER:?NOTIFICATION_DB_USER must be set}
+      POSTGRES_PASSWORD: ${NOTIFICATION_DB_PASSWORD:?NOTIFICATION_DB_PASSWORD must be set}
+    volumes:
+      - notification-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - caredesk
+
+  notification-service:
+    image: ghcr.io/aet-devops26/team-k8s-commanders/notification-service:${IMAGE_TAG:-latest}
+    restart: always
+    depends_on:
+      notification-db:
+        condition: service_healthy
+    environment:
+      DB_HOST: notification-db
+      DB_PORT: 5432
+      DB_NAME: ${NOTIFICATION_DB_NAME:?NOTIFICATION_DB_NAME must be set}
+      DB_USER: ${NOTIFICATION_DB_USER:?NOTIFICATION_DB_USER must be set}
+      DB_PASSWORD: ${NOTIFICATION_DB_PASSWORD:?NOTIFICATION_DB_PASSWORD must be set}
+      # application.yml ships with ddl-auto: validate. Set NOTIFICATION_DDL_AUTO=update
+      # for the first deployment so the schema is created, then revert.
+      SPRING_JPA_HIBERNATE_DDL_AUTO: ${NOTIFICATION_DDL_AUTO:-validate}
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8084/actuator/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - caredesk
+
   api-gateway:
     image: ghcr.io/aet-devops26/team-k8s-commanders/api-gateway:${IMAGE_TAG:-latest}
     restart: always
@@ -215,11 +257,14 @@ services:
         condition: service_healthy
       notes-service:
         condition: service_healthy
+      notification-service:
+        condition: service_healthy
     environment:
       AUTH_SERVICE_URL: http://auth-service:8081
       AI_ASSISTANT_URL: http://ai-assistant:8000
       PATIENT_SERVICE_URL: http://patient-service:8082
       NOTES_SERVICE_URL: http://notes-service:8083
+      NOTIFICATION_SERVICE_URL: http://notification-service:8084
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set}
     healthcheck:
       test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8080/actuator/health || exit 1"]
@@ -230,11 +275,29 @@ services:
     networks:
       - caredesk
 
+  prometheus:
+    image: prom/prometheus:v3.3.1
+    volumes:
+      - ./infra/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=15d'
+    restart: always
+    depends_on:
+      api-gateway:
+        condition: service_healthy
+    networks:
+      - caredesk
+
 volumes:
   auth-db-data:
   patient-db-data:
   notes-db-data:
+  notification-db-data:
   ai-db-data:
+  prometheus-data:
 
 networks:
   caredesk:

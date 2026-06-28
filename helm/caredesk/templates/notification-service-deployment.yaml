@@ -1,0 +1,54 @@
+{{- if .Values.notification.enabled -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "caredesk.fullname" . }}-notification
+  labels:
+    {{- include "caredesk.labels" . | nindent 4 }}
+    app.kubernetes.io/component: notification
+spec:
+  replicas: {{ .Values.notification.replicaCount }}
+  strategy:
+    type: {{ .Values.deploymentStrategy.type }}
+  selector:
+    matchLabels:
+      {{- include "caredesk.selectorLabels" (dict "root" . "component" "notification") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "caredesk.selectorLabels" (dict "root" . "component" "notification") | nindent 8 }}
+    spec:
+      {{- include "caredesk.imagePullSecrets" . | nindent 6 }}
+      containers:
+        - name: notification-service
+          image: {{ include "caredesk.image" (dict "root" $ "image" .Values.notification.image) | quote }}
+          imagePullPolicy: {{ .Values.images.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.notification.service.port }}
+          env:
+            - name: SERVER_PORT
+              value: {{ .Values.notification.service.port | quote }}
+            {{- include "caredesk.dbEnv" (dict "root" $ "host" .Values.notification.dbHost "name" .Values.notification.dbName) | nindent 12 }}
+          startupProbe:
+            httpGet:
+              path: /actuator/health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            failureThreshold: 40
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: http
+            periodSeconds: 10
+            failureThreshold: 6
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: http
+            periodSeconds: 15
+            failureThreshold: 3
+          resources:
+            {{- toYaml .Values.notification.resources | nindent 12 }}
+{{- end }}

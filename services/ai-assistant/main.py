@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 from dotenv import load_dotenv
 import uvicorn
 from fastapi import FastAPI
+from prometheus_fastapi_instrumentator import Instrumentator
 
 from db.engine import init_models
 from routes import sessions, health
@@ -25,6 +26,8 @@ app = FastAPI(
     openapi_url=None,
     lifespan=lifespan,
 )
+
+Instrumentator().instrument(app).expose(app, endpoint="/metrics")
 
 app.include_router(health.router, prefix="/ai", tags=["health"])
 app.include_router(sessions.router, prefix="/ai", tags=["sessions"])

@@ -10,6 +10,7 @@ on:
       - "services/api-gateway/**"
       - "services/patient-service/**"
       - "services/notes-service/**"
+      - "services/notification-service/**"
       - "web-client/**"
       - ".github/workflows/publish.yml"
   pull_request:
@@ -20,6 +21,7 @@ on:
       - "services/api-gateway/**"
       - "services/patient-service/**"
       - "services/notes-service/**"
+      - "services/notification-service/**"
       - "web-client/**"
       - ".github/workflows/publish.yml"
   workflow_dispatch:
@@ -94,6 +96,12 @@ jobs:
             context: .
             dockerfile: ./services/notes-service/Dockerfile
             image: ghcr.io/aet-devops26/team-k8s-commanders/notes-service
+          # notification-service is built from the repo root for the same reason
+          # as auth-service (needs services/springboot/generated for the stubs JAR).
+          - service: notification-service
+            context: .
+            dockerfile: ./services/notification-service/Dockerfile
+            image: ghcr.io/aet-devops26/team-k8s-commanders/notification-service
 
     steps:
       - uses: actions/checkout@v6

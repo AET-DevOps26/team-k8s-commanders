@@ -1,27 +1,28 @@
 server:
-  port: 8082
+  port: 8084
 
-# Gateway owns the /api/v1 prefix — this service exposes /patients/**, /doctors/**,
-# /appointments/**, /clinics/** directly.
+# Gateway owns the /api/v1 prefix — this service exposes /notifications and
+# /appointments/{id}/notifications directly.
 openapi:
   careDesk:
     base-path: ""
 
-auth-service:
-  url: ${AUTH_SERVICE_URL:http://localhost:8081}
-
 spring:
   application:
-    name: patient-service
+    name: notification-service
+  # Render errors as RFC 9457 application/problem+json, matching the API contract.
+  mvc:
+    problemdetails:
+      enabled: true
   datasource:
-    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:patient_db}
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:notification_db}
     username: ${DB_USER:caredesk}
     password: ${DB_PASSWORD:caredesk}
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
       # `validate` is the production-safe default. It will fail to boot if the
-      # patient_db schema is missing, which is intentional in production.
+      # notification_db schema is missing, which is intentional in production.
       # Dev compose and prod compose both override this with
       # SPRING_JPA_HIBERNATE_DDL_AUTO=update so the schema is created on first
       # boot against a fresh Postgres. See docker-compose.yml.
@@ -31,12 +32,9 @@ spring:
       hibernate:
         format_sql: true
 
-# Actuator health and prometheus are permitted in SecurityConfig for Docker healthcheck and scraping.
+# Actuator health is permitted in SecurityConfig for the Docker healthcheck.
 management:
   endpoints:
     web:
       exposure:
-        include: health,prometheus
-  endpoint:
-    prometheus:
-      enabled: true
+        include: health

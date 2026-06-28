@@ -62,6 +62,7 @@ docker compose up --build
 | Auth database (Postgres) | localhost:5432 |
 | Patient database (Postgres) | localhost:5433 |
 | Notes database (Postgres) | localhost:5434 |
+| Notification database (Postgres) | localhost:5435 |
 | AI assistant database (Postgres) | localhost:5436 |
 
 Only the gateway, nginx and the databases publish host ports. The databases are
@@ -106,6 +107,8 @@ Dev compose seeds these local credentials:
 | Admin | admin@admin.com | admin123 |
 
 The notes service is a scaffold for clinical notes — the structured visit notes and diagnoses a doctor records against an appointment (`/appointments/{appointmentId}/note`). It follows the same pattern as the patient service: it sits behind the API gateway, trusts the gateway-injected `X-User-Email` / `X-User-Role` headers, and uses its own Postgres container (`notes-db`). The gateway routes the clinical note sub-path to it while the rest of `/appointments/**` stays with the patient service.
+
+The notification service records the automated messages CareDesk sends to patients (appointment confirmations and reminders) and serves them via `/notifications` and `/appointments/{appointmentId}/notifications`. It follows the same pattern as the notes service: it sits behind the API gateway, trusts the gateway-injected `X-User-*` headers, and uses its own Postgres container (`notification-db`). Reads are role-scoped — admins see everything, patients only their own. Actual email delivery (and the reminder scheduler) is a separate iteration; in this one, notifications are persisted records created via the API.
 
 See [web-client/README.md](web-client/README.md) for standalone client image builds.
 

@@ -46,12 +46,30 @@ spring:
           filters:
             - StripPrefix=2
 
+        # Must come before patient-service: the notifications sub-path is more
+        # specific than /appointments/** and is owned by the notification-service.
+        - id: notification-service
+          uri: ${NOTIFICATION_SERVICE_URL:http://localhost:8084}
+          predicates:
+            - Path=/api/v1/notifications/**,/api/v1/appointments/*/notifications
+          filters:
+            - StripPrefix=2
+
         - id: patient-service
           uri: ${PATIENT_SERVICE_URL:http://localhost:8082}
           predicates:
             - Path=/api/v1/patients/**,/api/v1/doctors/**,/api/v1/appointments/**,/api/v1/clinics/**
           filters:
             - StripPrefix=2
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,prometheus
+  endpoint:
+    prometheus:
+      enabled: true
 
 # Shared secret used to verify JWTs issued by auth-service.
 # Must match auth-service's JWT_SECRET.

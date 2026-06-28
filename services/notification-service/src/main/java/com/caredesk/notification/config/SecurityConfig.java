@@ -1,7 +1,8 @@
-package com.caredesk.patient.config;
+package com.caredesk.notification.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -10,19 +11,19 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 /**
- * Spring Security configuration for the patient service.
+ * Spring Security configuration for the notification service.
  *
  * <p>The service sits behind the API gateway and trusts the
  * {@code X-User-Email} and {@code X-User-Role} headers set by the gateway
- * once it has validated the JWT. The patient service therefore does not
- * re-validate the JWT itself. {@link PatientHeaderAuthFilter} translates
+ * once it has validated the JWT. The notification service therefore does not
+ * re-validate the JWT itself. {@link NotificationHeaderAuthFilter} translates
  * those headers into an authenticated Spring Security principal.
  */
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
 
-    private final PatientHeaderAuthFilter headerAuthFilter;
+    private final NotificationHeaderAuthFilter headerAuthFilter;
 
     /**
      * Creates the security configuration.
@@ -30,7 +31,7 @@ public class SecurityConfig {
      * @param headerAuthFilter filter that promotes trusted gateway headers
      *                         into the Spring Security context
      */
-    public SecurityConfig(PatientHeaderAuthFilter headerAuthFilter) {
+    public SecurityConfig(NotificationHeaderAuthFilter headerAuthFilter) {
         this.headerAuthFilter = headerAuthFilter;
     }
 
@@ -39,8 +40,11 @@ public class SecurityConfig {
      *
      * <p>CSRF is disabled because the service is stateless and never serves
      * browser forms. Only {@code /actuator/health/**} is permitted
-     * anonymously, so the Docker healthcheck can reach it. Every other
-     * request requires the trusted headers to be present.
+     * anonymously, so the Docker healthcheck can reach it. Reads are open to
+     * patients (scoped to their own notifications in the service layer) and
+     * admins (scenario: the clinic admin checks notification delivery).
+     * Creating notifications by hand is an admin-only operation — automated
+     * triggers arrive in a later iteration via service-to-service calls.
      *
      * @param http the {@link HttpSecurity} builder injected by Spring
      * @return the configured filter chain
@@ -52,17 +56,13 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        // Health and Prometheus endpoints must be reachable without auth.
-                        // Both forms needed: Spring Security 6 `/**` does not match the
-                        // exact path without a trailing segment, so the bare /actuator/health
-                        // would otherwise return 401 and break the prod healthcheck.
                         .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
-                        .requestMatchers("/actuator/prometheus").permitAll()
-                        // Spring forwards unhandled exceptions to /error. Without permitting
-                        // it, error pages come back as 403 instead of the intended status.
+                        // Spring forwards errors internally to /error — must be reachable
+                        // without authentication or the real status code is swallowed by 401.
                         .requestMatchers("/error").permitAll()
-                        // Everything else requires an authenticated principal, which
-                        // PatientHeaderAuthFilter sets from the gateway-injected headers.
+                        .requestMatchers(HttpMethod.POST, "/notifications").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/notifications", "/notifications/*").hasAnyRole("PATIENT", "ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/appointments/*/notifications").hasAnyRole("PATIENT", "ADMIN")
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(headerAuthFilter, UsernamePasswordAuthenticationFilter.class)

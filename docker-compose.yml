@@ -340,6 +340,24 @@ services:
     networks:
       - caredesk
 
+  prometheus:
+    image: prom/prometheus:v3.3.1
+    volumes:
+      - ./infra/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=7d'
+    ports:
+      - "9090:9090"
+    restart: unless-stopped
+    depends_on:
+      api-gateway:
+        condition: service_healthy
+    networks:
+      - caredesk
+
 networks:
   caredesk:
     driver: bridge
@@ -351,3 +369,4 @@ volumes:
   notification-db-data:
   ai-db-data:
   ollama_data:
+  prometheus-data:

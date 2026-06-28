@@ -54,6 +54,7 @@ public class SecurityConfig {
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
+                        .requestMatchers("/actuator/prometheus").permitAll()
                         // Spring forwards errors internally to /error — must be reachable
                         // without authentication or the real status code is swallowed by 401.
                         .requestMatchers("/error").permitAll()

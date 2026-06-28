@@ -32,7 +32,10 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
     // so it cannot require one. Paths match the external URL (before StripPrefix).
     private static final List<String> PUBLIC_PATHS = List.of(
             "/api/v1/auth/**",
-            "/actuator/health"
+            "/actuator/health",
+            // Scraped by Prometheus over the internal network only; nginx/ingress
+            // forward just /api/** and /, so /actuator/** is unreachable externally.
+            "/actuator/prometheus"
     );
 
     private final JwtUtil jwtUtil;

@@ -70,7 +70,7 @@ jobs:
             echo "AI_DDL_AUTO=${{ vars.AI_DDL_AUTO }}" >> .env.prod
             echo "GRAFANA_ADMIN_USER=${{ vars.GRAFANA_ADMIN_USER }}" >> .env.prod
             echo "GRAFANA_ADMIN_PASSWORD=${{ secrets.GRAFANA_ADMIN_PASSWORD }}" >> .env.prod
-            echo "GRAFANA_ROOT_URL=https://${{ vars.AZURE_PUBLIC_IP }}.nip.io" >> .env.prod
+            echo "GRAFANA_ROOT_URL=https://${{ vars.AZURE_PUBLIC_IP }}.nip.io/grafana" >> .env.prod
       - name: Deploy with Docker Compose
         uses: appleboy/ssh-action@v1.2.5
         with:

@@ -42,6 +42,7 @@ src/main/java/org/openapitools/model/ProblemDetail.java
 src/main/java/org/openapitools/model/RegisterRequest.java
 src/main/java/org/openapitools/model/Schedule.java
 src/main/java/org/openapitools/model/ScheduleSlot.java
+src/main/java/org/openapitools/model/ScheduleSlotCreate.java
 src/main/java/org/openapitools/model/UserCreate.java
 src/main/java/org/openapitools/model/UserProfile.java
 src/main/java/org/openapitools/model/UserRole.java

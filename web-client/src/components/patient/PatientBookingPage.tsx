@@ -1,23 +1,26 @@
-import { FormEvent, useEffect, useMemo, useState } from 'react'
+import { FormEvent, useEffect, useState } from 'react'
 import type { ScheduleSlot, UserProfile } from '../../clientApi'
 import {
   bookAppointment,
   getDoctorSchedule,
   listDoctors,
 } from '../../clientApi'
-import { formatAppointmentDate, formatTimeRange, isPastDateTime } from '../../lib/dates'
+import { isPastDateTime } from '../../lib/dates'
 import { userMessage } from '../../lib/messages'
-import type { PatientDashboardProps } from '../../types/route'
+import type { PatientBookingPageProps } from '../../types/route'
+import { BookingCalendarSection } from '../booking/BookingCalendarSection'
+import { BookingEntityResults } from '../booking/BookingEntityResults'
+import { BookingSearchSection } from '../booking/BookingSearchSection'
 import { PatientSubNav } from '../layout/PatientSubNav'
 import { ShellNav } from '../layout/ShellNav'
-import { EmptyPanel } from '../ui/EmptyPanel'
 import { StatusPanel } from '../ui/StatusPanel'
 
 export function PatientBookingPage({
   session,
   onLogout,
   onNavigate,
-}: PatientDashboardProps) {
+  onBooked,
+}: PatientBookingPageProps) {
   const [query, setQuery] = useState('')
   const [specialization, setSpecialization] = useState('')
   const [doctors, setDoctors] = useState<UserProfile[]>([])
@@ -25,20 +28,13 @@ export function PatientBookingPage({
   const [slots, setSlots] = useState<ScheduleSlot[]>([])
   const [selectedSlot, setSelectedSlot] = useState<ScheduleSlot | null>(null)
   const [reason, setReason] = useState('')
-  const [status, setStatus] = useState('')
   const [error, setError] = useState('')
   const [isLoading, setLoading] = useState(false)
-  const futureSlots = useMemo(() => {
-    const now = Date.now()
-
-    return slots.filter((slot) => !isPastDateTime(slot.startAt, now))
-  }, [slots])
 
   async function searchDoctors(event?: FormEvent<HTMLFormElement>) {
     event?.preventDefault()
     setLoading(true)
     setError('')
-    setStatus('')
 
     try {
       const response = await listDoctors(session.accessToken, {
@@ -63,7 +59,6 @@ export function PatientBookingPage({
     setSelectedDoctor(doctor)
     setSelectedSlot(null)
     setError('')
-    setStatus('')
 
     try {
       const schedule = await getDoctorSchedule(doctor.id, session.accessToken)
@@ -88,7 +83,6 @@ export function PatientBookingPage({
     }
 
     setError('')
-    setStatus('')
 
     try {
       const duration = Math.round(
@@ -101,9 +95,7 @@ export function PatientBookingPage({
         duration,
         reason: reason || undefined,
       })
-      setStatus('Appointment booked')
-      setReason('')
-      await selectDoctor(selectedDoctor)
+      onBooked()
     } catch {
       setError(userMessage('This appointment could not be booked. Please choose another time or try again.'))
     }
@@ -129,101 +121,44 @@ export function PatientBookingPage({
         </header>
 
         {error && <StatusPanel title="We could not complete your booking" text={error} />}
-        {status && <StatusPanel title={status} text="Your appointment is now listed in your dashboard." />}
 
-        <section className="booking-grid">
-          <form className="auth-card booking-search" onSubmit={searchDoctors}>
-            <h2>Doctor search</h2>
-            <label>
-              Search
-              <input
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder="Name or specialization"
-                type="search"
-                value={query}
-              />
-            </label>
-            <label>
-              Specialization
-              <input
-                onChange={(event) => setSpecialization(event.target.value)}
-                placeholder="General Medicine"
-                type="text"
-                value={specialization}
-              />
-            </label>
-            <button className="primary-button" disabled={isLoading} type="submit">
-              {isLoading ? 'Searching' : 'Search doctors'}
-            </button>
-          </form>
-
-          <div className="doctor-results">
-            {doctors.length ? (
-              doctors.map((doctor) => (
-                <button
-                  className={selectedDoctor?.id === doctor.id ? 'doctor-card active' : 'doctor-card'}
-                  key={doctor.id}
-                  onClick={() => selectDoctor(doctor)}
-                  type="button"
-                >
-                  <strong>{doctor.name}</strong>
-                  <span>{doctor.specialization ?? 'CareDesk doctor'}</span>
-                  <small>{doctor.email}</small>
-                </button>
-              ))
-            ) : (
-              <EmptyPanel text="No doctors found. Try another search." />
-            )}
-          </div>
-        </section>
+        <BookingSearchSection
+          title="Doctor search"
+          searchPlaceholder="Name or specialization"
+          searchValue={query}
+          onSearchChange={setQuery}
+          secondaryLabel="Specialization"
+          secondaryPlaceholder="General Medicine"
+          secondaryValue={specialization}
+          onSecondaryChange={setSpecialization}
+          onSubmit={searchDoctors}
+          isLoading={isLoading}
+          submitLabel="Search doctors"
+          loadingLabel="Searching"
+          results={
+            <BookingEntityResults
+              entities={doctors}
+              selectedEntityId={selectedDoctor?.id ?? null}
+              onSelectEntity={selectDoctor}
+              emptyMessage="No doctors found. Try another search."
+              subtitle={(doctor) => doctor.specialization ?? 'CareDesk doctor'}
+            />
+          }
+        />
 
         {selectedDoctor && (
-          <section className="calendar-panel dashboard-panel">
-            <div className="panel-header">
-              <div>
-                <p className="eyebrow">Calendar</p>
-                <h2>{selectedDoctor.name}</h2>
-              </div>
-            </div>
-            <div className="slot-grid">
-              {futureSlots.length ? (
-                futureSlots.map((slot) => (
-                  <button
-                    className={selectedSlot?.startAt === slot.startAt ? 'slot-button active' : 'slot-button'}
-                    key={`${slot.startAt}-${slot.endAt}`}
-                    onClick={() => setSelectedSlot(slot)}
-                    type="button"
-                  >
-                    <span>{formatAppointmentDate(slot.startAt)}</span>
-                    <strong>{formatTimeRange(slot)}</strong>
-                  </button>
-                ))
-              ) : (
-                <EmptyPanel text="No available times right now." />
-              )}
-            </div>
-            <label className="reason-field">
-              Reason
-              <textarea
-                onChange={(event) => setReason(event.target.value)}
-                placeholder="Short reason for the visit"
-                rows={3}
-                value={reason}
-              />
-            </label>
-            <div className="quick-actions">
-              <button
-                className="secondary-button"
-                onClick={() => onNavigate('/patient')}
-                type="button"
-              >
-                Back to dashboard
-              </button>
-              <button className="primary-button" onClick={handleBooking} type="button">
-                Book selected slot
-              </button>
-            </div>
-          </section>
+          <BookingCalendarSection
+            subjectName={selectedDoctor.name}
+            slots={slots}
+            selectedSlot={selectedSlot}
+            onSelectSlot={setSelectedSlot}
+            reason={reason}
+            onReasonChange={setReason}
+            onCancel={() => onNavigate('/patient')}
+            onBook={handleBooking}
+            cancelLabel="Back to dashboard"
+            bookLabel="Book selected slot"
+          />
         )}
       </section>
     </main>

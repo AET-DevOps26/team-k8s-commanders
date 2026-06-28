@@ -9,9 +9,13 @@ import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.openapitools.model.PasswordChangeRequest;
+import org.openapitools.model.PaginatedUserProfileResponse;
 import org.openapitools.model.UserProfile;
 import org.openapitools.model.UserRole;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -108,6 +112,30 @@ class UserAccountServiceTest {
         UserProfile updated = service.updateUser(user.getId(), request);
 
         assertThat(updated.getName()).isEqualTo("Updated Name");
+    }
+
+    @Test
+    void listUsers_allowsDoctorAccounts() {
+        User doctor = user("doctor@example.com", Role.DOCTOR);
+        User patient = user("patient@example.com", Role.PATIENT);
+        authenticate(doctor);
+        when(userRepository.findAll(PageRequest.of(0, 20)))
+                .thenReturn(new PageImpl<>(List.of(patient), PageRequest.of(0, 20), 1));
+
+        PaginatedUserProfileResponse response = service.listUsers(0, 20);
+
+        assertThat(response.getContent()).hasSize(1);
+        assertThat(response.getContent().getFirst().getEmail()).isEqualTo("patient@example.com");
+    }
+
+    @Test
+    void listUsers_rejectsPatientAccounts() {
+        User patient = user("patient@example.com", Role.PATIENT);
+        authenticate(patient);
+
+        assertThatThrownBy(() -> service.listUsers(0, 20))
+                .isInstanceOf(AccessDeniedException.class)
+                .hasMessageContaining("Doctor or admin role required");
     }
 
     @Test

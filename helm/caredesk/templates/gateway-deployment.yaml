@@ -46,6 +46,8 @@ spec:
               value: {{ printf "http://%s-patient:%d" $fn (int .Values.patient.service.port) | quote }}
             - name: NOTES_SERVICE_URL
               value: {{ printf "http://%s-notes:%d" $fn (int .Values.notes.service.port) | quote }}
+            - name: NOTIFICATION_SERVICE_URL
+              value: {{ printf "http://%s-notification:%d" $fn (int .Values.notification.service.port) | quote }}
             - name: AI_ASSISTANT_URL
               value: {{ printf "http://%s-ai:%d" $fn (int .Values.ai.service.port) | quote }}
             {{- include "caredesk.jwtEnv" . | nindent 12 }}

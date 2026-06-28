@@ -20,10 +20,11 @@ Each database accepts connections only from its owning backend service.
 {{- /* Backend services: allowed callers per component */ -}}
 {{- $prometheusCallers := ternary (list "prometheus") (list) .Values.monitoring.enabled -}}
 {{- $backends := dict
-  "auth"    (concat (list "gateway") $prometheusCallers)
-  "patient" (concat (list "gateway" "ai") $prometheusCallers)
-  "notes"   (concat (list "gateway" "ai") $prometheusCallers)
-  "ai"      (concat (list "gateway") $prometheusCallers)
+  "auth"         (concat (list "gateway") $prometheusCallers)
+  "patient"      (concat (list "gateway" "ai") $prometheusCallers)
+  "notes"        (concat (list "gateway" "ai") $prometheusCallers)
+  "notification" (concat (list "gateway") $prometheusCallers)
+  "ai"           (concat (list "gateway") $prometheusCallers)
 -}}
 {{- range $svc, $callers := $backends }}
 {{- $cfg := index $root.Values $svc }}

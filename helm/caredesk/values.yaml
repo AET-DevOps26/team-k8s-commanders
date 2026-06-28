@@ -8,7 +8,7 @@ tumId: ge38yuc
 # Steady-state CPU limits must stay below that cap. Recreate (not RollingUpdate)
 # terminates the old pod before starting the new one, so rollouts do not need
 # temporary spare quota for overlapping pods.
-# Budget: 5×400m backends + 3×250m Postgres + 1×200m web = 2950m (1050m spare).
+# Budget: 6×400m backends + 5×250m Postgres + 1×200m web = 3850m (150m spare).
 deploymentStrategy:
   type: Recreate
 
@@ -63,6 +63,8 @@ databases:
     database: patient_db
   notes-db:
     database: notes_db
+  notification-db:
+    database: notification_db
   ai-db:
     database: ai_db
 
@@ -168,9 +170,25 @@ notes:
     requests: { cpu: 100m, memory: 384Mi }
     limits:   { cpu: 400m, memory: 768Mi }
 
-# ─── Monitoring (Prometheus + Grafana) ───────────────────────────────────────
-# Enabled by default. Adds ~350m CPU → ~3550m total, within the AET 4-CPU
-# quota (~450m spare). Disable with: --set monitoring.enabled=false
+# ─── notification-service (Spring Boot, port 8084) ────────────────────────────
+notification:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: notification-service
+    tag: ""
+  service:
+    port: 8084
+  dbHost: caredesk-notification-db
+  dbName: notification_db
+  resources:
+    requests: { cpu: 100m, memory: 384Mi }
+    limits:   { cpu: 400m, memory: 768Mi }
+
+# ─── Prometheus (metrics collection, port 9090) ───────────────────────────────
+# Enabled by default so the core stack installs within the AET 4-CPU quota.
+# Enable with: --set monitoring.enabled=true
+# CPU budget: ~150m limit leaves the cluster at ~3100m total (900m spare).
 monitoring:
   enabled: true
   image: prom/prometheus:v3.3.1

@@ -258,6 +258,55 @@ services:
     networks:
       - caredesk
 
+  notification-db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: notification_db
+      POSTGRES_USER: caredesk
+      POSTGRES_PASSWORD: caredesk
+    ports:
+      - "5435:5432"
+    volumes:
+      - notification-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U caredesk -d notification_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - caredesk
+
+  notification-service:
+    build:
+      # Build context is the repo root so the Dockerfile can reach both
+      # services/notification-service AND services/springboot/generated (stubs).
+      context: .
+      dockerfile: services/notification-service/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      notification-db:
+        condition: service_healthy
+    # No published port — only reachable inside the compose network via the gateway.
+    environment:
+      DB_HOST: notification-db
+      DB_PORT: 5432
+      DB_NAME: notification_db
+      DB_USER: caredesk
+      DB_PASSWORD: caredesk
+      # application.yml ships with ddl-auto: validate. Compose dev profile
+      # overrides to update so the schema is auto-created against a fresh DB.
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8084/actuator/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - caredesk
+
   api-gateway:
     build:
       context: ./services/api-gateway
@@ -270,6 +319,8 @@ services:
         condition: service_healthy
       notes-service:
         condition: service_healthy
+      notification-service:
+        condition: service_healthy
     ports:
       - "8080:8080"
     environment:
@@ -277,6 +328,7 @@ services:
       AI_ASSISTANT_URL: http://ai-assistant:8000
       PATIENT_SERVICE_URL: http://patient-service:8082
       NOTES_SERVICE_URL: http://notes-service:8083
+      NOTIFICATION_SERVICE_URL: http://notification-service:8084
       # Must match auth-service's JWT_SECRET so issued tokens verify.
       JWT_SECRET: caredesk-compose-dev-secret-must-be-at-least-32-chars
     healthcheck:
@@ -333,6 +385,7 @@ volumes:
   auth-db-data:
   patient-db-data:
   notes-db-data:
+  notification-db-data:
   ai-db-data:
   ollama_data:
   prometheus-data:

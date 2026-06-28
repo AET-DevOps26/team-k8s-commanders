@@ -91,9 +91,15 @@
         },
         {
           "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "expr": "min(up{job=\"notification-service\"})",
+          "legendFormat": "Notification Service",
+          "refId": "E"
+        },
+        {
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
           "expr": "min(up{job=\"ai-assistant\"})",
           "legendFormat": "AI Assistant",
-          "refId": "E"
+          "refId": "F"
         }
       ],
       "title": "Service Status",
@@ -134,7 +140,7 @@
       "targets": [
         {
           "datasource": {"type": "prometheus", "uid": "prometheus"},
-          "expr": "sum(rate(http_server_requests_seconds_count{job=~\"api-gateway|auth-service|patient-service|notes-service\"}[5m])) by (job)",
+          "expr": "sum(rate(http_server_requests_seconds_count{job=~\"api-gateway|auth-service|patient-service|notes-service|notification-service\"}[5m])) by (job)",
           "legendFormat": "{{job}}",
           "refId": "A"
         }
@@ -175,7 +181,7 @@
       "targets": [
         {
           "datasource": {"type": "prometheus", "uid": "prometheus"},
-          "expr": "sum(rate(http_server_requests_seconds_count{job=~\"api-gateway|auth-service|patient-service|notes-service\",status=~\"5..\"}[5m])) by (job)",
+          "expr": "sum(rate(http_server_requests_seconds_count{job=~\"api-gateway|auth-service|patient-service|notes-service|notification-service\",status=~\"5..\"}[5m])) by (job)",
           "legendFormat": "{{job}}",
           "refId": "A"
         }
@@ -218,7 +224,7 @@
       "targets": [
         {
           "datasource": {"type": "prometheus", "uid": "prometheus"},
-          "expr": "sum(rate(http_server_requests_seconds_sum{job=~\"api-gateway|auth-service|patient-service|notes-service\"}[5m])) by (job) / sum(rate(http_server_requests_seconds_count{job=~\"api-gateway|auth-service|patient-service|notes-service\"}[5m])) by (job)",
+          "expr": "sum(rate(http_server_requests_seconds_sum{job=~\"api-gateway|auth-service|patient-service|notes-service|notification-service\"}[5m])) by (job) / sum(rate(http_server_requests_seconds_count{job=~\"api-gateway|auth-service|patient-service|notes-service|notification-service\"}[5m])) by (job)",
           "legendFormat": "{{job}}",
           "refId": "A"
         }

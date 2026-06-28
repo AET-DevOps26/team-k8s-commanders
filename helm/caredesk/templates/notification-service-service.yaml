@@ -1,0 +1,18 @@
+{{- if .Values.notification.enabled -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "caredesk.fullname" . }}-notification
+  labels:
+    {{- include "caredesk.labels" . | nindent 4 }}
+    app.kubernetes.io/component: notification
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: {{ .Values.notification.service.port }}
+      targetPort: http
+      protocol: TCP
+  selector:
+    {{- include "caredesk.selectorLabels" (dict "root" . "component" "notification") | nindent 4 }}
+{{- end }}

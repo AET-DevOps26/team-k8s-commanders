@@ -47,15 +47,16 @@ public class NotesController implements AppointmentsApi {
      * Returns the clinical note for an appointment.
      *
      * @param appointmentId the appointment id
-     * @return 200 with the note, or 404 if no note has been written yet
+     * @return 200 with the note, or 204 if no note has been written yet
      */
     @Override
     public ResponseEntity<ClinicalNote> getAppointmentNote(UUID appointmentId) {
         UUID doctorId = currentDoctorId();
         com.caredesk.notes.model.ClinicalNote note = notesService.getByAppointment(appointmentId)
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND,
-                        "No clinical note exists for appointment " + appointmentId));
+                .orElse(null);
+        if (note == null) {
+            return ResponseEntity.noContent().build();
+        }
         if (!note.getDoctorId().equals(doctorId)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Not your appointment");
         }

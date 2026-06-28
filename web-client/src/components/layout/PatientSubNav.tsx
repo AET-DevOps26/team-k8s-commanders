@@ -8,8 +8,8 @@ type PatientSubNavProps = {
 export function PatientSubNav({ active, onNavigate }: PatientSubNavProps) {
   const items: Array<{ key: typeof active; label: string; route: Route }> = [
     { key: 'dashboard', label: 'Dashboard', route: '/patient' },
-    { key: 'profile', label: 'Profile', route: '/patient/profile' },
     { key: 'book', label: 'Book appointment', route: '/patient/book' },
+    { key: 'profile', label: 'Profile', route: '/patient/profile' },
   ]
 
   return (

@@ -475,6 +475,35 @@ paths:
           $ref: '#/components/responses/NotFound'
         '500':
           $ref: '#/components/responses/InternalServerError'
+    post:
+      tags: [Doctors]
+      summary: Add an available schedule slot
+      operationId: createDoctorScheduleSlot
+      parameters:
+        - $ref: '#/components/parameters/DoctorId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ScheduleSlotCreate'
+      responses:
+        '201':
+          description: Schedule slot created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScheduleSlot'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
   /appointments:
     post:
       tags: [Appointments]
@@ -620,6 +649,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ClinicalNote'
+        '204':
+          description: No clinical note has been written yet
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -1258,6 +1289,16 @@ components:
           format: date-time
         available:
           type: boolean
+    ScheduleSlotCreate:
+      type: object
+      required: [startAt, endAt]
+      properties:
+        startAt:
+          type: string
+          format: date-time
+        endAt:
+          type: string
+          format: date-time
     Appointment:
       type: object
       required: [id, patientId, doctorId, dateTime, status, duration]

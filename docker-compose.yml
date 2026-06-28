@@ -144,6 +144,7 @@ services:
       # Dev-only secret — override in production via env or secrets management.
       JWT_SECRET: caredesk-compose-dev-secret-must-be-at-least-32-chars
       SPRING_PROFILES_ACTIVE: dev
+      CAREDESK_SEED_TEST_PATIENTS: "true"
       # application.yml ships with ddl-auto: validate for production safety.
       # Compose dev profile overrides to `update` so schema is auto-created
       # against a fresh Postgres. Production should use proper migrations.
@@ -197,6 +198,7 @@ services:
       # Internal auth-service URL for the cross-service profile lookup.
       AUTH_SERVICE_URL: http://auth-service:8081
       SPRING_PROFILES_ACTIVE: dev
+      CAREDESK_SEED_TEST_PATIENTS: "true"
       # application.yml ships with ddl-auto: validate. Compose dev profile
       # overrides to update so the schema is auto-created against a fresh DB.
       SPRING_JPA_HIBERNATE_DDL_AUTO: update

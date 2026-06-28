@@ -1,7 +1,7 @@
 {{- if .Values.monitoring.enabled -}}
 {{- $fullName := include "caredesk.fullname" . -}}
-{{- $ingressHost := include "caredesk.ingressHost" . -}}
-{{- $proto := ternary "https" "http" .Values.ingress.tls.enabled -}}
+{{- $ingressEnabled := .Values.ingress.enabled -}}
+{{- $healthPath := ternary "/grafana/api/health" "/api/health" $ingressEnabled -}}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -40,10 +40,15 @@ spec:
               value: {{ .Values.monitoring.grafana.adminPassword | quote }}
             - name: GF_AUTH_ANONYMOUS_ENABLED
               value: "false"
+            {{- if $ingressEnabled }}
             - name: GF_SERVER_ROOT_URL
-              value: {{ printf "%s://%s/grafana" $proto $ingressHost | quote }}
+              value: {{ printf "%s://%s/grafana" (ternary "https" "http" .Values.ingress.tls.enabled) (include "caredesk.ingressHost" .) | quote }}
             - name: GF_SERVER_SERVE_FROM_SUB_PATH
               value: "true"
+            {{- else if .Values.monitoring.grafana.rootUrl }}
+            - name: GF_SERVER_ROOT_URL
+              value: {{ .Values.monitoring.grafana.rootUrl | quote }}
+            {{- end }}
           volumeMounts:
             - name: provisioning
               mountPath: /etc/grafana/provisioning
@@ -57,13 +62,13 @@ spec:
             {{- toYaml .Values.monitoring.grafana.resources | nindent 12 }}
           livenessProbe:
             httpGet:
-              path: /grafana/api/health
+              path: {{ $healthPath }}
               port: http
             initialDelaySeconds: 15
             periodSeconds: 20
           readinessProbe:
             httpGet:
-              path: /grafana/api/health
+              path: {{ $healthPath }}
               port: http
             initialDelaySeconds: 5
             periodSeconds: 10

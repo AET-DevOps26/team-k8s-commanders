@@ -199,6 +199,9 @@ monitoring:
     limits:   { cpu: 150m, memory: 512Mi }
   grafana:
     image: grafana/grafana:11.2.0
+    # Root URL used only when ingress is disabled (subpath mode is off in that
+    # case). Leave empty to use Grafana's built-in default (http://localhost:3000).
+    rootUrl: ""
     adminUser: admin
     # Override in production: --set monitoring.grafana.adminPassword=<secret>
     adminPassword: caredesk-grafana-admin

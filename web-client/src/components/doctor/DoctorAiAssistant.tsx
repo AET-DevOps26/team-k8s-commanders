@@ -115,11 +115,13 @@ export function DoctorAiAssistant({
       ? `patient:${patientId}:appointment:${appointmentId ?? 'none'}`
       : 'doctor:general')
   const [state, setState] = useState(() => getDoctorAiState(resolvedContextKey))
+  const [loadAttempt, setLoadAttempt] = useState(0)
   const {
     activeSession,
     error,
     isLoadingSessions,
     isStreaming,
+    loadedFor,
     query,
     sessions,
     streamingReply,
@@ -192,7 +194,7 @@ export function DoctorAiAssistant({
     }
 
     loadSessions()
-  }, [appointmentId, patientId, resolvedContextKey, token])
+  }, [appointmentId, loadAttempt, patientId, resolvedContextKey, token])
 
   const renderedMessages = useMemo<RenderedAIMessage[]>(() => {
     const messages = activeSession?.messages ?? []
@@ -406,7 +408,19 @@ export function DoctorAiAssistant({
 
   return (
     <section className="doctor-ai-chat">
-      {error && <StatusPanel title="AI assistant unavailable" text={error} />}
+      {error && (
+        <StatusPanel title="AI assistant unavailable" text={error}>
+          {!isLoadingSessions && loadedFor === null ? (
+            <button
+              className="secondary-button compact-button"
+              onClick={() => setLoadAttempt((current) => current + 1)}
+              type="button"
+            >
+              Retry
+            </button>
+          ) : null}
+        </StatusPanel>
+      )}
 
       <div className="ai-workbench">
         <aside className="ai-session-rail" aria-label="AI chat sessions">

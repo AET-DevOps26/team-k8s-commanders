@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import type { Appointment, UserProfile } from '../../clientApi'
 import { fetchAllAppointmentPages, fetchAllUserPages } from '../../clientApi'
 import { userMessage } from '../../lib/messages'
-import type { DoctorDashboardProps } from '../../types/route'
+import type { DoctorDashboardViewProps } from '../../types/route'
 import { DoctorSubNav } from '../layout/DoctorSubNav'
 import { ShellNav } from '../layout/ShellNav'
 import { StatusPanel } from '../ui/StatusPanel'
@@ -15,10 +15,13 @@ export function DoctorDashboard({
   session,
   onLogout,
   onNavigate,
-}: DoctorDashboardProps) {
+  bookingSuccess = false,
+  onBookingSuccessAcknowledged,
+}: DoctorDashboardViewProps) {
   const [appointments, setAppointments] = useState<Appointment[]>([])
   const [users, setUsers] = useState<UserProfile[]>([])
   const [error, setError] = useState('')
+  const [status, setStatus] = useState('')
   const [isLoading, setLoading] = useState(true)
   const [reloadKey, setReloadKey] = useState(0)
   const doctorId = session.user.id
@@ -86,6 +89,23 @@ export function DoctorDashboard({
     [doctorAppointments, patients],
   )
 
+  useEffect(() => {
+    if (!bookingSuccess || isLoading) {
+      return
+    }
+
+    setStatus('Appointment booked successfully.')
+    onBookingSuccessAcknowledged?.()
+  }, [bookingSuccess, isLoading, onBookingSuccessAcknowledged])
+
+  useEffect(() => {
+    if (!status || isLoading) {
+      return
+    }
+
+    document.getElementById('doctor-schedule')?.scrollIntoView({ behavior: 'smooth' })
+  }, [isLoading, status])
+
   if (session.user.role !== 'DOCTOR') {
     return (
       <main className="landing-page app-page">
@@ -129,6 +149,12 @@ export function DoctorDashboard({
 
         {isLoading && <StatusPanel title="Loading doctor data" />}
         {error && <StatusPanel title="Doctor API unavailable" text={error} />}
+        {status && (
+          <StatusPanel
+            title={status}
+            text="The appointment is now listed in your schedule below."
+          />
+        )}
 
         {!isLoading && !error && (
           <>
@@ -157,6 +183,13 @@ export function DoctorDashboard({
             <section className="doctor-action-row" aria-label="Doctor actions">
               <button
                 className="primary-button"
+                onClick={() => onNavigate('/doctor/book')}
+                type="button"
+              >
+                Book for patient
+              </button>
+              <button
+                className="secondary-button"
                 onClick={() => onNavigate('/doctor/schedule')}
                 type="button"
               >

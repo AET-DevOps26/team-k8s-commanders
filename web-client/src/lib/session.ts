@@ -14,7 +14,8 @@ export function getInitialRoute(): Route {
     path === '/admin' ||
     path === '/doctor' ||
     path === '/doctor/schedule' ||
-    path === '/doctor/patients'
+    path === '/doctor/patients' ||
+    path === '/doctor/book'
   ) {
     return path
   }

@@ -4,6 +4,7 @@ import { AdminDashboard } from './admin'
 import type { AuthSession } from './clientApi'
 import { logout } from './clientApi'
 import { AuthForm } from './components/auth/AuthForm'
+import { DoctorBookAppointmentPage } from './components/doctor/DoctorBookAppointmentPage'
 import { DoctorDashboard } from './components/doctor/DoctorDashboard'
 import { DoctorPatientsPage } from './components/doctor/DoctorPatientsPage'
 import { DoctorSchedulePage } from './components/doctor/DoctorSchedulePage'
@@ -23,6 +24,7 @@ export default function App() {
   const [route, setRoute] = useState<Route>(getInitialRoute)
   const [session, setSession] = useState<AuthSession | null>(getStoredSession)
   const [patientBookingSuccess, setPatientBookingSuccess] = useState(false)
+  const [doctorBookingSuccess, setDoctorBookingSuccess] = useState(false)
 
   useEffect(() => {
     function handlePopState() {
@@ -166,7 +168,7 @@ export default function App() {
     )
   }
 
-  if (route === '/doctor' || route === '/doctor/schedule' || route === '/doctor/patients') {
+  if (route === '/doctor' || route === '/doctor/schedule' || route === '/doctor/patients' || route === '/doctor/book') {
     if (!session) {
       return (
         <AuthForm
@@ -187,6 +189,20 @@ export default function App() {
       )
     }
 
+    if (route === '/doctor/book') {
+      return (
+        <DoctorBookAppointmentPage
+          session={session}
+          onLogout={handleLogout}
+          onNavigate={navigate}
+          onBooked={() => {
+            setDoctorBookingSuccess(true)
+            navigate('/doctor')
+          }}
+        />
+      )
+    }
+
     if (route === '/doctor/patients') {
       return (
         <DoctorPatientsPage
@@ -202,6 +218,8 @@ export default function App() {
         session={session}
         onLogout={handleLogout}
         onNavigate={navigate}
+        bookingSuccess={doctorBookingSuccess}
+        onBookingSuccessAcknowledged={() => setDoctorBookingSuccess(false)}
       />
     )
   }

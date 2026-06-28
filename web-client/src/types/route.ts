@@ -11,6 +11,7 @@ export type Route =
   | '/doctor'
   | '/doctor/schedule'
   | '/doctor/patients'
+  | '/doctor/book'
 
 export type NavigateHandler = (path: Route) => void
 
@@ -63,4 +64,9 @@ export type DoctorDashboardProps = {
   session: AuthSession
   onLogout: () => void
   onNavigate: NavigateHandler
+}
+
+export type DoctorDashboardViewProps = DoctorDashboardProps & {
+  bookingSuccess?: boolean
+  onBookingSuccessAcknowledged?: () => void
 }

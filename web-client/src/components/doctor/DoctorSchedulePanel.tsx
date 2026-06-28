@@ -35,7 +35,7 @@ export function DoctorSchedulePanel({
   }, [appointments, filter])
 
   return (
-    <article className="dashboard-panel doctor-schedule-panel">
+    <article className="dashboard-panel doctor-schedule-panel" id="doctor-schedule">
       <div className="panel-header doctor-panel-header">
         <div>
           <p className="eyebrow">Appointments</p>

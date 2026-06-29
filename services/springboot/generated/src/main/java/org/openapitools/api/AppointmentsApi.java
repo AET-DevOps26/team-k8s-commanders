@@ -427,6 +427,7 @@ public interface AppointmentsApi {
      *
      * @param appointmentId  (required)
      * @return Clinical note (status code 200)
+     *         or No clinical note has been written yet (status code 204)
      *         or The request is malformed or fails validation. (status code 400)
      *         or Authentication is required or has failed. (status code 401)
      *         or The caller is authenticated but not allowed to access the resource. (status code 403)
@@ -442,6 +443,7 @@ public interface AppointmentsApi {
                 @Content(mediaType = "application/json", schema = @Schema(implementation = ClinicalNote.class)),
                 @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ClinicalNote.class))
             }),
+            @ApiResponse(responseCode = "204", description = "No clinical note has been written yet"),
             @ApiResponse(responseCode = "400", description = "The request is malformed or fails validation.", content = {
                 @Content(mediaType = "application/json", schema = @Schema(implementation = ProblemDetail.class)),
                 @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class))

@@ -2,6 +2,16 @@
 
 Repository for team K8s Commanders.
 
+## About
+
+CareDesk is a clinic management platform. Patients can register, manage their
+profile and book appointments with doctors; doctors record clinical notes against
+appointments; and an AI assistant answers questions using live patient context.
+
+It is built as a set of microservices — a web client, an API gateway, and auth,
+patient, notes and AI-assistant services, each with its own PostgreSQL database.
+It runs locally via Docker Compose and on Kubernetes via Helm.
+
 ## Local development setup
 
 This project keeps Git hooks and generator tooling in the repository so that a
@@ -46,19 +56,22 @@ docker compose up --build
 
 | Service | URL |
 |---------|-----|
-| Web client via nginx | http://localhost |
-| Web client direct | http://localhost:3000 |
+| Web client (via nginx) | http://localhost |
 | API gateway | http://localhost:8080 |
+| API docs (Swagger UI) | http://localhost/api/v1/docs |
 | Auth database (Postgres) | localhost:5432 |
-| Patient service | http://localhost:8082 |
 | Patient database (Postgres) | localhost:5433 |
-| Notes service | http://localhost:8083 |
 | Notes database (Postgres) | localhost:5434 |
 | Notification database (Postgres) | localhost:5435 |
 | AI assistant database (Postgres) | localhost:5436 |
 | Mailpit web UI (caught emails) | http://localhost:8025 |
 
-The web client reads `PUBLIC_API_URL` at runtime (default `/api/v1`) and sends API requests through the gateway. Use `http://localhost` for the full compose setup; nginx serves the frontend and forwards `/api/v1/**` to the API gateway without requiring CORS. Copy `services/ai-assistant/.env.example` to `services/ai-assistant/.env` before the first run if you use the AI assistant service.
+Only the gateway, nginx and the databases publish host ports. The databases are
+exposed so you can inspect them locally (e.g. with `psql`). The application
+services — web-client, auth-service, patient-service, notes-service and
+ai-assistant — publish no host port; they listen only on the internal compose
+network and are reached through the gateway (or, for the web client, through
+nginx). The web client reads `PUBLIC_API_URL` at runtime (default `/api/v1`) and sends API requests through the gateway. Use `http://localhost` for the full compose setup; nginx serves the frontend and forwards `/api/v1/**` to the API gateway without requiring CORS. Copy `services/ai-assistant/.env.example` to `services/ai-assistant/.env` before the first run if you use the AI assistant service.
 
 The AI assistant uses a local Ollama instance — no additional setup is required. 
 
@@ -106,6 +119,22 @@ The service also delivers those messages by email. We don't run a real mail serv
 Both patient-service and notification-service expose internal, gateway-unreachable `/internal/**` endpoints for this service-to-service traffic, restricted to in-cluster callers by NetworkPolicy. On Kubernetes, reach the Mailpit UI with `kubectl port-forward svc/caredesk-mailpit 8025:8025 -n <namespace>`.
 
 See [web-client/README.md](web-client/README.md) for standalone client image builds.
+
+## API-driven development
+
+We follow an API-first workflow: the OpenAPI specification at
+[`api/openapi.yaml`](api/openapi.yaml) is the single source of truth. The Spring
+server stubs, FastAPI models and the TypeScript client types are all generated
+from it (see [Local development setup](#local-development-setup)), so the contract
+is defined before the code.
+
+The spec is bundled into the API gateway and served alongside an interactive
+Swagger UI in every deployment (compose, prod compose and Kubernetes):
+
+- **Swagger UI:** `/api/v1/docs`
+- **Raw spec:** `/api/v1/openapi.yaml`
+
+Locally that is http://localhost/api/v1/docs.
 
 ## Kubernetes deployment
 
@@ -215,10 +244,3 @@ are directly commited, changes are reflected through the git hooks.
 - Node tools: edit `package.json` and run `npm install`.
 - For a custom FastAPI implementation, create a separate Python environment
   and import the generated models from `services/ai-assistant/models/`.
-
-## Notes
-
-- Hooks are implemented as shell scripts under `git/hooks` and are
-  authoritative; no `pre-commit` YAML is required.
-- The OpenAPI specification lives at `api/openapi.yaml` and is the single
-  source of truth for all generated clients and server stubs.

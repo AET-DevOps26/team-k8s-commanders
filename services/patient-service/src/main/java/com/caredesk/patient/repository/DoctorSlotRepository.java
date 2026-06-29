@@ -45,4 +45,14 @@ public interface DoctorSlotRepository extends JpaRepository<DoctorSlot, UUID> {
     Optional<DoctorSlot> findSlotByTime(@Param("doctorId") UUID doctorId,
                                         @Param("startAt") OffsetDateTime startAt,
                                         @Param("endAt") OffsetDateTime endAt);
+
+    @Query("""
+            select count(slot) > 0 from DoctorSlot slot
+            where slot.doctorId = :doctorId
+              and slot.startAt < :endAt
+              and slot.endAt > :startAt
+            """)
+    boolean existsOverlappingSlot(@Param("doctorId") UUID doctorId,
+                                  @Param("startAt") OffsetDateTime startAt,
+                                  @Param("endAt") OffsetDateTime endAt);
 }

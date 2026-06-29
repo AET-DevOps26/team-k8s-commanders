@@ -4,6 +4,10 @@ import { AdminDashboard } from './admin'
 import type { AuthSession } from './clientApi'
 import { logout } from './clientApi'
 import { AuthForm } from './components/auth/AuthForm'
+import { DoctorBookAppointmentPage } from './components/doctor/DoctorBookAppointmentPage'
+import { DoctorDashboard } from './components/doctor/DoctorDashboard'
+import { DoctorPatientsPage } from './components/doctor/DoctorPatientsPage'
+import { DoctorSchedulePage } from './components/doctor/DoctorSchedulePage'
 import { LandingPage } from './components/landing/LandingPage'
 import { PatientBookingPage } from './components/patient/PatientBookingPage'
 import { PatientDashboard } from './components/patient/PatientDashboard'
@@ -19,6 +23,8 @@ import type { Route } from './types/route'
 export default function App() {
   const [route, setRoute] = useState<Route>(getInitialRoute)
   const [session, setSession] = useState<AuthSession | null>(getStoredSession)
+  const [patientBookingSuccess, setPatientBookingSuccess] = useState(false)
+  const [doctorBookingSuccess, setDoctorBookingSuccess] = useState(false)
 
   useEffect(() => {
     function handlePopState() {
@@ -40,7 +46,13 @@ export default function App() {
   function handleAuthenticated(nextSession: AuthSession) {
     saveSession(nextSession)
     setSession(nextSession)
-    navigate(nextSession.user.role === 'ADMIN' ? '/admin' : '/patient')
+    navigate(
+      nextSession.user.role === 'ADMIN'
+        ? '/admin'
+        : nextSession.user.role === 'DOCTOR'
+          ? '/doctor'
+          : '/patient',
+    )
   }
 
   function handleSessionUpdated(nextSession: AuthSession) {
@@ -101,6 +113,16 @@ export default function App() {
     }
 
     if (session.user.role !== 'PATIENT') {
+      if (session.user.role === 'DOCTOR') {
+        return (
+          <DoctorDashboard
+            session={session}
+            onLogout={handleLogout}
+            onNavigate={navigate}
+          />
+        )
+      }
+
       return (
         <AdminDashboard
           session={session}
@@ -127,6 +149,10 @@ export default function App() {
           session={session}
           onLogout={handleLogout}
           onNavigate={navigate}
+          onBooked={() => {
+            setPatientBookingSuccess(true)
+            navigate('/patient')
+          }}
         />
       )
     }
@@ -136,6 +162,64 @@ export default function App() {
         session={session}
         onLogout={handleLogout}
         onNavigate={navigate}
+        bookingSuccess={patientBookingSuccess}
+        onBookingSuccessAcknowledged={() => setPatientBookingSuccess(false)}
+      />
+    )
+  }
+
+  if (route === '/doctor' || route === '/doctor/schedule' || route === '/doctor/patients' || route === '/doctor/book') {
+    if (!session) {
+      return (
+        <AuthForm
+          mode="login"
+          onAuthenticated={handleAuthenticated}
+          onNavigate={navigate}
+        />
+      )
+    }
+
+    if (route === '/doctor/schedule') {
+      return (
+        <DoctorSchedulePage
+          session={session}
+          onLogout={handleLogout}
+          onNavigate={navigate}
+        />
+      )
+    }
+
+    if (route === '/doctor/book') {
+      return (
+        <DoctorBookAppointmentPage
+          session={session}
+          onLogout={handleLogout}
+          onNavigate={navigate}
+          onBooked={() => {
+            setDoctorBookingSuccess(true)
+            navigate('/doctor')
+          }}
+        />
+      )
+    }
+
+    if (route === '/doctor/patients') {
+      return (
+        <DoctorPatientsPage
+          session={session}
+          onLogout={handleLogout}
+          onNavigate={navigate}
+        />
+      )
+    }
+
+    return (
+      <DoctorDashboard
+        session={session}
+        onLogout={handleLogout}
+        onNavigate={navigate}
+        bookingSuccess={doctorBookingSuccess}
+        onBookingSuccessAcknowledged={() => setDoctorBookingSuccess(false)}
       />
     )
   }

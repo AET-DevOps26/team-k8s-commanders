@@ -402,5 +402,6 @@ def test_stream_llm_error_reported_as_event(mock_build_context, mock_get_llm):
     events = _parse_sse(response.text)
     assert events[0][0] == "sources"
     assert events[-1][0] == "error"
-    # The user message was persisted up front; the failed assistant reply was not.
-    assert [m["role"] for m in session["messages"]] == ["user"]
+    # A failed streaming turn persists neither message, so retrying does not
+    # duplicate the user's question in the session history.
+    assert session["messages"] == []

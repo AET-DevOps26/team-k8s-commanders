@@ -44,22 +44,28 @@ async def _get_json(base_url: str, path: str, headers: dict):
     """GET ``base_url + path`` and return parsed JSON, or ``None`` if the caller
     can't see the resource.
 
-    A 404 (missing) and a 403 (exists but not visible to this caller) are both
-    treated as "no data the caller can see" and return ``None`` so the resource
-    is simply skipped from grounding. This matters when a patient's visit
-    history spans multiple doctors: notes authored by a *different* doctor come
-    back 403 from notes-service, and swallowing that here keeps one inaccessible
-    note from failing the whole query while leaking nothing the caller couldn't
-    already read.
+    A 404 (missing), a 403 (exists but not visible to this caller), and a 204
+    (known resource with no body) return ``None`` so the resource is simply
+    skipped from grounding. This matters when a patient's visit history spans
+    multiple doctors: notes authored by a *different* doctor come back 403 from
+    notes-service, and swallowing that here keeps one inaccessible note from
+    failing the whole query while leaking nothing the caller couldn't already
+    read.
 
     Raises ``httpx.HTTPError`` for connection failures and other error
     statuses, which the caller maps to a 502.
     """
     async with httpx.AsyncClient(timeout=_TIMEOUT) as client:
         response = await client.get(f"{base_url}{path}", headers=headers)
-        if response.status_code in (httpx.codes.NOT_FOUND, httpx.codes.FORBIDDEN):
+        if response.status_code in (
+            httpx.codes.NOT_FOUND,
+            httpx.codes.FORBIDDEN,
+            httpx.codes.NO_CONTENT,
+        ):
             return None
         response.raise_for_status()
+        if not response.content:
+            return None
         return response.json()
 
 

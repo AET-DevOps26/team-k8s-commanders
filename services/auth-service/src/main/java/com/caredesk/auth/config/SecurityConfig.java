@@ -35,10 +35,11 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // Gateway owns the /api/v1 prefix — service only sees /auth/**
                         .requestMatchers("/auth/**").permitAll()
-                        // Admin user management. Role comes from the JWT (set by JwtAuthFilter).
+                        // User directory is readable by doctors; write/stats operations stay admin-only.
+                        // Role comes from the JWT (set by JwtAuthFilter).
                         // More specific matchers first — Spring Security uses first match.
                         .requestMatchers(HttpMethod.GET, "/users/stats").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.GET, "/users").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/users").hasAnyRole("ADMIN", "DOCTOR")
                         .requestMatchers(HttpMethod.POST, "/users").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/users/**").hasRole("ADMIN")
                         // Patient self-service — owner-or-admin enforced in UserAccountService.

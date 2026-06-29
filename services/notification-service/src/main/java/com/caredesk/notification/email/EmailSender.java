@@ -60,12 +60,28 @@ public class EmailSender {
             message.setSubject(subject);
             message.setText(body);
             mailSender.send(message);
-            log.info("Sent email '{}' to {}", subject, to);
+            log.info("Sent email '{}' to {}", subject, mask(to));
             return true;
         } catch (MailException e) {
             // Best-effort: never propagate. The notification record is still stored.
-            log.error("Failed to send email '{}' to {}: {}", subject, to, e.getMessage());
+            log.error("Failed to send email '{}' to {}: {}", subject, mask(to), e.getMessage());
             return false;
         }
+    }
+
+    /**
+     * Masks a recipient address for logging so application logs do not become a
+     * secondary store of user contact data: keeps the domain and the first
+     * local-part character, e.g. {@code a***@example.com}.
+     *
+     * @param address the recipient address
+     * @return a masked form safe to log
+     */
+    private static String mask(String address) {
+        int at = address.indexOf('@');
+        if (at <= 1) {
+            return "***";
+        }
+        return address.charAt(0) + "***" + address.substring(at);
     }
 }

@@ -247,9 +247,15 @@ services:
       # application.yml ships with ddl-auto: validate. Set NOTIFICATION_DDL_AUTO=update
       # for the first deployment so the schema is created, then revert.
       SPRING_JPA_HIBERNATE_DDL_AUTO: ${NOTIFICATION_DDL_AUTO:-validate}
-      # SMTP target defaults to the Mailpit container; override SMTP_* for a real provider.
+      # SMTP target defaults to the Mailpit container; override SMTP_* for a real
+      # (authenticated/TLS) provider. Defaults keep Mailpit working with no auth.
       SMTP_HOST: ${SMTP_HOST:-mailpit}
       SMTP_PORT: ${SMTP_PORT:-1025}
+      SMTP_USERNAME: ${SMTP_USERNAME:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_AUTH: ${SMTP_AUTH:-false}
+      SMTP_STARTTLS: ${SMTP_STARTTLS:-false}
+      MAIL_FROM: ${MAIL_FROM:-CareDesk <no-reply@caredesk.local>}
       # Reminder scheduler reads upcoming appointments from patient-service.
       PATIENT_SERVICE_URL: http://patient-service:8082
     healthcheck:

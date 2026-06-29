@@ -12,6 +12,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 
 /**
@@ -95,7 +96,11 @@ public class ReminderScheduler {
     }
 
     private static String reminderBody(UpcomingAppointment appt) {
-        String when = appt.dateTime() != null ? WHEN_FORMAT.format(appt.dateTime()) : "soon";
+        // Convert to UTC before formatting — WHEN_FORMAT hard-codes the "UTC"
+        // label, so a non-UTC offset would otherwise be mislabelled.
+        String when = appt.dateTime() != null
+                ? WHEN_FORMAT.format(appt.dateTime().withOffsetSameInstant(ZoneOffset.UTC))
+                : "soon";
         return "This is a reminder that you have an upcoming appointment on " + when
                 + ". Please contact the clinic if you need to reschedule.";
     }

@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.UUID;
@@ -207,7 +208,11 @@ public class AppointmentService {
     }
 
     private static String formatWhen(OffsetDateTime when) {
-        return when != null ? WHEN_FORMAT.format(when) : "the scheduled time";
+        // Convert to UTC before formatting — WHEN_FORMAT hard-codes the "UTC"
+        // label, so a non-UTC offset would otherwise be mislabelled.
+        return when != null
+                ? WHEN_FORMAT.format(when.withOffsetSameInstant(ZoneOffset.UTC))
+                : "the scheduled time";
     }
 
     private void rejectPastAppointment(Appointment appointment, String operation) {

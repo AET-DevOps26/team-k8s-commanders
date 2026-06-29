@@ -3,8 +3,11 @@ package com.caredesk.patient.service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
+
+import java.time.Duration;
 
 /**
  * Thin HTTP client that asks notification-service to record and deliver an
@@ -31,7 +34,12 @@ public class NotificationServiceClient {
      */
     public NotificationServiceClient(
             @Value("${notification-service.url:http://localhost:8084}") String baseUrl) {
-        this.restClient = RestClient.builder().baseUrl(baseUrl).build();
+        // Explicit timeouts so a hung notification-service can't stall booking,
+        // rescheduling or cancellation before the failure is swallowed.
+        SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
+        requestFactory.setConnectTimeout(Duration.ofSeconds(2));
+        requestFactory.setReadTimeout(Duration.ofSeconds(3));
+        this.restClient = RestClient.builder().baseUrl(baseUrl).requestFactory(requestFactory).build();
     }
 
     /**

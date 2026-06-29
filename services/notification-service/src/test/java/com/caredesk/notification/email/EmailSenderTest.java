@@ -1,6 +1,7 @@
 package com.caredesk.notification.email;
 
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.mail.MailSendException;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
@@ -26,7 +27,13 @@ class EmailSenderTest {
         boolean ok = emailSender.send("anna@example.com", "Hello", "Body text");
 
         assertThat(ok).isTrue();
-        verify(mailSender).send(any(SimpleMailMessage.class));
+        ArgumentCaptor<SimpleMailMessage> captor = ArgumentCaptor.forClass(SimpleMailMessage.class);
+        verify(mailSender).send(captor.capture());
+        SimpleMailMessage sent = captor.getValue();
+        assertThat(sent.getFrom()).isEqualTo("CareDesk <no-reply@caredesk.local>");
+        assertThat(sent.getTo()).containsExactly("anna@example.com");
+        assertThat(sent.getSubject()).isEqualTo("Hello");
+        assertThat(sent.getText()).isEqualTo("Body text");
     }
 
     @Test

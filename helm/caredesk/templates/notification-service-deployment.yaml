@@ -30,11 +30,22 @@ spec:
             - name: SERVER_PORT
               value: {{ .Values.notification.service.port | quote }}
             {{- include "caredesk.dbEnv" (dict "root" $ "host" .Values.notification.dbHost "name" .Values.notification.dbName) | nindent 12 }}
-            # SMTP target — defaults to the in-cluster Mailpit service.
+            # SMTP target — defaults to the in-cluster Mailpit service. Provide
+            # username/password/auth/startTls for an authenticated/TLS provider.
             - name: SMTP_HOST
               value: {{ .Values.notification.smtp.host | default (printf "%s-mailpit" (include "caredesk.fullname" .)) | quote }}
             - name: SMTP_PORT
               value: {{ .Values.notification.smtp.port | default .Values.mailpit.smtpPort | quote }}
+            - name: SMTP_USERNAME
+              value: {{ .Values.notification.smtp.username | quote }}
+            - name: SMTP_PASSWORD
+              value: {{ .Values.notification.smtp.password | quote }}
+            - name: SMTP_AUTH
+              value: {{ .Values.notification.smtp.auth | quote }}
+            - name: SMTP_STARTTLS
+              value: {{ .Values.notification.smtp.startTls | quote }}
+            - name: MAIL_FROM
+              value: {{ .Values.notification.mailFrom | quote }}
             # Reminder scheduler reads upcoming appointments from patient-service.
             - name: PATIENT_SERVICE_URL
               value: {{ printf "http://%s-patient:%d" (include "caredesk.fullname" .) (int .Values.patient.service.port) | quote }}

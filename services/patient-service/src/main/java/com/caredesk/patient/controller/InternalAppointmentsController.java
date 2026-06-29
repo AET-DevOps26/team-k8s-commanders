@@ -53,6 +53,11 @@ public class InternalAppointmentsController {
         OffsetDateTime now = OffsetDateTime.now();
         OffsetDateTime until = now.plusHours(withinHours);
         return appointmentRepository.findByStatusInAndDateTimeBetween(ACTIVE, now, until).stream()
+                // Skip appointments with no deliverable address: otherwise the
+                // scheduler records a REMINDER for them (marking them reminded)
+                // without ever sending mail, so they'd never be retried if an
+                // address became available later.
+                .filter(a -> a.getPatientEmail() != null && !a.getPatientEmail().isBlank())
                 .map(InternalAppointmentsController::toFeedItem)
                 .toList();
     }

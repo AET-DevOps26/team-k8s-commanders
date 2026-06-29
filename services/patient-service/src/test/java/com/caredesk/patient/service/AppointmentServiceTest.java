@@ -74,8 +74,15 @@ class AppointmentServiceTest {
         assertThat(slot.getAvailable()).isFalse();
         assertThat(created.getId()).isNotNull();
         assertThat(created.getStatus()).isEqualTo(AppointmentStatus.SCHEDULED);
-        // A confirmation notification is triggered after the row is persisted.
-        verify(notificationServiceClient).notify(any(NotificationTriggerRequest.class));
+        // A confirmation notification is triggered after the row is persisted,
+        // addressed to the booking patient's captured email.
+        ArgumentCaptor<NotificationTriggerRequest> triggerCaptor = ArgumentCaptor.forClass(NotificationTriggerRequest.class);
+        verify(notificationServiceClient).notify(triggerCaptor.capture());
+        NotificationTriggerRequest trigger = triggerCaptor.getValue();
+        assertThat(trigger.type()).isEqualTo("CONFIRMATION");
+        assertThat(trigger.recipientEmail()).isEqualTo("anna@example.com");
+        assertThat(trigger.appointmentId()).isEqualTo(created.getId());
+        assertThat(trigger.subject()).isEqualTo("Appointment confirmed");
     }
 
     @Test
@@ -163,7 +170,12 @@ class AppointmentServiceTest {
         assertThat(dto.getStatus()).isEqualTo(AppointmentStatus.RESCHEDULED);
         assertThat(oldSlot.getAvailable()).isTrue();
         assertThat(newSlot.getAvailable()).isFalse();
-        verify(notificationServiceClient).notify(any(NotificationTriggerRequest.class));
+        ArgumentCaptor<NotificationTriggerRequest> captor = ArgumentCaptor.forClass(NotificationTriggerRequest.class);
+        verify(notificationServiceClient).notify(captor.capture());
+        NotificationTriggerRequest trigger = captor.getValue();
+        assertThat(trigger.type()).isEqualTo("RESCHEDULE");
+        assertThat(trigger.recipientEmail()).isEqualTo("patient@example.com");
+        assertThat(trigger.appointmentId()).isEqualTo(a.getId());
     }
 
     @Test
@@ -227,7 +239,11 @@ class AppointmentServiceTest {
 
         assertThat(dto.getStatus()).isEqualTo(AppointmentStatus.CANCELLED);
         assertThat(slot.getAvailable()).isTrue();
-        verify(notificationServiceClient).notify(any(NotificationTriggerRequest.class));
+        ArgumentCaptor<NotificationTriggerRequest> captor = ArgumentCaptor.forClass(NotificationTriggerRequest.class);
+        verify(notificationServiceClient).notify(captor.capture());
+        NotificationTriggerRequest trigger = captor.getValue();
+        assertThat(trigger.type()).isEqualTo("CANCELLATION");
+        assertThat(trigger.appointmentId()).isEqualTo(a.getId());
     }
 
     @Test
@@ -277,6 +293,8 @@ class AppointmentServiceTest {
         a.setDateTime(dateTime);
         a.setStatus(status);
         a.setDuration(30);
+        // Contact email captured at booking — used by the confirmation triggers.
+        a.setPatientEmail("patient@example.com");
         return a;
     }
 

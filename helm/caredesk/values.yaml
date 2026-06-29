@@ -183,10 +183,17 @@ notification:
   dbHost: caredesk-notification-db
   dbName: notification_db
   # SMTP target. Empty host falls back to the in-cluster Mailpit service; set
-  # these to a real provider to send actual mail.
+  # these to a real provider to send actual mail. username/password/auth/startTls
+  # stay empty/false for Mailpit; provide them (password ideally via --set) for an
+  # authenticated/TLS provider.
   smtp:
     host: ""
     port: ""
+    username: ""
+    password: ""
+    auth: false
+    startTls: false
+  mailFrom: "CareDesk <no-reply@caredesk.local>"
   resources:
     requests: { cpu: 100m, memory: 384Mi }
     limits:   { cpu: 400m, memory: 768Mi }

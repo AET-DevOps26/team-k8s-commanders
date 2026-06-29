@@ -66,8 +66,8 @@ docker compose up --build
 | AI assistant database (Postgres) | localhost:5436 |
 | Mailpit web UI (caught emails) | http://localhost:8025 |
 
-Only the gateway, nginx and the databases publish host ports. The databases are
-exposed so you can inspect them locally (e.g. with `psql`). The application
+Only the gateway, nginx, the databases and Mailpit publish host ports. The databases are
+exposed so you can inspect them locally (e.g. with `psql`), and Mailpit exposes its web UI on 8025. The application
 services — web-client, auth-service, patient-service, notes-service and
 ai-assistant — publish no host port; they listen only on the internal compose
 network and are reached through the gateway (or, for the web client, through

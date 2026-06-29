@@ -196,6 +196,8 @@ services:
       DB_PASSWORD: caredesk
       # Internal auth-service URL for the cross-service profile lookup.
       AUTH_SERVICE_URL: http://auth-service:8081
+      # Internal notification-service URL for booking-confirmation triggers.
+      NOTIFICATION_SERVICE_URL: http://notification-service:8084
       SPRING_PROFILES_ACTIVE: dev
       # application.yml ships with ddl-auto: validate. Compose dev profile
       # overrides to update so the schema is auto-created against a fresh DB.
@@ -278,6 +280,18 @@ services:
     networks:
       - caredesk
 
+  # Catch-all SMTP server for dev. notification-service sends real SMTP to it;
+  # Mailpit stores nothing externally and exposes every caught message in a web
+  # UI at http://localhost:8025. No real mail ever leaves the machine.
+  mailpit:
+    image: axllent/mailpit:latest
+    restart: unless-stopped
+    ports:
+      - "8025:8025"   # web UI
+      - "1025:1025"   # SMTP
+    networks:
+      - caredesk
+
   notification-service:
     build:
       # Build context is the repo root so the Dockerfile can reach both
@@ -298,6 +312,11 @@ services:
       # application.yml ships with ddl-auto: validate. Compose dev profile
       # overrides to update so the schema is auto-created against a fresh DB.
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      # SMTP target is the Mailpit container (no auth, no TLS).
+      SMTP_HOST: mailpit
+      SMTP_PORT: 1025
+      # Reminder scheduler reads upcoming appointments from patient-service.
+      PATIENT_SERVICE_URL: http://patient-service:8082
     healthcheck:
       test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8084/actuator/health || exit 1"]
       interval: 10s

@@ -1,6 +1,7 @@
 package com.caredesk.patient.controller;
 
 import com.caredesk.patient.service.AppointmentService;
+import jakarta.servlet.http.HttpServletRequest;
 import org.openapitools.api.AppointmentsApi;
 import org.openapitools.model.Appointment;
 import org.openapitools.model.AppointmentCreate;
@@ -29,24 +30,34 @@ import java.util.UUID;
 @Controller
 public class AppointmentsController implements AppointmentsApi {
 
+    /** Trusted email injected by the gateway after it validates the JWT. */
+    static final String USER_EMAIL_HEADER = "X-User-Email";
+
     private final AppointmentService appointmentService;
+    private final HttpServletRequest request;
 
     /**
      * @param appointmentService the read / write appointment service
+     * @param request            request-scoped proxy used to read the trusted
+     *                           {@code X-User-Email} header for the current call
      */
-    public AppointmentsController(AppointmentService appointmentService) {
+    public AppointmentsController(AppointmentService appointmentService, HttpServletRequest request) {
         this.appointmentService = appointmentService;
+        this.request = request;
     }
 
     /**
-     * Books a new appointment.
+     * Books a new appointment. The caller's gateway-provided email is captured
+     * on the appointment so notification-service can reach the patient.
      *
      * @param appointmentCreate the booking request
      * @return 201 with the newly created appointment
      */
     @Override
     public ResponseEntity<Appointment> bookAppointment(AppointmentCreate appointmentCreate) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(appointmentService.book(appointmentCreate));
+        String contactEmail = request.getHeader(USER_EMAIL_HEADER);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(appointmentService.book(appointmentCreate, contactEmail));
     }
 
     /**

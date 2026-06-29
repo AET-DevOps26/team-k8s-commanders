@@ -1,7 +1,10 @@
 package com.caredesk.notification.service;
 
+import com.caredesk.notification.email.EmailSender;
 import com.caredesk.notification.model.Notification;
+import com.caredesk.notification.model.NotificationType;
 import com.caredesk.notification.repository.NotificationRepository;
+import org.openapitools.model.NotificationChannel;
 import org.openapitools.model.NotificationCreate;
 import org.openapitools.model.PageMeta;
 import org.openapitools.model.PaginatedNotificationResponse;
@@ -35,12 +38,50 @@ public class NotificationsService {
     private static final Sort SENT_AT_DESC = Sort.by(Sort.Direction.DESC, "sentAt");
 
     private final NotificationRepository repository;
+    private final EmailSender emailSender;
 
     /**
-     * @param repository Spring Data repository for {@link Notification}
+     * @param repository  Spring Data repository for {@link Notification}
+     * @param emailSender best-effort SMTP sender for delivering notifications
      */
-    public NotificationsService(NotificationRepository repository) {
+    public NotificationsService(NotificationRepository repository, EmailSender emailSender) {
         this.repository = repository;
+        this.emailSender = emailSender;
+    }
+
+    /**
+     * Records a notification and attempts to deliver it by email, in that order.
+     *
+     * <p>The record is persisted first, so a failed or skipped send never loses
+     * the audit trail and never blocks the caller (booking triggers and the
+     * reminder scheduler both rely on this). Delivery is best-effort — see
+     * {@link EmailSender}.
+     *
+     * @param appointmentId  the appointment this notification refers to, may be {@code null}
+     * @param patientId      the recipient patient's user id, may be {@code null}
+     * @param recipientEmail the address to deliver to; if {@code null}/blank the
+     *                       record is still stored but no email is sent
+     * @param type           the internal classification (confirmation, reminder, …)
+     * @param subject        the email subject line
+     * @param message        the message body, also stored as the record's message
+     * @return the persisted notification as an API DTO
+     */
+    @Transactional
+    public org.openapitools.model.Notification recordAndSend(UUID appointmentId, UUID patientId,
+                                                             String recipientEmail, NotificationType type,
+                                                             String subject, String message) {
+        Notification entity = new Notification();
+        entity.setAppointmentId(appointmentId);
+        entity.setPatientId(patientId);
+        entity.setRecipientEmail(recipientEmail);
+        entity.setType(type);
+        entity.setChannel(NotificationChannel.EMAIL);
+        entity.setMessage(message);
+        entity.setSentAt(OffsetDateTime.now());
+        org.openapitools.model.Notification saved = NotificationMapper.toModel(repository.save(entity));
+
+        emailSender.send(recipientEmail, subject, message);
+        return saved;
     }
 
     /**
@@ -58,6 +99,7 @@ public class NotificationsService {
         entity.setPatientId(request.getPatientId());
         entity.setMessage(request.getMessage());
         entity.setChannel(request.getChannel());
+        entity.setType(NotificationType.GENERIC);
         entity.setSentAt(OffsetDateTime.now());
         return NotificationMapper.toModel(repository.save(entity));
     }

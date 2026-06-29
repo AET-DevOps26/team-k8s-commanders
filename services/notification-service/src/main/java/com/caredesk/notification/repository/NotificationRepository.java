@@ -1,6 +1,7 @@
 package com.caredesk.notification.repository;
 
 import com.caredesk.notification.model.Notification;
+import com.caredesk.notification.model.NotificationType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -44,4 +45,17 @@ public interface NotificationRepository extends JpaRepository<Notification, UUID
      * @return the matching page, possibly empty
      */
     Page<Notification> findByAppointmentIdAndPatientId(UUID appointmentId, UUID patientId, Pageable pageable);
+
+    /**
+     * Whether a notification of the given type has already been recorded for an
+     * appointment. Backs the reminder scheduler's idempotency: a reminder is
+     * only sent if no {@link NotificationType#REMINDER} record exists yet, so
+     * the same appointment is never reminded twice — including across restarts,
+     * since the check is against the persisted record rather than in-memory state.
+     *
+     * @param appointmentId the appointment id
+     * @param type          the notification type to look for
+     * @return {@code true} if such a record already exists
+     */
+    boolean existsByAppointmentIdAndType(UUID appointmentId, NotificationType type);
 }

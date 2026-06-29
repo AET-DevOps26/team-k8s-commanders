@@ -18,12 +18,16 @@ Each database accepts connections only from its owning backend service.
 */ -}}
 
 {{- /* Backend services: allowed callers per component */ -}}
+{{- /* notification reaches patient (reminder scheduler reads the upcoming feed);
+       patient reaches notification (booking-confirmation triggers). mailpit is
+       intentionally left unrestricted (no policy) so the web UI is reachable via
+       port-forward and notification-service can deliver SMTP to it. */ -}}
 {{- $prometheusCallers := ternary (list "prometheus") (list) .Values.monitoring.enabled -}}
 {{- $backends := dict
   "auth"         (concat (list "gateway") $prometheusCallers)
-  "patient"      (concat (list "gateway" "ai") $prometheusCallers)
+  "patient"      (concat (list "gateway" "ai" "notification") $prometheusCallers)
   "notes"        (concat (list "gateway" "ai") $prometheusCallers)
-  "notification" (concat (list "gateway") $prometheusCallers)
+  "notification" (concat (list "gateway" "patient") $prometheusCallers)
   "ai"           (concat (list "gateway") $prometheusCallers)
 -}}
 {{- range $svc, $callers := $backends }}

@@ -37,7 +37,9 @@ class AppointmentServiceTest {
     private final AppointmentRepository repository = mock(AppointmentRepository.class);
     private final DoctorSlotRepository doctorSlotRepository = mock(DoctorSlotRepository.class);
     private final AppointmentMapper mapper = new AppointmentMapper();
-    private final AppointmentService service = new AppointmentService(repository, doctorSlotRepository, mapper);
+    private final NotificationServiceClient notificationServiceClient = mock(NotificationServiceClient.class);
+    private final AppointmentService service =
+            new AppointmentService(repository, doctorSlotRepository, mapper, notificationServiceClient);
 
     @Test
     void book_createsScheduledAppointment() {
@@ -56,7 +58,7 @@ class AppointmentServiceTest {
             return a;
         });
 
-        org.openapitools.model.Appointment created = service.book(request);
+        org.openapitools.model.Appointment created = service.book(request, "anna@example.com");
 
         ArgumentCaptor<Appointment> captor = ArgumentCaptor.forClass(Appointment.class);
         verify(repository).save(captor.capture());
@@ -67,9 +69,13 @@ class AppointmentServiceTest {
         assertThat(persisted.getDuration()).isEqualTo(30);
         assertThat(persisted.getReason()).isEqualTo("Check-up");
         assertThat(persisted.getStatus()).isEqualTo(AppointmentStatus.SCHEDULED);
+        // The booking patient's contact email is captured for later notifications.
+        assertThat(persisted.getPatientEmail()).isEqualTo("anna@example.com");
         assertThat(slot.getAvailable()).isFalse();
         assertThat(created.getId()).isNotNull();
         assertThat(created.getStatus()).isEqualTo(AppointmentStatus.SCHEDULED);
+        // A confirmation notification is triggered after the row is persisted.
+        verify(notificationServiceClient).notify(any(NotificationTriggerRequest.class));
     }
 
     @Test
@@ -81,9 +87,10 @@ class AppointmentServiceTest {
         when(doctorSlotRepository.findAndLockAvailableSlot(eq(doctorId), eq(when), eq(when.plusMinutes(30))))
                 .thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> service.book(request))
+        assertThatThrownBy(() -> service.book(request, "anna@example.com"))
                 .isInstanceOf(AppointmentStateConflictException.class);
         verify(repository, never()).save(any());
+        verify(notificationServiceClient, never()).notify(any());
     }
 
     @Test
@@ -93,7 +100,7 @@ class AppointmentServiceTest {
         OffsetDateTime when = OffsetDateTime.now().minusHours(1);
         AppointmentCreate request = new AppointmentCreate(patientId, doctorId, when, 30);
 
-        assertThatThrownBy(() -> service.book(request))
+        assertThatThrownBy(() -> service.book(request, "anna@example.com"))
                 .isInstanceOf(AppointmentStateConflictException.class)
                 .hasMessageContaining("Past appointment cannot be booked");
         verify(doctorSlotRepository, never()).findAndLockAvailableSlot(any(), any(), any());
@@ -156,6 +163,7 @@ class AppointmentServiceTest {
         assertThat(dto.getStatus()).isEqualTo(AppointmentStatus.RESCHEDULED);
         assertThat(oldSlot.getAvailable()).isTrue();
         assertThat(newSlot.getAvailable()).isFalse();
+        verify(notificationServiceClient).notify(any(NotificationTriggerRequest.class));
     }
 
     @Test
@@ -219,6 +227,7 @@ class AppointmentServiceTest {
 
         assertThat(dto.getStatus()).isEqualTo(AppointmentStatus.CANCELLED);
         assertThat(slot.getAvailable()).isTrue();
+        verify(notificationServiceClient).notify(any(NotificationTriggerRequest.class));
     }
 
     @Test
@@ -231,6 +240,8 @@ class AppointmentServiceTest {
         assertThat(dto.getStatus()).isEqualTo(AppointmentStatus.CANCELLED);
         // The already-cancelled row should not be saved again.
         verify(repository, never()).save(any());
+        // No state change → no notification.
+        verify(notificationServiceClient, never()).notify(any());
     }
 
     @Test

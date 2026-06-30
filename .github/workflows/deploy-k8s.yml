@@ -73,8 +73,25 @@ jobs:
           LLM_MODEL: ${{ vars.LLM_MODEL }}
           INGRESS_HOST: ${{ vars.INGRESS_HOST }}
           OPENWEBUI_BASE_URL: ${{ vars.OPENWEBUI_BASE_URL }}
+          ADMIN_NAME: ${{ vars.ADMIN_NAME }}
+          ADMIN_EMAIL: ${{ vars.ADMIN_EMAIL }}
+          ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
         run: |
           NS="${TUM_ID}-devops26-team-k8s-commanders"
+
+          if [ -z "${ADMIN_NAME}" ] || [ -z "${ADMIN_EMAIL}" ] || [ -z "${ADMIN_PASSWORD}" ]; then
+            echo "::error::ADMIN_NAME, ADMIN_EMAIL, and ADMIN_PASSWORD must be configured for production"
+            exit 1
+          fi
+
+          ADMIN_CONFIG_DIR="${RUNNER_TEMP}/caredesk-admin"
+          mkdir -p "${ADMIN_CONFIG_DIR}"
+          chmod 700 "${ADMIN_CONFIG_DIR}"
+          printf '%s' "${ADMIN_NAME}" > "${ADMIN_CONFIG_DIR}/name"
+          printf '%s' "${ADMIN_EMAIL}" > "${ADMIN_CONFIG_DIR}/email"
+          printf '%s' "${ADMIN_PASSWORD}" > "${ADMIN_CONFIG_DIR}/password"
+          chmod 600 "${ADMIN_CONFIG_DIR}/"*
+          trap 'rm -rf "${ADMIN_CONFIG_DIR}"' EXIT
 
           SET_FLAGS=(
             --set "tumId=${TUM_ID}"
@@ -82,6 +99,10 @@ jobs:
             --set "ai.secrets.llmApiKey=${{ secrets.LLM_API_KEY }}"
             --set "ai.env.llmProvider=${LLM_PROVIDER}"
             --set "ai.env.llmModel=${LLM_MODEL}"
+            --set "auth.bootstrapAdmin.enabled=true"
+            --set-file "auth.bootstrapAdmin.name=${ADMIN_CONFIG_DIR}/name"
+            --set-file "auth.bootstrapAdmin.email=${ADMIN_CONFIG_DIR}/email"
+            --set-file "auth.bootstrapAdmin.password=${ADMIN_CONFIG_DIR}/password"
           )
 
           if [ -n "${OPENWEBUI_BASE_URL}" ]; then

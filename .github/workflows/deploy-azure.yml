@@ -40,11 +40,17 @@ jobs:
 
       - name: Create .env.prod on VM
         uses: appleboy/ssh-action@v1.2.5
+        env:
+          ADMIN_NAME: ${{ vars.ADMIN_NAME }}
+          ADMIN_EMAIL: ${{ vars.ADMIN_EMAIL }}
+          ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
         with:
           host: ${{ vars.AZURE_PUBLIC_IP }}
           username: ${{ vars.AZURE_USER }}
           key: ${{ secrets.AZURE_PRIVATE_KEY }}
+          envs: ADMIN_NAME,ADMIN_EMAIL,ADMIN_PASSWORD
           script: |
+            umask 077
             rm -f .env.prod
             echo "LLM_API_KEY=${{ secrets.LLM_API_KEY }}" >> .env.prod
             echo "LLM_PROVIDER=${{ vars.LLM_PROVIDER }}" >> .env.prod
@@ -56,6 +62,9 @@ jobs:
             echo "AUTH_DB_USER=${{ vars.AUTH_DB_USER }}" >> .env.prod
             echo "AUTH_DB_PASSWORD=${{ secrets.AUTH_DB_PASSWORD }}" >> .env.prod
             echo "AUTH_DDL_AUTO=${{ vars.AUTH_DDL_AUTO }}" >> .env.prod
+            echo "ADMIN_NAME=${ADMIN_NAME}" >> .env.prod
+            echo "ADMIN_EMAIL=${ADMIN_EMAIL}" >> .env.prod
+            echo "ADMIN_PASSWORD=${ADMIN_PASSWORD}" >> .env.prod
             echo "PATIENT_DB_NAME=${{ vars.PATIENT_DB_NAME }}" >> .env.prod
             echo "PATIENT_DB_USER=${{ vars.PATIENT_DB_USER }}" >> .env.prod
             echo "PATIENT_DB_PASSWORD=${{ secrets.PATIENT_DB_PASSWORD }}" >> .env.prod

@@ -64,6 +64,10 @@ jobs:
             echo "NOTES_DB_USER=${{ vars.NOTES_DB_USER }}" >> .env.prod
             echo "NOTES_DB_PASSWORD=${{ secrets.NOTES_DB_PASSWORD }}" >> .env.prod
             echo "NOTES_DDL_AUTO=${{ vars.NOTES_DDL_AUTO }}" >> .env.prod
+            echo "NOTIFICATION_DB_NAME=${{ vars.NOTIFICATION_DB_NAME }}" >> .env.prod
+            echo "NOTIFICATION_DB_USER=${{ vars.NOTIFICATION_DB_USER }}" >> .env.prod
+            echo "NOTIFICATION_DB_PASSWORD=${{ secrets.NOTIFICATION_DB_PASSWORD }}" >> .env.prod
+            echo "NOTIFICATION_DDL_AUTO=${{ vars.NOTIFICATION_DDL_AUTO }}" >> .env.prod
             echo "AI_DB_NAME=${{ vars.AI_DB_NAME }}" >> .env.prod
             echo "AI_DB_USER=${{ vars.AI_DB_USER }}" >> .env.prod
             echo "AI_DB_PASSWORD=${{ secrets.AI_DB_PASSWORD }}" >> .env.prod

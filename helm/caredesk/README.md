@@ -160,9 +160,21 @@ Helm-only changes deploy via **Actions → Deploy to AET Cluster → Run workflo
 a direct `push` to `helm/**` — that previously raced with the post-build deploy and
 triggered overlapping rollouts at full CPU quota.
 
-**Required repo secrets/variables** for the CI deploy: `KUBECONFIG_AET`,
-`TUM_ID`, and (optionally) `LLM_API_KEY`. JWT secret and DB password fall back to
-the chart's dev defaults unless overridden.
+**Shared production admin configuration** for both `deploy-k8s.yml` and
+`deploy-azure.yml`:
+
+- GitHub Actions variables: `ADMIN_NAME` and `ADMIN_EMAIL`
+- GitHub Actions secret: `ADMIN_PASSWORD`
+
+The AET deployment additionally requires the `TUM_ID` variable and
+`KUBECONFIG_AET` secret. Optional AET values include `LLM_API_KEY`,
+`JWT_SECRET`, and `POSTGRES_PASSWORD`.
+
+`ADMIN_PASSWORD` must remain a secret; never store it as a GitHub Actions
+variable. The deployment creates the configured admin only when its email does
+not exist. Later deployments leave the existing account and password unchanged.
+To rotate the password, use the authenticated account-management flow rather
+than changing the deployment secret.
 
 ---
 

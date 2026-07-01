@@ -10,6 +10,8 @@ on:
     paths:
       - "docker-compose.prod.yml"
       - "infra/nginx/**"
+      - "infra/prometheus/**"
+      - "infra/grafana/**"
       - ".github/workflows/deploy-azure.yml"
   workflow_dispatch:
 
@@ -29,13 +31,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
-      - name: Copy compose file and nginx config to VM
+      - name: Copy compose file and infra configs to VM
         uses: appleboy/scp-action@v1.0.0
         with:
           host: ${{ vars.AZURE_PUBLIC_IP }}
           username: ${{ vars.AZURE_USER }}
           key: ${{ secrets.AZURE_PRIVATE_KEY }}
-          source: "docker-compose.prod.yml,infra/nginx/"
+          source: "docker-compose.prod.yml,infra/nginx/,infra/prometheus/,infra/grafana/"
           target: /home/${{ vars.AZURE_USER }}
 
       - name: Create .env.prod on VM
@@ -64,10 +66,17 @@ jobs:
             echo "NOTES_DB_USER=${{ vars.NOTES_DB_USER }}" >> .env.prod
             echo "NOTES_DB_PASSWORD=${{ secrets.NOTES_DB_PASSWORD }}" >> .env.prod
             echo "NOTES_DDL_AUTO=${{ vars.NOTES_DDL_AUTO }}" >> .env.prod
+            echo "NOTIFICATION_DB_NAME=${{ vars.NOTIFICATION_DB_NAME }}" >> .env.prod
+            echo "NOTIFICATION_DB_USER=${{ vars.NOTIFICATION_DB_USER }}" >> .env.prod
+            echo "NOTIFICATION_DB_PASSWORD=${{ secrets.NOTIFICATION_DB_PASSWORD }}" >> .env.prod
+            echo "NOTIFICATION_DDL_AUTO=${{ vars.NOTIFICATION_DDL_AUTO }}" >> .env.prod
             echo "AI_DB_NAME=${{ vars.AI_DB_NAME }}" >> .env.prod
             echo "AI_DB_USER=${{ vars.AI_DB_USER }}" >> .env.prod
             echo "AI_DB_PASSWORD=${{ secrets.AI_DB_PASSWORD }}" >> .env.prod
-
+            echo "AI_DDL_AUTO=${{ vars.AI_DDL_AUTO }}" >> .env.prod
+            echo "GRAFANA_ADMIN_USER=${{ vars.GRAFANA_ADMIN_USER }}" >> .env.prod
+            echo "GRAFANA_ADMIN_PASSWORD=${{ secrets.GRAFANA_ADMIN_PASSWORD }}" >> .env.prod
+            echo "GRAFANA_ROOT_URL=https://${{ vars.AZURE_PUBLIC_IP }}.nip.io/grafana" >> .env.prod
       - name: Deploy with Docker Compose
         uses: appleboy/ssh-action@v1.2.5
         with:

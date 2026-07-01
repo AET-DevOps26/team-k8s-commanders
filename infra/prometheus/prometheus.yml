@@ -23,6 +23,11 @@ scrape_configs:
     static_configs:
       - targets: ['notes-service:8083']
 
+  - job_name: notification-service
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ['notification-service:8084']
+
   - job_name: ai-assistant
     metrics_path: /metrics
     static_configs:

@@ -1,0 +1,18 @@
+{{- if .Values.monitoring.enabled -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "caredesk.fullname" . }}-grafana
+  labels:
+    {{- include "caredesk.labels" . | nindent 4 }}
+    app.kubernetes.io/component: grafana
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 3000
+      targetPort: http
+      protocol: TCP
+  selector:
+    {{- include "caredesk.selectorLabels" (dict "root" . "component" "grafana") | nindent 4 }}
+{{- end }}

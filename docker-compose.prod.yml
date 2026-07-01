@@ -313,6 +313,30 @@ services:
     networks:
       - caredesk
 
+  grafana:
+    image: grafana/grafana:11.2.0
+    # No host port published — reachable only inside the compose network
+    # (and externally via the nginx/TLS proxy).
+    expose:
+      - "3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?GRAFANA_ADMIN_PASSWORD must be set}
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+      # Served behind nginx under /grafana (see infra/nginx/nginx.prod.conf).
+      GF_SERVER_ROOT_URL: ${GRAFANA_ROOT_URL:-https://localhost/grafana}
+      GF_SERVER_SERVE_FROM_SUB_PATH: "true"
+      PROMETHEUS_URL: http://prometheus:9090
+    volumes:
+      - ./infra/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./infra/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    restart: always
+    depends_on:
+      - prometheus
+    networks:
+      - caredesk
+
 volumes:
   auth-db-data:
   patient-db-data:
@@ -320,6 +344,7 @@ volumes:
   notification-db-data:
   ai-db-data:
   prometheus-data:
+  grafana-data:
 
 networks:
   caredesk:

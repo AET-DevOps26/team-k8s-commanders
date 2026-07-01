@@ -381,6 +381,25 @@ services:
     networks:
       - caredesk
 
+  grafana:
+    image: grafana/grafana:11.2.0
+    ports:
+      - "3001:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+      PROMETHEUS_URL: http://prometheus:9090
+    volumes:
+      - ./infra/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./infra/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    restart: unless-stopped
+    depends_on:
+      - prometheus
+    networks:
+      - caredesk
+
 networks:
   caredesk:
     driver: bridge
@@ -393,3 +412,4 @@ volumes:
   ai-db-data:
   ollama_data:
   prometheus-data:
+  grafana-data:

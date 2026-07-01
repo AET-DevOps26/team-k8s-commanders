@@ -9,7 +9,9 @@ import org.openapitools.model.AppointmentCreate;
 import org.openapitools.model.AppointmentRescheduleRequest;
 import org.openapitools.model.AppointmentStatus;
 import org.openapitools.model.PaginatedAppointmentResponse;
+import org.openapitools.model.UserProfile;
 import org.mockito.ArgumentCaptor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -37,9 +39,14 @@ class AppointmentServiceTest {
     private final AppointmentRepository repository = mock(AppointmentRepository.class);
     private final DoctorSlotRepository doctorSlotRepository = mock(DoctorSlotRepository.class);
     private final AppointmentMapper mapper = new AppointmentMapper();
-    private final NotificationServiceClient notificationServiceClient = mock(NotificationServiceClient.class);
+    private final AuthServiceClient authServiceClient = mock(AuthServiceClient.class);
+    private final ApplicationEventPublisher eventPublisher = mock(ApplicationEventPublisher.class);
     private final AppointmentService service =
-            new AppointmentService(repository, doctorSlotRepository, mapper, notificationServiceClient);
+            new AppointmentService(repository, doctorSlotRepository, mapper, authServiceClient, eventPublisher);
+
+    private static UserProfile profileWithEmail(UUID id, String email) {
+        return new UserProfile(id, "Test User", email, org.openapitools.model.UserRole.PATIENT);
+    }
 
     @Test
     void book_createsScheduledAppointment() {
@@ -57,8 +64,10 @@ class AppointmentServiceTest {
             a.setId(UUID.randomUUID());
             return a;
         });
+        // The patient's email is resolved from the authoritative profile by id.
+        when(authServiceClient.getUserById(patientId)).thenReturn(profileWithEmail(patientId, "anna@example.com"));
 
-        org.openapitools.model.Appointment created = service.book(request, "anna@example.com");
+        org.openapitools.model.Appointment created = service.book(request);
 
         ArgumentCaptor<Appointment> captor = ArgumentCaptor.forClass(Appointment.class);
         verify(repository).save(captor.capture());
@@ -69,16 +78,16 @@ class AppointmentServiceTest {
         assertThat(persisted.getDuration()).isEqualTo(30);
         assertThat(persisted.getReason()).isEqualTo("Check-up");
         assertThat(persisted.getStatus()).isEqualTo(AppointmentStatus.SCHEDULED);
-        // The booking patient's contact email is captured for later notifications.
+        // The patient's resolved email is stored for later notifications.
         assertThat(persisted.getPatientEmail()).isEqualTo("anna@example.com");
         assertThat(slot.getAvailable()).isFalse();
         assertThat(created.getId()).isNotNull();
         assertThat(created.getStatus()).isEqualTo(AppointmentStatus.SCHEDULED);
-        // A confirmation notification is triggered after the row is persisted,
-        // addressed to the booking patient's captured email.
-        ArgumentCaptor<NotificationTriggerRequest> triggerCaptor = ArgumentCaptor.forClass(NotificationTriggerRequest.class);
-        verify(notificationServiceClient).notify(triggerCaptor.capture());
-        NotificationTriggerRequest trigger = triggerCaptor.getValue();
+        // A confirmation notification is published (dispatched after commit),
+        // addressed to the patient's resolved email.
+        ArgumentCaptor<AppointmentNotificationEvent> eventCaptor = ArgumentCaptor.forClass(AppointmentNotificationEvent.class);
+        verify(eventPublisher).publishEvent(eventCaptor.capture());
+        NotificationTriggerRequest trigger = eventCaptor.getValue().request();
         assertThat(trigger.type()).isEqualTo("CONFIRMATION");
         assertThat(trigger.recipientEmail()).isEqualTo("anna@example.com");
         assertThat(trigger.appointmentId()).isEqualTo(created.getId());
@@ -94,10 +103,10 @@ class AppointmentServiceTest {
         when(doctorSlotRepository.findAndLockAvailableSlot(eq(doctorId), eq(when), eq(when.plusMinutes(30))))
                 .thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> service.book(request, "anna@example.com"))
+        assertThatThrownBy(() -> service.book(request))
                 .isInstanceOf(AppointmentStateConflictException.class);
         verify(repository, never()).save(any());
-        verify(notificationServiceClient, never()).notify(any());
+        verify(eventPublisher, never()).publishEvent(any());
     }
 
     @Test
@@ -107,7 +116,7 @@ class AppointmentServiceTest {
         OffsetDateTime when = OffsetDateTime.now().minusHours(1);
         AppointmentCreate request = new AppointmentCreate(patientId, doctorId, when, 30);
 
-        assertThatThrownBy(() -> service.book(request, "anna@example.com"))
+        assertThatThrownBy(() -> service.book(request))
                 .isInstanceOf(AppointmentStateConflictException.class)
                 .hasMessageContaining("Past appointment cannot be booked");
         verify(doctorSlotRepository, never()).findAndLockAvailableSlot(any(), any(), any());
@@ -170,9 +179,9 @@ class AppointmentServiceTest {
         assertThat(dto.getStatus()).isEqualTo(AppointmentStatus.RESCHEDULED);
         assertThat(oldSlot.getAvailable()).isTrue();
         assertThat(newSlot.getAvailable()).isFalse();
-        ArgumentCaptor<NotificationTriggerRequest> captor = ArgumentCaptor.forClass(NotificationTriggerRequest.class);
-        verify(notificationServiceClient).notify(captor.capture());
-        NotificationTriggerRequest trigger = captor.getValue();
+        ArgumentCaptor<AppointmentNotificationEvent> eventCaptor = ArgumentCaptor.forClass(AppointmentNotificationEvent.class);
+        verify(eventPublisher).publishEvent(eventCaptor.capture());
+        NotificationTriggerRequest trigger = eventCaptor.getValue().request();
         assertThat(trigger.type()).isEqualTo("RESCHEDULE");
         assertThat(trigger.recipientEmail()).isEqualTo("patient@example.com");
         assertThat(trigger.appointmentId()).isEqualTo(a.getId());
@@ -239,9 +248,9 @@ class AppointmentServiceTest {
 
         assertThat(dto.getStatus()).isEqualTo(AppointmentStatus.CANCELLED);
         assertThat(slot.getAvailable()).isTrue();
-        ArgumentCaptor<NotificationTriggerRequest> captor = ArgumentCaptor.forClass(NotificationTriggerRequest.class);
-        verify(notificationServiceClient).notify(captor.capture());
-        NotificationTriggerRequest trigger = captor.getValue();
+        ArgumentCaptor<AppointmentNotificationEvent> eventCaptor = ArgumentCaptor.forClass(AppointmentNotificationEvent.class);
+        verify(eventPublisher).publishEvent(eventCaptor.capture());
+        NotificationTriggerRequest trigger = eventCaptor.getValue().request();
         assertThat(trigger.type()).isEqualTo("CANCELLATION");
         assertThat(trigger.appointmentId()).isEqualTo(a.getId());
     }
@@ -257,7 +266,7 @@ class AppointmentServiceTest {
         // The already-cancelled row should not be saved again.
         verify(repository, never()).save(any());
         // No state change → no notification.
-        verify(notificationServiceClient, never()).notify(any());
+        verify(eventPublisher, never()).publishEvent(any());
     }
 
     @Test

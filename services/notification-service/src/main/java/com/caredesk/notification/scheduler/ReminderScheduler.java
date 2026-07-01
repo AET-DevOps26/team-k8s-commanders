@@ -73,7 +73,8 @@ public class ReminderScheduler {
         int sent = 0;
         for (UpcomingAppointment appt : upcoming) {
             try {
-                if (repository.existsByAppointmentIdAndType(appt.appointmentId(), NotificationType.REMINDER)) {
+                if (repository.existsByAppointmentIdAndTypeAndDeliveredTrue(
+                        appt.appointmentId(), NotificationType.REMINDER)) {
                     continue;
                 }
                 notificationsService.recordAndSend(

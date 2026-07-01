@@ -54,7 +54,10 @@ public class NotificationsService {
      *
      * <p>The record is persisted first, so a failed or skipped send never loses
      * the audit trail and never blocks the caller (booking triggers and the
-     * reminder scheduler both rely on this). Delivery is best-effort — see
+     * reminder scheduler both rely on this). The record then captures whether
+     * delivery actually succeeded: the reminder scheduler dedupes only on
+     * <em>delivered</em> reminders, so a failed send is retried on a later scan
+     * rather than being silently marked done. Delivery is best-effort — see
      * {@link EmailSender}.
      *
      * @param appointmentId  the appointment this notification refers to, may be {@code null}
@@ -78,10 +81,13 @@ public class NotificationsService {
         entity.setChannel(NotificationChannel.EMAIL);
         entity.setMessage(message);
         entity.setSentAt(OffsetDateTime.now());
-        org.openapitools.model.Notification saved = NotificationMapper.toModel(repository.save(entity));
+        entity.setDelivered(false);
+        repository.save(entity);
 
-        emailSender.send(recipientEmail, subject, message);
-        return saved;
+        // Record the actual outcome so an undelivered reminder is retried rather
+        // than treated as sent.
+        entity.setDelivered(emailSender.send(recipientEmail, subject, message));
+        return NotificationMapper.toModel(repository.save(entity));
     }
 
     /**

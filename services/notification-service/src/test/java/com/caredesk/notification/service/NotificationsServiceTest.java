@@ -29,6 +29,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -173,22 +174,28 @@ class NotificationsServiceTest {
         UUID appointmentId = UUID.randomUUID();
         when(repository.save(any(Notification.class))).thenAnswer(inv -> {
             Notification n = inv.getArgument(0);
-            n.setId(UUID.randomUUID());
+            if (n.getId() == null) {
+                n.setId(UUID.randomUUID());
+            }
             return n;
         });
+        when(emailSender.send(any(), any(), any())).thenReturn(true);
 
         org.openapitools.model.Notification created = service.recordAndSend(
                 appointmentId, patientId, "anna@example.com",
                 NotificationType.CONFIRMATION, "Appointment confirmed", "You're booked.");
 
+        // Saved twice: once before send, then again to record the delivery outcome.
         ArgumentCaptor<Notification> captor = ArgumentCaptor.forClass(Notification.class);
-        verify(repository).save(captor.capture());
+        verify(repository, times(2)).save(captor.capture());
         Notification persisted = captor.getValue();
         assertThat(persisted.getType()).isEqualTo(NotificationType.CONFIRMATION);
         assertThat(persisted.getChannel()).isEqualTo(NotificationChannel.EMAIL);
         assertThat(persisted.getRecipientEmail()).isEqualTo("anna@example.com");
         assertThat(persisted.getMessage()).isEqualTo("You're booked.");
         assertThat(persisted.getSentAt()).isNotNull();
+        // Delivery succeeded, so the record is marked delivered.
+        assertThat(persisted.isDelivered()).isTrue();
         verify(emailSender).send("anna@example.com", "Appointment confirmed", "You're booked.");
         assertThat(created.getId()).isNotNull();
     }
@@ -207,7 +214,10 @@ class NotificationsServiceTest {
                 UUID.randomUUID(), UUID.randomUUID(), "down@example.com",
                 NotificationType.REMINDER, "Reminder", "See you soon.");
 
-        verify(repository).save(any(Notification.class));
+        // Still persisted (twice), but marked undelivered so the scheduler retries it.
+        ArgumentCaptor<Notification> captor = ArgumentCaptor.forClass(Notification.class);
+        verify(repository, times(2)).save(captor.capture());
+        assertThat(captor.getValue().isDelivered()).isFalse();
         assertThat(created.getId()).isNotNull();
     }
 

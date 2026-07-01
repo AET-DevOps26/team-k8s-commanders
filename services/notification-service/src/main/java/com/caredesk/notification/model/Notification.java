@@ -68,6 +68,14 @@ public class Notification {
     @Column(name = "recipient_email")
     private String recipientEmail;
 
+    /**
+     * Whether the email was actually accepted by the SMTP server. Service-internal
+     * — not exposed in the API model. The reminder scheduler dedupes only on
+     * <em>delivered</em> reminders, so a failed send is retried on a later scan.
+     */
+    @Column(nullable = false)
+    private boolean delivered;
+
     @NotNull
     @Column(name = "sent_at", nullable = false)
     private OffsetDateTime sentAt;
@@ -113,6 +121,12 @@ public class Notification {
 
     /** @param recipientEmail the address this notification was delivered to */
     public void setRecipientEmail(String recipientEmail) { this.recipientEmail = recipientEmail; }
+
+    /** @return whether the email was accepted by the SMTP server */
+    public boolean isDelivered() { return delivered; }
+
+    /** @param delivered whether the email was accepted by the SMTP server */
+    public void setDelivered(boolean delivered) { this.delivered = delivered; }
 
     /** @return the time the notification was sent, with offset */
     public OffsetDateTime getSentAt() { return sentAt; }

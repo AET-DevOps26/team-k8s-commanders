@@ -9,6 +9,8 @@ import org.openapitools.model.AppointmentRescheduleRequest;
 import org.openapitools.model.AppointmentStatus;
 import org.openapitools.model.PageMeta;
 import org.openapitools.model.PaginatedAppointmentResponse;
+import org.openapitools.model.UserProfile;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -43,38 +45,44 @@ public class AppointmentService {
     private final AppointmentRepository appointmentRepository;
     private final DoctorSlotRepository doctorSlotRepository;
     private final AppointmentMapper appointmentMapper;
-    private final NotificationServiceClient notificationServiceClient;
+    private final AuthServiceClient authServiceClient;
+    private final ApplicationEventPublisher eventPublisher;
 
     /**
-     * @param appointmentRepository       repository for appointment rows
-     * @param appointmentMapper           converts JPA entities to API DTOs
-     * @param notificationServiceClient   best-effort trigger for confirmation
-     *                                    notifications on booking events
+     * @param appointmentRepository repository for appointment rows
+     * @param appointmentMapper     converts JPA entities to API DTOs
+     * @param authServiceClient     resolves the patient's contact email from the
+     *                              authoritative user profile
+     * @param eventPublisher        publishes notification triggers, dispatched
+     *                              after commit by {@link AppointmentNotificationListener}
      */
     public AppointmentService(AppointmentRepository appointmentRepository,
                               DoctorSlotRepository doctorSlotRepository,
                               AppointmentMapper appointmentMapper,
-                              NotificationServiceClient notificationServiceClient) {
+                              AuthServiceClient authServiceClient,
+                              ApplicationEventPublisher eventPublisher) {
         this.appointmentRepository = appointmentRepository;
         this.doctorSlotRepository = doctorSlotRepository;
         this.appointmentMapper = appointmentMapper;
-        this.notificationServiceClient = notificationServiceClient;
+        this.authServiceClient = authServiceClient;
+        this.eventPublisher = eventPublisher;
     }
 
     /**
      * Books a new appointment. The new row always starts in
      * {@link AppointmentStatus#SCHEDULED}.
      *
-     * <p>The booking patient's contact email (from the gateway-injected
-     * {@code X-User-Email}) is stored on the appointment so notification-service
-     * can deliver the confirmation and any later reminder. A best-effort
-     * confirmation notification is triggered after the row is persisted.
+     * <p>The <em>patient's</em> contact email is resolved from the authoritative
+     * user profile by {@code patientId} (not from the caller, who may be a doctor
+     * booking on the patient's behalf) and stored on the appointment so
+     * notification-service can deliver the confirmation and any later reminder.
+     * The confirmation notification is published and dispatched only after the
+     * booking transaction commits.
      *
-     * @param request      the booking request from the caller
-     * @param contactEmail the booking patient's email, may be {@code null}
+     * @param request the booking request from the caller
      * @return the persisted appointment as an API DTO
      */
-    public org.openapitools.model.Appointment book(AppointmentCreate request, String contactEmail) {
+    public org.openapitools.model.Appointment book(AppointmentCreate request) {
         rejectPastDateTime(request.getDateTime(), "booked");
         DoctorSlot slot = findAvailableSlot(request.getDoctorId(), request.getDateTime(), request.getDuration());
         slot.setAvailable(false);
@@ -86,7 +94,7 @@ public class AppointmentService {
         entity.setDateTime(request.getDateTime());
         entity.setDuration(request.getDuration());
         entity.setReason(request.getReason());
-        entity.setPatientEmail(contactEmail);
+        entity.setPatientEmail(resolvePatientEmail(request.getPatientId()));
         entity.setStatus(AppointmentStatus.SCHEDULED);
         Appointment saved = appointmentRepository.save(entity);
 
@@ -198,13 +206,25 @@ public class AppointmentService {
     }
 
     /**
-     * Fires a best-effort confirmation notification for a booking event. The
-     * recipient email is whatever was captured on the appointment at booking;
-     * the call never throws (see {@link NotificationServiceClient}).
+     * Publishes a notification trigger for a booking event. The event is
+     * dispatched by {@link AppointmentNotificationListener} only after the
+     * surrounding transaction commits, so nothing is sent for a change that
+     * rolled back. The recipient email is whatever was resolved and stored on
+     * the appointment at booking.
      */
     private void notify(Appointment appt, String type, String subject, String message) {
-        notificationServiceClient.notify(new NotificationTriggerRequest(
-                appt.getId(), appt.getPatientId(), appt.getPatientEmail(), type, subject, message));
+        eventPublisher.publishEvent(new AppointmentNotificationEvent(new NotificationTriggerRequest(
+                appt.getId(), appt.getPatientId(), appt.getPatientEmail(), type, subject, message)));
+    }
+
+    /**
+     * Resolves the patient's contact email from the authoritative auth-service
+     * profile. Returns {@code null} if the profile can't be reached or has no
+     * email — the notification record is still created, just without delivery.
+     */
+    private String resolvePatientEmail(UUID patientId) {
+        UserProfile profile = authServiceClient.getUserById(patientId);
+        return profile != null ? profile.getEmail() : null;
     }
 
     private static String formatWhen(OffsetDateTime when) {

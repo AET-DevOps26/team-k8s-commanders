@@ -47,15 +47,17 @@ public interface NotificationRepository extends JpaRepository<Notification, UUID
     Page<Notification> findByAppointmentIdAndPatientId(UUID appointmentId, UUID patientId, Pageable pageable);
 
     /**
-     * Whether a notification of the given type has already been recorded for an
-     * appointment. Backs the reminder scheduler's idempotency: a reminder is
-     * only sent if no {@link NotificationType#REMINDER} record exists yet, so
-     * the same appointment is never reminded twice — including across restarts,
-     * since the check is against the persisted record rather than in-memory state.
+     * Whether a <em>successfully delivered</em> notification of the given type
+     * already exists for an appointment. Backs the reminder scheduler's
+     * idempotency: a reminder is only skipped once one has actually been
+     * delivered, so a failed send (stored with {@code delivered=false}) is
+     * retried on a later scan instead of being permanently treated as sent. The
+     * check is against the persisted record, so the guarantee also holds across
+     * restarts.
      *
      * @param appointmentId the appointment id
      * @param type          the notification type to look for
-     * @return {@code true} if such a record already exists
+     * @return {@code true} if a delivered record of that type already exists
      */
-    boolean existsByAppointmentIdAndType(UUID appointmentId, NotificationType type);
+    boolean existsByAppointmentIdAndTypeAndDeliveredTrue(UUID appointmentId, NotificationType type);
 }

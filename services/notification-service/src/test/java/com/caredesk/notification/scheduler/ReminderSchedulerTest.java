@@ -36,7 +36,7 @@ class ReminderSchedulerTest {
         UpcomingAppointment appt = new UpcomingAppointment(
                 UUID.randomUUID(), UUID.randomUUID(), OffsetDateTime.now().plusHours(5), "anna@example.com");
         when(patientClient.fetchUpcoming(24)).thenReturn(List.of(appt));
-        when(repository.existsByAppointmentIdAndType(appt.appointmentId(), NotificationType.REMINDER))
+        when(repository.existsByAppointmentIdAndTypeAndDeliveredTrue(appt.appointmentId(), NotificationType.REMINDER))
                 .thenReturn(false);
 
         scheduler.sendDueReminders();
@@ -51,7 +51,7 @@ class ReminderSchedulerTest {
         UpcomingAppointment appt = new UpcomingAppointment(
                 UUID.randomUUID(), UUID.randomUUID(), OffsetDateTime.now().plusHours(5), "anna@example.com");
         when(patientClient.fetchUpcoming(24)).thenReturn(List.of(appt));
-        when(repository.existsByAppointmentIdAndType(appt.appointmentId(), NotificationType.REMINDER))
+        when(repository.existsByAppointmentIdAndTypeAndDeliveredTrue(appt.appointmentId(), NotificationType.REMINDER))
                 .thenReturn(true);
 
         scheduler.sendDueReminders();
@@ -66,7 +66,7 @@ class ReminderSchedulerTest {
         UpcomingAppointment good = new UpcomingAppointment(
                 UUID.randomUUID(), UUID.randomUUID(), OffsetDateTime.now().plusHours(3), "good@example.com");
         when(patientClient.fetchUpcoming(24)).thenReturn(List.of(bad, good));
-        when(repository.existsByAppointmentIdAndType(any(), eq(NotificationType.REMINDER))).thenReturn(false);
+        when(repository.existsByAppointmentIdAndTypeAndDeliveredTrue(any(), eq(NotificationType.REMINDER))).thenReturn(false);
         when(notificationsService.recordAndSend(eq(bad.appointmentId()), any(), any(), any(), any(), any()))
                 .thenThrow(new RuntimeException("boom"));
 

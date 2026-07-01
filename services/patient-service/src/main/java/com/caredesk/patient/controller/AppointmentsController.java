@@ -1,7 +1,6 @@
 package com.caredesk.patient.controller;
 
 import com.caredesk.patient.service.AppointmentService;
-import jakarta.servlet.http.HttpServletRequest;
 import org.openapitools.api.AppointmentsApi;
 import org.openapitools.model.Appointment;
 import org.openapitools.model.AppointmentCreate;
@@ -30,34 +29,27 @@ import java.util.UUID;
 @Controller
 public class AppointmentsController implements AppointmentsApi {
 
-    /** Trusted email injected by the gateway after it validates the JWT. */
-    static final String USER_EMAIL_HEADER = "X-User-Email";
-
     private final AppointmentService appointmentService;
-    private final HttpServletRequest request;
 
     /**
      * @param appointmentService the read / write appointment service
-     * @param request            request-scoped proxy used to read the trusted
-     *                           {@code X-User-Email} header for the current call
      */
-    public AppointmentsController(AppointmentService appointmentService, HttpServletRequest request) {
+    public AppointmentsController(AppointmentService appointmentService) {
         this.appointmentService = appointmentService;
-        this.request = request;
     }
 
     /**
-     * Books a new appointment. The caller's gateway-provided email is captured
-     * on the appointment so notification-service can reach the patient.
+     * Books a new appointment. The patient's contact email is resolved from the
+     * authoritative user profile inside the service, so a doctor booking on a
+     * patient's behalf still notifies the patient rather than the caller.
      *
      * @param appointmentCreate the booking request
      * @return 201 with the newly created appointment
      */
     @Override
     public ResponseEntity<Appointment> bookAppointment(AppointmentCreate appointmentCreate) {
-        String contactEmail = request.getHeader(USER_EMAIL_HEADER);
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(appointmentService.book(appointmentCreate, contactEmail));
+                .body(appointmentService.book(appointmentCreate));
     }
 
     /**

@@ -42,6 +42,11 @@ spring:
       mail:
         smtp:
           auth: ${SMTP_AUTH:false}
+          # Finite timeouts (ms) so a slow/unresponsive SMTP server can't block
+          # the request thread or the reminder scheduler indefinitely.
+          connectiontimeout: ${SMTP_CONNECT_TIMEOUT_MS:5000}
+          timeout: ${SMTP_READ_TIMEOUT_MS:5000}
+          writetimeout: ${SMTP_WRITE_TIMEOUT_MS:5000}
           starttls:
             enable: ${SMTP_STARTTLS:false}
   datasource:

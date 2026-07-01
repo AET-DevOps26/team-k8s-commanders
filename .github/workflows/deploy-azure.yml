@@ -73,37 +73,59 @@ jobs:
         run: |
           umask 077
           rm -f .env.prod
-          printf 'LLM_API_KEY=%s\n' "$LLM_API_KEY" >> .env.prod
-          printf 'LLM_PROVIDER=%s\n' "$LLM_PROVIDER" >> .env.prod
-          printf 'LLM_MODEL=%s\n' "$LLM_MODEL" >> .env.prod
-          printf 'OPENWEBUI_BASE_URL=%s\n' "$OPENWEBUI_BASE_URL" >> .env.prod
-          printf 'PUBLIC_API_URL=%s\n' "/api/v1" >> .env.prod
-          printf 'JWT_SECRET=%s\n' "$JWT_SECRET" >> .env.prod
-          printf 'AUTH_DB_NAME=%s\n' "$AUTH_DB_NAME" >> .env.prod
-          printf 'AUTH_DB_USER=%s\n' "$AUTH_DB_USER" >> .env.prod
-          printf 'AUTH_DB_PASSWORD=%s\n' "$AUTH_DB_PASSWORD" >> .env.prod
-          printf 'AUTH_DDL_AUTO=%s\n' "$AUTH_DDL_AUTO" >> .env.prod
-          printf 'PATIENT_DB_NAME=%s\n' "$PATIENT_DB_NAME" >> .env.prod
-          printf 'PATIENT_DB_USER=%s\n' "$PATIENT_DB_USER" >> .env.prod
-          printf 'PATIENT_DB_PASSWORD=%s\n' "$PATIENT_DB_PASSWORD" >> .env.prod
-          printf 'PATIENT_DDL_AUTO=%s\n' "$PATIENT_DDL_AUTO" >> .env.prod
-          printf 'NOTES_DB_NAME=%s\n' "$NOTES_DB_NAME" >> .env.prod
-          printf 'NOTES_DB_USER=%s\n' "$NOTES_DB_USER" >> .env.prod
-          printf 'NOTES_DB_PASSWORD=%s\n' "$NOTES_DB_PASSWORD" >> .env.prod
-          printf 'NOTES_DDL_AUTO=%s\n' "$NOTES_DDL_AUTO" >> .env.prod
-          printf 'NOTIFICATION_DB_NAME=%s\n' "$NOTIFICATION_DB_NAME" >> .env.prod
-          printf 'NOTIFICATION_DB_USER=%s\n' "$NOTIFICATION_DB_USER" >> .env.prod
-          printf 'NOTIFICATION_DB_PASSWORD=%s\n' "$NOTIFICATION_DB_PASSWORD" >> .env.prod
-          printf 'NOTIFICATION_DDL_AUTO=%s\n' "$NOTIFICATION_DDL_AUTO" >> .env.prod
-          printf 'AI_DB_NAME=%s\n' "$AI_DB_NAME" >> .env.prod
-          printf 'AI_DB_USER=%s\n' "$AI_DB_USER" >> .env.prod
-          printf 'AI_DB_PASSWORD=%s\n' "$AI_DB_PASSWORD" >> .env.prod
-          printf 'AI_DDL_AUTO=%s\n' "$AI_DDL_AUTO" >> .env.prod
-          printf 'GRAFANA_ADMIN_USER=%s\n' "$GRAFANA_ADMIN_USER" >> .env.prod
-          printf 'GRAFANA_ADMIN_PASSWORD=%s\n' "$GRAFANA_ADMIN_PASSWORD" >> .env.prod
-          printf 'GRAFANA_ROOT_URL=%s\n' "$GRAFANA_ROOT_URL" >> .env.prod
-          printf 'SITE_ADDRESS=%s\n' "$SITE_ADDRESS" >> .env.prod
-          printf 'ACME_CA=%s\n' "$ACME_CA" >> .env.prod
+
+          # write_var NAME VALUE [required]
+          # Appends NAME=VALUE to .env.prod. Fails fast (before deploy) when a
+          # `required` value is empty, giving a clearer/earlier error than the
+          # compose ${VAR:?} guards. Rejects values containing a newline: printf
+          # is line-oriented, so a stray newline in a secret would spill extra
+          # lines into .env.prod and corrupt the file.
+          write_var() {
+            local name=$1 value=$2 required=$3
+            if [ "$required" = required ] && [ -z "$value" ]; then
+              echo "::error::Required variable $name is empty" >&2
+              exit 1
+            fi
+            case $value in
+              *$'\n'*)
+                echo "::error::Variable $name contains a newline; refusing to write .env.prod" >&2
+                exit 1
+                ;;
+            esac
+            printf '%s=%s\n' "$name" "$value" >> .env.prod
+          }
+
+          write_var LLM_API_KEY "$LLM_API_KEY" required
+          write_var LLM_PROVIDER "$LLM_PROVIDER" required
+          write_var LLM_MODEL "$LLM_MODEL" required
+          write_var OPENWEBUI_BASE_URL "$OPENWEBUI_BASE_URL"
+          write_var PUBLIC_API_URL "/api/v1"
+          write_var JWT_SECRET "$JWT_SECRET" required
+          write_var AUTH_DB_NAME "$AUTH_DB_NAME" required
+          write_var AUTH_DB_USER "$AUTH_DB_USER" required
+          write_var AUTH_DB_PASSWORD "$AUTH_DB_PASSWORD" required
+          write_var AUTH_DDL_AUTO "$AUTH_DDL_AUTO"
+          write_var PATIENT_DB_NAME "$PATIENT_DB_NAME" required
+          write_var PATIENT_DB_USER "$PATIENT_DB_USER" required
+          write_var PATIENT_DB_PASSWORD "$PATIENT_DB_PASSWORD" required
+          write_var PATIENT_DDL_AUTO "$PATIENT_DDL_AUTO"
+          write_var NOTES_DB_NAME "$NOTES_DB_NAME" required
+          write_var NOTES_DB_USER "$NOTES_DB_USER" required
+          write_var NOTES_DB_PASSWORD "$NOTES_DB_PASSWORD" required
+          write_var NOTES_DDL_AUTO "$NOTES_DDL_AUTO"
+          write_var NOTIFICATION_DB_NAME "$NOTIFICATION_DB_NAME" required
+          write_var NOTIFICATION_DB_USER "$NOTIFICATION_DB_USER" required
+          write_var NOTIFICATION_DB_PASSWORD "$NOTIFICATION_DB_PASSWORD" required
+          write_var NOTIFICATION_DDL_AUTO "$NOTIFICATION_DDL_AUTO"
+          write_var AI_DB_NAME "$AI_DB_NAME" required
+          write_var AI_DB_USER "$AI_DB_USER" required
+          write_var AI_DB_PASSWORD "$AI_DB_PASSWORD" required
+          write_var AI_DDL_AUTO "$AI_DDL_AUTO"
+          write_var GRAFANA_ADMIN_USER "$GRAFANA_ADMIN_USER"
+          write_var GRAFANA_ADMIN_PASSWORD "$GRAFANA_ADMIN_PASSWORD" required
+          write_var GRAFANA_ROOT_URL "$GRAFANA_ROOT_URL"
+          write_var SITE_ADDRESS "$SITE_ADDRESS" required
+          write_var ACME_CA "$ACME_CA"
 
       - name: Copy compose file, infra configs and env file to VM
         uses: appleboy/scp-action@v1.0.0

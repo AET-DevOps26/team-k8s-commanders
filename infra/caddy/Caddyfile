@@ -1,0 +1,41 @@
+# TLS-terminating reverse proxy for the CareDesk stack (dev and prod).
+#
+# Caddy reverse-proxies:
+#   /api/v1/*  -> api-gateway   (JWT-validating gateway; full path preserved)
+#   /grafana/* -> grafana
+#   /*         -> web-client
+#
+# The listen address is driven by $SITE_ADDRESS:
+#   prod: a public hostname (e.g. <azure-public-ip>.nip.io) — Caddy provisions
+#         and auto-renews a Let's Encrypt cert and redirects HTTP->HTTPS.
+#   dev:  ":80" — plain HTTP, no certificates (ACME settings below are unused).
+#
+# Issued certs live in the caddy-data volume so they survive redeploys.
+{
+	# ACME CA endpoint. Defaults to Let's Encrypt *staging* so first deploys
+	# don't burn the shared nip.io production rate limit. Set ACME_CA to
+	# https://acme-v02.api.letsencrypt.org/directory for a browser-trusted
+	# certificate. Ignored when SITE_ADDRESS is HTTP-only (dev).
+	acme_ca {$ACME_CA:https://acme-staging-v02.api.letsencrypt.org/directory}
+}
+
+{$SITE_ADDRESS} {
+	# All API traffic goes through the gateway, which validates JWTs and
+	# routes to the backend services. The /api/v1 prefix is preserved (the
+	# gateway routes on it), matching the previous nginx behaviour.
+	handle /api/v1/* {
+		reverse_proxy api-gateway:8080
+	}
+
+	# Grafana — served under /grafana (matches GF_SERVER_SERVE_FROM_SUB_PATH).
+	# reverse_proxy upgrades WebSockets (Grafana Live) automatically.
+	redir /grafana /grafana/
+	handle /grafana/* {
+		reverse_proxy grafana:3000
+	}
+
+	# Web client — catch-all, must be last.
+	handle {
+		reverse_proxy web-client:3000
+	}
+}

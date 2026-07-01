@@ -56,9 +56,10 @@ docker compose up --build
 
 | Service | URL |
 |---------|-----|
-| Web client (via nginx) | http://localhost |
+| Web client (via Caddy) | http://localhost |
 | API gateway | http://localhost:8080 |
 | API docs (Swagger UI) | http://localhost/api/v1/docs |
+| Grafana (via Caddy) | http://localhost/grafana |
 | Auth database (Postgres) | localhost:5432 |
 | Patient database (Postgres) | localhost:5433 |
 | Notes database (Postgres) | localhost:5434 |
@@ -66,12 +67,12 @@ docker compose up --build
 | AI assistant database (Postgres) | localhost:5436 |
 | Mailpit web UI (caught emails) | http://localhost:8025 |
 
-Only the gateway, nginx, the databases and Mailpit publish host ports. The databases are
+Only the gateway, Caddy and the databases publish host ports. The databases are
 exposed so you can inspect them locally (e.g. with `psql`), and Mailpit exposes its web UI on 8025. The application
 services — web-client, auth-service, patient-service, notes-service and
 ai-assistant — publish no host port; they listen only on the internal compose
 network and are reached through the gateway (or, for the web client, through
-nginx). The web client reads `PUBLIC_API_URL` at runtime (default `/api/v1`) and sends API requests through the gateway. Use `http://localhost` for the full compose setup; nginx serves the frontend and forwards `/api/v1/**` to the API gateway without requiring CORS. Copy `services/ai-assistant/.env.example` to `services/ai-assistant/.env` before the first run if you use the AI assistant service.
+Caddy). The web client reads `PUBLIC_API_URL` at runtime (default `/api/v1`) and sends API requests through the gateway. Use `http://localhost` for the full compose setup; Caddy serves the frontend and forwards `/api/v1/**` to the API gateway without requiring CORS. Copy `services/ai-assistant/.env.example` to `services/ai-assistant/.env` before the first run if you use the AI assistant service.
 
 The AI assistant uses a local Ollama instance — no additional setup is required. 
 

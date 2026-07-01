@@ -1,12 +1,21 @@
 services:
-  nginx:
-    image: nginx:stable-alpine
+  caddy:
+    image: caddy:2-alpine
     ports:
       - "80:80"
       - "443:443"
+    environment:
+      SITE_ADDRESS: ${SITE_ADDRESS:?SITE_ADDRESS must be set}
+      # Defaults to Let's Encrypt staging; set ACME_CA to the production
+      # endpoint (https://acme-v02.api.letsencrypt.org/directory) for a
+      # browser-trusted certificate.
+      ACME_CA: ${ACME_CA:-https://acme-staging-v02.api.letsencrypt.org/directory}
     volumes:
-      - ./infra/nginx/nginx.prod.conf:/etc/nginx/conf.d/default.conf:ro
-      - ./certs:/etc/nginx/certs:ro
+      - ./infra/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      # Persists issued certificates across deploys — essential to avoid
+      # re-requesting from Let's Encrypt on every redeploy (rate limits).
+      - caddy-data:/data
+      - caddy-config:/config
     restart: always
     depends_on:
       web-client:
@@ -316,14 +325,14 @@ services:
   grafana:
     image: grafana/grafana:11.2.0
     # No host port published — reachable only inside the compose network
-    # (and externally via the nginx/TLS proxy).
+    # (and externally via the Caddy/TLS proxy).
     expose:
       - "3000"
     environment:
       GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?GRAFANA_ADMIN_PASSWORD must be set}
       GF_AUTH_ANONYMOUS_ENABLED: "false"
-      # Served behind nginx under /grafana (see infra/nginx/nginx.prod.conf).
+      # Served behind Caddy under /grafana (see infra/caddy/Caddyfile).
       GF_SERVER_ROOT_URL: ${GRAFANA_ROOT_URL:-https://localhost/grafana}
       GF_SERVER_SERVE_FROM_SUB_PATH: "true"
       PROMETHEUS_URL: http://prometheus:9090
@@ -345,6 +354,8 @@ volumes:
   ai-db-data:
   prometheus-data:
   grafana-data:
+  caddy-data:
+  caddy-config:
 
 networks:
   caredesk:

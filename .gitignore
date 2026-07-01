@@ -29,9 +29,6 @@ CLAUDE.md
 # Prod secrets — create on the VM, never commit
 .env
 
-# TLS certificates for prod nginx
-certs/
-
 # Helm dependency lockfile output and downloaded sub-charts
 helm/*/charts/
 helm/*/Chart.lock

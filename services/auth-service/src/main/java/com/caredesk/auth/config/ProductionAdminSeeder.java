@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -49,25 +50,45 @@ public class ProductionAdminSeeder implements ApplicationRunner {
     public void run(ApplicationArguments args) {
         validateConfiguration();
 
-        User existing = userRepository.findByEmail(email).orElse(null);
-        if (existing != null) {
-            if (existing.getRole() != Role.ADMIN) {
-                throw new IllegalStateException(
-                        "Configured production admin email belongs to a non-admin account");
-            }
+        if (userRepository.countByRole(Role.ADMIN) > 0) {
             log.info("Production admin account already exists; leaving credentials unchanged");
             return;
         }
 
+        User existing = userRepository.findByEmail(email).orElse(null);
+        if (existing != null) {
+            ensureExistingEmailCanBootstrap(existing);
+            log.info("Production admin account already exists; leaving credentials unchanged");
+            return;
+        }
+
+        try {
+            userRepository.save(newAdmin());
+            log.info("Created production admin account");
+        } catch (DataIntegrityViolationException ex) {
+            User concurrent = userRepository.findByEmail(email)
+                    .orElseThrow(() -> new IllegalStateException(
+                            "Failed to create production admin account", ex));
+            ensureExistingEmailCanBootstrap(concurrent);
+            log.info("Production admin account already exists; leaving credentials unchanged");
+        }
+    }
+
+    private User newAdmin() {
         User admin = new User();
         admin.setName(name);
         admin.setEmail(email);
         admin.setPassword(passwordEncoder.encode(password));
         admin.setRole(Role.ADMIN);
         admin.setEnabled(true);
-        userRepository.save(admin);
+        return admin;
+    }
 
-        log.info("Created production admin account");
+    private void ensureExistingEmailCanBootstrap(User existing) {
+        if (existing.getRole() != Role.ADMIN) {
+            throw new IllegalStateException(
+                    "Configured production admin email belongs to a non-admin account");
+        }
     }
 
     private void validateConfiguration() {

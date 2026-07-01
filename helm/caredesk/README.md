@@ -171,8 +171,9 @@ The AET deployment additionally requires the `TUM_ID` variable and
 `JWT_SECRET`, and `POSTGRES_PASSWORD`.
 
 `ADMIN_PASSWORD` must remain a secret; never store it as a GitHub Actions
-variable. The deployment creates the configured admin only when its email does
-not exist. Later deployments leave the existing account and password unchanged.
+variable. The deployment creates the configured admin only when no admin account
+exists yet. Later deployments leave the existing account and password unchanged,
+even if the configured email changes.
 To rotate the password, use the authenticated account-management flow rather
 than changing the deployment secret.
 

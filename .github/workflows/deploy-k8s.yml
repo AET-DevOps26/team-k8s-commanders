@@ -79,7 +79,7 @@ jobs:
         run: |
           NS="${TUM_ID}-devops26-team-k8s-commanders"
 
-          if [ -z "${ADMIN_NAME}" ] || [ -z "${ADMIN_EMAIL}" ] || [ -z "${ADMIN_PASSWORD}" ]; then
+          if [[ -z "${ADMIN_NAME//[[:space:]]/}" ]] || [[ -z "${ADMIN_EMAIL//[[:space:]]/}" ]] || [[ -z "${ADMIN_PASSWORD//[[:space:]]/}" ]]; then
             echo "::error::ADMIN_NAME, ADMIN_EMAIL, and ADMIN_PASSWORD must be configured for production"
             exit 1
           fi

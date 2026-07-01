@@ -81,6 +81,8 @@ spec:
                 path: datasources/datasources.yaml
               - key: dashboards.yaml
                 path: dashboards/dashboards.yaml
+              - key: alerting.yaml
+                path: alerting/alerts.yaml
         - name: dashboards
           configMap:
             name: {{ $fullName }}-grafana-dashboards

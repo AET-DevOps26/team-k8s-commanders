@@ -10,6 +10,8 @@ on:
     paths:
       - "docker-compose.prod.yml"
       - "infra/nginx/**"
+      - "infra/prometheus/**"
+      - "infra/grafana/**"
       - ".github/workflows/deploy-azure.yml"
   workflow_dispatch:
 
@@ -62,6 +64,7 @@ jobs:
           AI_DDL_AUTO: ${{ vars.AI_DDL_AUTO }}
           GRAFANA_ADMIN_USER: ${{ vars.GRAFANA_ADMIN_USER }}
           GRAFANA_ADMIN_PASSWORD: ${{ secrets.GRAFANA_ADMIN_PASSWORD }}
+          GRAFANA_ROOT_URL: "https://${{ vars.AZURE_PUBLIC_IP }}.nip.io/grafana"
         run: |
           umask 077
           rm -f .env.prod
@@ -93,14 +96,15 @@ jobs:
           printf 'AI_DDL_AUTO=%s\n' "$AI_DDL_AUTO" >> .env.prod
           printf 'GRAFANA_ADMIN_USER=%s\n' "$GRAFANA_ADMIN_USER" >> .env.prod
           printf 'GRAFANA_ADMIN_PASSWORD=%s\n' "$GRAFANA_ADMIN_PASSWORD" >> .env.prod
+          printf 'GRAFANA_ROOT_URL=%s\n' "$GRAFANA_ROOT_URL" >> .env.prod
 
-      - name: Copy compose file, nginx config and env file to VM
+      - name: Copy compose file, infra configs and env file to VM
         uses: appleboy/scp-action@v1.0.0
         with:
           host: ${{ vars.AZURE_PUBLIC_IP }}
           username: ${{ vars.AZURE_USER }}
           key: ${{ secrets.AZURE_PRIVATE_KEY }}
-          source: "docker-compose.prod.yml,infra/nginx/,.env.prod"
+          source: "docker-compose.prod.yml,infra/nginx/,infra/prometheus/,infra/grafana/,.env.prod"
           target: /home/${{ vars.AZURE_USER }}
 
       - name: Deploy with Docker Compose

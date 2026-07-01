@@ -2,9 +2,19 @@
   .hero-section,
   .split-section,
   .auth-shell,
-  .dashboard-grid,
-  .settings-grid,
-  .booking-grid {
+    .dashboard-grid,
+    .doctor-command-grid,
+    .doctor-overview-grid,
+    .schedule-management-grid,
+    .doctor-patient-grid,
+    .patient-workspace-grid,
+    .patient-record-workbench,
+    .patient-workspace-head,
+    .ai-workbench,
+    .ai-compose,
+    .settings-grid,
+    .availability-form-grid,
+    .booking-grid {
     grid-template-columns: 1fr;
   }
 
@@ -23,6 +33,29 @@
 
   .patient-hero {
     display: grid;
+  }
+
+  .patient-directory {
+    position: static;
+  }
+
+  .patient-visit-list {
+    position: static;
+  }
+
+  .ai-session-rail {
+    border-right: 0;
+    border-bottom: 1px solid rgba(19, 35, 34, 0.08);
+    padding-right: 0;
+    padding-bottom: 1rem;
+  }
+
+  .patient-directory-list,
+  .doctor-appointment-list,
+  .patient-timeline,
+  .ai-session-list,
+  .ai-thread {
+    max-height: none;
   }
 }
 
@@ -62,9 +95,71 @@
     width: 100%;
   }
 
+  .note-form-row {
+    grid-template-columns: 1fr;
+  }
+
+  .doctor-appointment-row,
+  .availability-slot-card,
+  .doctor-row-actions,
+  .ai-session-actions,
+  .note-form-head {
+    display: grid;
+    justify-items: stretch;
+  }
+
+  .availability-slot-meta {
+    justify-items: start;
+  }
+
+  .segmented-control,
+  .doctor-row-actions {
+    width: 100%;
+  }
+
+  .segmented-control button {
+    flex: 1;
+  }
+
+  .patient-record-summary,
+  .ai-prompt-strip {
+    grid-template-columns: 1fr;
+  }
+
+  .patient-mini-profile {
+    grid-template-columns: 1fr;
+  }
+
+  .ai-main-head,
+  .ai-prompt-strip {
+    justify-content: stretch;
+  }
+
+  .ai-prompt-strip button {
+    max-width: none;
+    width: 100%;
+  }
+
+  .ai-message {
+    max-width: 100%;
+  }
+
   .patient-tabs button,
   .quick-actions .primary-button,
   .quick-actions .secondary-button {
     flex: 1 1 100%;
+  }
+
+  .doctor-ai-fab {
+    right: 1rem;
+    bottom: 1rem;
+  }
+
+  .doctor-ai-modal-backdrop {
+    padding: 0.75rem;
+  }
+
+  .doctor-ai-modal-head {
+    display: grid;
   }
 }

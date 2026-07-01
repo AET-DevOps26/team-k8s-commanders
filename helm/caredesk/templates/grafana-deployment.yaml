@@ -1,0 +1,89 @@
+{{- if .Values.monitoring.enabled -}}
+{{- $fullName := include "caredesk.fullname" . -}}
+{{- $ingressEnabled := .Values.ingress.enabled -}}
+{{- $healthPath := ternary "/grafana/api/health" "/api/health" $ingressEnabled -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $fullName }}-grafana
+  labels:
+    {{- include "caredesk.labels" . | nindent 4 }}
+    app.kubernetes.io/component: grafana
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      {{- include "caredesk.selectorLabels" (dict "root" . "component" "grafana") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "caredesk.selectorLabels" (dict "root" . "component" "grafana") | nindent 8 }}
+    spec:
+      {{- include "caredesk.imagePullSecrets" . | nindent 6 }}
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 472
+        fsGroup: 472
+      containers:
+        - name: grafana
+          image: {{ .Values.monitoring.grafana.image }}
+          ports:
+            - name: http
+              containerPort: 3000
+              protocol: TCP
+          env:
+            - name: GF_SECURITY_ADMIN_USER
+              value: {{ .Values.monitoring.grafana.adminUser | quote }}
+            - name: GF_SECURITY_ADMIN_PASSWORD
+              value: {{ required "monitoring.grafana.adminPassword must be set (e.g. --set monitoring.grafana.adminPassword=<secret>)" .Values.monitoring.grafana.adminPassword | quote }}
+            - name: GF_AUTH_ANONYMOUS_ENABLED
+              value: "false"
+            {{- if $ingressEnabled }}
+            - name: GF_SERVER_ROOT_URL
+              value: {{ printf "%s://%s/grafana" (ternary "https" "http" .Values.ingress.tls.enabled) (include "caredesk.ingressHost" .) | quote }}
+            - name: GF_SERVER_SERVE_FROM_SUB_PATH
+              value: "true"
+            {{- else if .Values.monitoring.grafana.rootUrl }}
+            - name: GF_SERVER_ROOT_URL
+              value: {{ .Values.monitoring.grafana.rootUrl | quote }}
+            {{- end }}
+          volumeMounts:
+            - name: provisioning
+              mountPath: /etc/grafana/provisioning
+              readOnly: true
+            - name: dashboards
+              mountPath: /var/lib/grafana/dashboards
+              readOnly: true
+            - name: data
+              mountPath: /var/lib/grafana
+          resources:
+            {{- toYaml .Values.monitoring.grafana.resources | nindent 12 }}
+          livenessProbe:
+            httpGet:
+              path: {{ $healthPath }}
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          readinessProbe:
+            httpGet:
+              path: {{ $healthPath }}
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+      volumes:
+        - name: provisioning
+          configMap:
+            name: {{ $fullName }}-grafana-provisioning
+            items:
+              - key: datasources.yaml
+                path: datasources/datasources.yaml
+              - key: dashboards.yaml
+                path: dashboards/dashboards.yaml
+        - name: dashboards
+          configMap:
+            name: {{ $fullName }}-grafana-dashboards
+        - name: data
+          emptyDir: {}
+{{- end }}

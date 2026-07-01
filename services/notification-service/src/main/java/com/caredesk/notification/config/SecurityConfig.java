@@ -39,8 +39,9 @@ public class SecurityConfig {
      * Builds the security filter chain.
      *
      * <p>CSRF is disabled because the service is stateless and never serves
-     * browser forms. Only {@code /actuator/health/**} is permitted
-     * anonymously, so the Docker healthcheck can reach it. Reads are open to
+     * browser forms. {@code /actuator/health/**} is permitted anonymously so
+     * the Docker healthcheck can reach it, and {@code /actuator/prometheus} so
+     * Prometheus can scrape metrics. Reads are open to
      * patients (scoped to their own notifications in the service layer) and
      * admins (scenario: the clinic admin checks notification delivery).
      * Creating notifications by hand is an admin-only operation — automated
@@ -57,6 +58,8 @@ public class SecurityConfig {
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
+                        // Scraped by Prometheus inside the cluster/compose network.
+                        .requestMatchers("/actuator/prometheus").permitAll()
                         // Spring forwards errors internally to /error — must be reachable
                         // without authentication or the real status code is swallowed by 401.
                         .requestMatchers("/error").permitAll()

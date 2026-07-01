@@ -33,6 +33,11 @@ data:
         static_configs:
           - targets: ['{{ include "caredesk.fullname" . }}-notes:{{ .Values.notes.service.port }}']
 
+      - job_name: notification-service
+        metrics_path: /actuator/prometheus
+        static_configs:
+          - targets: ['{{ include "caredesk.fullname" . }}-notification:{{ .Values.notification.service.port }}']
+
       - job_name: ai-assistant
         metrics_path: /metrics
         static_configs:

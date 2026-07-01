@@ -30,7 +30,14 @@ import java.util.UUID;
  *
  * <p>{@code getUserById} serves two callers: authenticated users reach it through
  * the gateway with a JWT, while patient-service and notes-service call it directly
- * without credentials via {@link UserService}.
+ * on the compose network without credentials. Unauthenticated internal calls use
+ * the read-only {@link UserService} path; authenticated gateway calls use
+ * {@link UserAccountService}.
+ *
+ * <p>The doctor dashboard uses {@code listUsers} to resolve patient names and
+ * search patients. The patient-service deliberately stores only the clinical
+ * slice of a profile (date of birth, phone), so name / email / role must be
+ * read from here.
  */
 @Controller
 public class UsersController implements UsersApi {
@@ -49,7 +56,10 @@ public class UsersController implements UsersApi {
 
     @Override
     public ResponseEntity<PaginatedUserProfileResponse> listUsers(Integer page, Integer size) {
-        return ResponseEntity.ok(userAdminService.listUsers(page, size));
+        if (isAdmin()) {
+            return ResponseEntity.ok(userAdminService.listUsers(page, size));
+        }
+        return ResponseEntity.ok(userAccountService.listUsers(page, size));
     }
 
     @Override

@@ -22,6 +22,10 @@
         <!-- 2023.0.3 is the last release that supports Spring Boot 3.2.x. -->
         <spring-cloud.version>2025.0.2</spring-cloud.version>
         <jjwt.version>0.13.0</jjwt.version>
+        <!-- Swagger UI assets bundled into the gateway to serve the API docs at
+             /api/v1/docs. webjars-locator-lite resolves the version at request
+             time, so this is the only place the version is pinned. -->
+        <swagger-ui.version>5.32.8</swagger-ui.version>
     </properties>
 
     <dependencyManagement>
@@ -49,6 +53,20 @@
             <groupId>io.micrometer</groupId>
             <artifactId>micrometer-registry-prometheus</artifactId>
             <scope>runtime</scope>
+        </dependency>
+
+        <!-- Self-hosted Swagger UI served at /api/v1/docs against the bundled
+             OpenAPI spec. webjars-locator-lite lets the resource handler resolve
+             the swagger-ui version at request time (Renovate bumps the pinned
+             version above without breaking any hardcoded asset path). -->
+        <dependency>
+            <groupId>org.webjars</groupId>
+            <artifactId>swagger-ui</artifactId>
+            <version>${swagger-ui.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.webjars</groupId>
+            <artifactId>webjars-locator-lite</artifactId>
         </dependency>
 
         <!-- JWT validation -->

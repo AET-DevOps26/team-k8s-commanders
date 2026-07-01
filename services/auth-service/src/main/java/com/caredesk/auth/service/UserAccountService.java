@@ -40,7 +40,7 @@ public class UserAccountService {
 
     @Transactional(readOnly = true)
     public PaginatedUserProfileResponse listUsers(int page, int size) {
-        requireAdmin();
+        requireDoctorOrAdmin();
         Page<User> users = userRepository.findAll(PageRequest.of(page, size));
         List<UserProfile> content = users.getContent().stream()
                 .map(UserService::toUserProfile)
@@ -106,6 +106,20 @@ public class UserAccountService {
         if (!isAdmin()) {
             throw new AccessDeniedException("Admin role required");
         }
+    }
+
+    private void requireDoctorOrAdmin() {
+        if (!isDoctorOrAdmin()) {
+            throw new AccessDeniedException("Doctor or admin role required");
+        }
+    }
+
+    private boolean isDoctorOrAdmin() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        return authentication != null && authentication.getAuthorities().stream()
+                .anyMatch(authority ->
+                        "ROLE_ADMIN".equals(authority.getAuthority())
+                                || "ROLE_DOCTOR".equals(authority.getAuthority()));
     }
 
     private boolean isAdmin() {

@@ -47,3 +47,5 @@ caredesk:
       name: ${CAREDESK_ADMIN_NAME:}
       email: ${CAREDESK_ADMIN_EMAIL:}
       password: ${CAREDESK_ADMIN_PASSWORD:}
+  seed:
+    test-patients: ${CAREDESK_SEED_TEST_PATIENTS:false}

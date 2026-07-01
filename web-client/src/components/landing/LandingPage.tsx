@@ -1,7 +1,7 @@
 import type { AuthSession } from '../../clientApi'
 import { features, workflowStats } from '../../constants/landing'
 import type { NavigateHandler } from '../../types/route'
-import { dashboardPath } from '../../types/route'
+import { dashboardLabel, dashboardPath } from '../../types/route'
 import { ShellNav } from '../layout/ShellNav'
 import { AppLink } from '../ui/AppLink'
 import { FeatureIcon } from '../ui/FeatureIcon'
@@ -43,7 +43,7 @@ export function LandingPage({ session, onNavigate, onLogout }: LandingPageProps)
               to={session ? dashboardPath(session.user.role) : '/login'}
               onNavigate={onNavigate}
             >
-              {session ? (session.user.role === 'ADMIN' ? 'Admin area' : 'Patient area') : 'Log in'}
+              {session ? dashboardLabel(session.user.role) : 'Log in'}
             </AppLink>
           </div>
         </div>

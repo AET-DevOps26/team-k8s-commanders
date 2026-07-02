@@ -42,7 +42,7 @@ app.kubernetes.io/component: {{ .component }}
 
 {{/* Namespace name — informational only; Helm uses --namespace */}}
 {{- define "caredesk.namespace" -}}
-{{- printf "%s-devops26-team-k8s-commanders" .Values.tumId -}}
+{{- print "team-k8s-commanders" -}}
 {{- end -}}
 
 {{/* Ingress host — user value if set, else default suffix */}}
@@ -50,7 +50,7 @@ app.kubernetes.io/component: {{ .component }}
 {{- if .Values.ingress.host -}}
 {{- .Values.ingress.host -}}
 {{- else -}}
-{{- printf "caredesk-%s.student.k8s.aet.cit.tum.de" .Values.tumId -}}
+{{- print "caredesk-team-k8s-commanders.student.k8s.aet.cit.tum.de" -}}
 {{- end -}}
 {{- end -}}
 

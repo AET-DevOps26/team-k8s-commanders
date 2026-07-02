@@ -1,15 +1,10 @@
-# ─── Identity ──────────────────────────────────────────────────────────────────
-# TUM ID determines the default ingress host. Namespace is passed via --namespace.
-# Override at install: --set tumId=<your-id>
-tumId: ge38yuc
-
 # ─── AET cluster constraints ───────────────────────────────────────────────────
-# Student namespaces on the AET Rancher cluster enforce limits.cpu=4 (4000m).
-# Steady-state CPU limits must stay below that cap. Recreate (not RollingUpdate)
-# terminates the old pod before starting the new one, so rollouts do not need
-# temporary spare quota for overlapping pods.
-# Budget: 6×400m backends + 5×250m Postgres + 1×200m web + 1×100m mailpit
-# = 3950m (50m spare).
+# The team namespace on the AET Rancher cluster has a quota of limits.cpu=6000m /
+# limits.memory=8192Mi. Steady-state limits must stay below that cap. Recreate
+# (not RollingUpdate) terminates the old pod before starting the new one, so
+# rollouts do not need temporary spare quota for overlapping pods.
+# Budget with monitoring enabled: 6×400m backends + 5×250m Postgres + 1×200m web
+# + 350m monitoring + 100m mailpit = 4300m CPU (1700m spare), 6400Mi memory (1792Mi spare).
 deploymentStrategy:
   type: Recreate
 
@@ -17,7 +12,12 @@ deploymentStrategy:
 images:
   registry: ghcr.io/aet-devops26/team-k8s-commanders
   tag: latest
-  pullPolicy: IfNotPresent
+  # Always, not IfNotPresent: `tag: latest` is a mutable tag, and this cluster
+  # has multiple worker nodes. IfNotPresent only pulls when a node has never
+  # seen this tag string before — once cached, that node keeps serving the
+  # same (possibly months-stale) image forever, even after CI publishes a new
+  # `:latest`. Always forces a registry digest check on every pull.
+  pullPolicy: Always
   # GHCR packages for this project are PUBLIC — no pull secret is needed, so the
   # chart installs with a single command and zero credentials. CI may flip
   # create=true and inject a PAT for rate-limit headroom; not required to deploy.
@@ -82,7 +82,7 @@ networkPolicy:
 ingress:
   enabled: true
   className: nginx
-  # If empty, _helpers renders: caredesk-<tumId>.student.k8s.aet.cit.tum.de
+  # If empty, _helpers renders: caredesk-team-k8s-commanders.student.k8s.aet.cit.tum.de
   host: ""
   # Extra DNS hosts render the same ingress rules. Useful for local aliases
   # such as localhost without changing the canonical cluster host.
@@ -97,7 +97,7 @@ ingress:
 # ─── web-client (React + nginx, port 3000) ────────────────────────────────────
 web:
   enabled: true
-  # Single replica keeps CPU quota headroom on the AET student cluster (4 CPU cap).
+  # Single replica keeps CPU quota headroom on the AET team cluster (6 CPU cap).
   replicaCount: 1
   image:
     repository: web-client
@@ -225,12 +225,13 @@ mailpit:
     limits:   { cpu: 100m, memory: 128Mi }
 
 # ─── Prometheus (metrics collection, port 9090) ───────────────────────────────
-# Enabled by default so the core stack installs within the AET 4-CPU quota.
-# Enable with: --set monitoring.enabled=true
-# CPU budget: ~150m limit leaves the cluster at ~3100m total (900m spare).
+# Enabled by default now that the team namespace quota (6000m CPU / 8192Mi mem)
+# has headroom for it. Disable with: --set monitoring.enabled=false
+# CPU budget: 350m limit (Prometheus 150m + Grafana 200m) on top of the 3850m
+# core stack = 4200m total (1800m spare).
 monitoring:
-  enabled: false
-  
+  enabled: true
+
   image: prom/prometheus:v3.3.1
   retention: 7d
   storage: 2Gi

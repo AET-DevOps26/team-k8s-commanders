@@ -152,7 +152,6 @@ kind load docker-image "${BUILT_IMAGES[@]}" "${PG_IMAGE}" --name "${CLUSTER_NAME
 kubectl get ns "${NAMESPACE}" >/dev/null 2>&1 || kubectl create namespace "${NAMESPACE}"
 
 SET_FLAGS=(
-  --set "tumId=local"
   --set "images.tag=${IMAGE_TAG}"
   --set "images.pullPolicy=Never"               # use kind-loaded images, never pull
   --set "images.pullSecret.create=false"        # no GHCR auth needed

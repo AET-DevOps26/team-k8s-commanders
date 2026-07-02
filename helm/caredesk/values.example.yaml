@@ -3,8 +3,6 @@
 #
 # All keys below override defaults in values.yaml.
 
-tumId: ge38yuc                  # your TUM ID
-
 images:
   pullSecret:
     username: <your-github-username>

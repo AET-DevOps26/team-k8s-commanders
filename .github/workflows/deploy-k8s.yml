@@ -23,7 +23,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: AET
-      url: "https://caredesk-${{ vars.TUM_ID }}.student.k8s.aet.cit.tum.de"
+      url: "https://caredesk-team-k8s-commanders.student.k8s.aet.cit.tum.de"
 
     steps:
       - uses: actions/checkout@v4
@@ -58,34 +58,31 @@ jobs:
             echo "tag=latest" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Check namespace CPU quota
-        env:
-          TUM_ID: ${{ vars.TUM_ID }}
+      - name: Check namespace quota
         run: |
-          NS="${TUM_ID}-devops26-team-k8s-commanders"
+          NS="team-k8s-commanders"
           kubectl get ns "${NS}" >/dev/null 2>&1 || kubectl create namespace "${NS}"
           bash scripts/check-k8s-quota.sh "${NS}"
 
       - name: Deploy with Helm
         env:
-          TUM_ID: ${{ vars.TUM_ID }}
           LLM_PROVIDER: ${{ vars.LLM_PROVIDER }}
           LLM_MODEL: ${{ vars.LLM_MODEL }}
           INGRESS_HOST: ${{ vars.INGRESS_HOST }}
           OPENWEBUI_BASE_URL: ${{ vars.OPENWEBUI_BASE_URL }}
           MONITORING: ${{ vars.MONITORING }}
         run: |
-          NS="${TUM_ID}-devops26-team-k8s-commanders"
+          NS="team-k8s-commanders"
 
-          # Monitoring (Prometheus + Grafana) is opt-in via the MONITORING repo
-          # variable; default to disabled to stay within the AET 4-CPU quota.
-          MONITORING_ENABLED=false
-          if [ "${MONITORING,,}" = "true" ]; then
-            MONITORING_ENABLED=true
+          # Monitoring (Prometheus + Grafana) is enabled by default — the team
+          # namespace quota (6000m CPU / 8192Mi mem) has headroom for it. Set the
+          # MONITORING repo variable to "false" to opt back out.
+          MONITORING_ENABLED=true
+          if [ "${MONITORING,,}" = "false" ]; then
+            MONITORING_ENABLED=false
           fi
 
           SET_FLAGS=(
-            --set "tumId=${TUM_ID}"
             --set "images.tag=${{ steps.tag.outputs.tag }}"
             --set "ai.secrets.llmApiKey=${{ secrets.LLM_API_KEY }}"
             --set "ai.env.llmProvider=${LLM_PROVIDER}"
@@ -123,9 +120,7 @@ jobs:
           fi
 
       - name: Smoke test
-        env:
-          TUM_ID: ${{ vars.TUM_ID }}
         run: |
-          NS="${TUM_ID}-devops26-team-k8s-commanders"
+          NS="team-k8s-commanders"
           kubectl -n "${NS}" get pods,svc,ingress
           helm get notes caredesk -n "${NS}"

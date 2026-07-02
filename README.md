@@ -140,22 +140,13 @@ the GHCR images are public.
 
 ```bash
 helm upgrade --install caredesk helm/caredesk \
-  --namespace <your-namespace> --create-namespace \
-  --set tumId=<your-tum-id>
+  --namespace team-k8s-commanders --create-namespace
 ```
 
-Example:
-
-```bash
-helm upgrade --install caredesk helm/caredesk \
-  --namespace ge38yuc-devops26-team-k8s-commanders --create-namespace \
-  --set tumId=ge38yuc
-```
-
-Open `https://caredesk-<tumId>.student.k8s.aet.cit.tum.de/`. cert-manager issues
-the TLS cert on first deploy (~30 s). The AI assistant deploys healthy without a
-key; add one with `--set ai.secrets.llmApiKey=sk-...`. Full chart docs and
-routing: [`helm/caredesk/README.md`](helm/caredesk/README.md).
+Open `https://caredesk-team-k8s-commanders.student.k8s.aet.cit.tum.de/`.
+cert-manager issues the TLS cert on first deploy (~30 s). The AI assistant
+deploys healthy without a key; add one with `--set ai.secrets.llmApiKey=sk-...`.
+Full chart docs and routing: [`helm/caredesk/README.md`](helm/caredesk/README.md).
 
 **For the AET cluster** you only need the kubeconfig (context `stud`):
 

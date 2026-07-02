@@ -65,10 +65,10 @@ docker compose up --build
 | Notes database (Postgres) | localhost:5434 |
 | Notification database (Postgres) | localhost:5435 |
 | AI assistant database (Postgres) | localhost:5436 |
-| Mailpit web UI (caught emails) | http://localhost:8025 |
+| Mailpit web UI (caught emails) | http://localhost/mailpit (basic auth: `mailpit` / `mailpit`) |
 
-Only the gateway, Caddy and the databases publish host ports. The databases are
-exposed so you can inspect them locally (e.g. with `psql`), and Mailpit exposes its web UI on 8025. The application
+Only Caddy and the databases publish host ports. The databases are
+exposed so you can inspect them locally (e.g. with `psql`); Mailpit's web UI is served through Caddy at `/mailpit` (behind basic auth). The application
 services — web-client, auth-service, patient-service, notes-service and
 ai-assistant — publish no host port; they listen only on the internal compose
 network and are reached through the gateway (or, for the web client, through
@@ -112,12 +112,12 @@ The notes service is a scaffold for clinical notes — the structured visit note
 
 The notification service records the automated messages CareDesk sends to patients (appointment confirmations and reminders) and serves them via `/notifications` and `/appointments/{appointmentId}/notifications`. It follows the same pattern as the notes service: it sits behind the API gateway, trusts the gateway-injected `X-User-*` headers, and uses its own Postgres container (`notification-db`). Reads are role-scoped — admins see everything, patients only their own.
 
-The service also delivers those messages by email. We don't run a real mail server: notification-service sends plain SMTP to **Mailpit**, a catch-all container that stores every message and shows it in a web UI at [http://localhost:8025](http://localhost:8025). Pointing at a real provider is purely an `SMTP_*` change. Two things trigger mail:
+The service also delivers those messages by email. We don't run a real mail server: notification-service sends plain SMTP to **Mailpit**, a catch-all container that stores every message and shows it in a web UI reached through Caddy at [http://localhost/mailpit](http://localhost/mailpit) (basic auth `mailpit` / `mailpit` in dev). Pointing at a real provider is purely an `SMTP_*` change. Two things trigger mail:
 
 - **Booking confirmations** — after a patient books, reschedules or cancels, patient-service makes a best-effort call to notification-service, which records the notification and emails the patient. The contact email is captured from the booking request, and a failing or unreachable mail server never blocks the booking.
 - **Reminders** — a scheduled job in notification-service polls patient-service for appointments due within the next 24 hours and emails a one-off reminder for each, recorded so the same appointment is never reminded twice (even across restarts).
 
-Both patient-service and notification-service expose internal, gateway-unreachable `/internal/**` endpoints for this service-to-service traffic, restricted to in-cluster callers by NetworkPolicy. On Kubernetes, reach the Mailpit UI with `kubectl port-forward svc/caredesk-mailpit 8025:8025 -n <namespace>`.
+Both patient-service and notification-service expose internal, gateway-unreachable `/internal/**` endpoints for this service-to-service traffic, restricted to in-cluster callers by NetworkPolicy. On Kubernetes, reach the Mailpit UI with `kubectl port-forward svc/caredesk-mailpit 8025:8025 -n <namespace>` (the Helm chart keeps it ClusterIP-only). In the Docker deployments it is fronted by Caddy at `/mailpit`; override `MAILPIT_BASIC_AUTH_USER` / `MAILPIT_BASIC_AUTH_HASH` for any non-local deployment.
 
 See [web-client/README.md](web-client/README.md) for standalone client image builds.
 

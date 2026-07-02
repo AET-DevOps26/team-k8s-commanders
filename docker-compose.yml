@@ -7,6 +7,10 @@ services:
       # ":80" makes Caddy serve plain HTTP (no TLS/ACME) — same shared
       # Caddyfile as prod, which instead sets SITE_ADDRESS to a public host.
       SITE_ADDRESS: ":80"
+      # HTTP basic auth for the /mailpit UI. Dev credentials: mailpit / mailpit
+      # (the hash is bcrypt of "mailpit"; $$ escapes $ for compose interpolation).
+      MAILPIT_BASIC_AUTH_USER: mailpit
+      MAILPIT_BASIC_AUTH_HASH: "$$2y$$05$$EKc8Qn8M119jQbj.A2W1JuOfZl3O7QJ7LYyrPikreFIG/BgfgQpPu"
     volumes:
       - ./infra/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
     restart: unless-stopped
@@ -288,13 +292,16 @@ services:
 
   # Catch-all SMTP server for dev. notification-service sends real SMTP to it;
   # Mailpit stores nothing externally and exposes every caught message in a web
-  # UI at http://localhost:8025. No real mail ever leaves the machine.
+  # UI reached through Caddy at http://localhost/mailpit (basic auth: mailpit /
+  # mailpit). No real mail ever leaves the machine.
   mailpit:
     image: axllent/mailpit:latest
     restart: unless-stopped
-    ports:
-      - "8025:8025"   # web UI
-      - "1025:1025"   # SMTP
+    environment:
+      # Serve the UI under /mailpit so its assets resolve behind the Caddy route.
+      MP_WEBROOT: mailpit
+    # SMTP (1025) is reachable in-cluster by service name; the web UI (8025) is
+    # fronted by Caddy at /mailpit, so no host ports are published.
     networks:
       - caredesk
 

@@ -33,6 +33,19 @@ spec:
               value: {{ .Values.auth.service.port | quote }}
             - name: JWT_EXPIRATION_MS
               value: {{ .Values.backend.jwtExpirationMs | quote }}
+            - name: CAREDESK_BOOTSTRAP_ADMIN_ENABLED
+              value: {{ .Values.auth.bootstrapAdmin.enabled | quote }}
+            {{- if .Values.auth.bootstrapAdmin.enabled }}
+            - name: CAREDESK_ADMIN_NAME
+              value: {{ required "auth.bootstrapAdmin.name is required when admin bootstrap is enabled" .Values.auth.bootstrapAdmin.name | quote }}
+            - name: CAREDESK_ADMIN_EMAIL
+              value: {{ required "auth.bootstrapAdmin.email is required when admin bootstrap is enabled" .Values.auth.bootstrapAdmin.email | quote }}
+            - name: CAREDESK_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "caredesk.fullname" . }}-app
+                  key: CAREDESK_ADMIN_PASSWORD
+            {{- end }}
             {{- include "caredesk.dbEnv" (dict "root" $ "host" .Values.auth.dbHost "name" .Values.auth.dbName) | nindent 12 }}
             {{- include "caredesk.jwtEnv" . | nindent 12 }}
           # Generous startup window for Spring Boot + JPA schema generation.

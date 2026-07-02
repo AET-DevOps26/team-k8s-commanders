@@ -41,5 +41,11 @@ jwt:
   expiration-ms: 86400000  # 24 hours
 
 caredesk:
+  bootstrap:
+    admin:
+      enabled: ${CAREDESK_BOOTSTRAP_ADMIN_ENABLED:false}
+      name: ${CAREDESK_ADMIN_NAME:}
+      email: ${CAREDESK_ADMIN_EMAIL:}
+      password: ${CAREDESK_ADMIN_PASSWORD:}
   seed:
     test-patients: ${CAREDESK_SEED_TEST_PATIENTS:false}

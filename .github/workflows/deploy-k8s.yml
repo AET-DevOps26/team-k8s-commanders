@@ -5,6 +5,13 @@ on:
     workflows: ["Build and Publish Images"]
     types: [completed]
     branches: [main]
+  push:
+    branches: [main]
+    paths:
+      - 'helm/**'
+      - "infra/prometheus/**"
+      - "infra/grafana/**"
+      - '.github/workflows/deploy-k8s.yml'
   workflow_dispatch:
 
 # One deploy at a time per team namespace — avoids overlapping helm upgrades.
@@ -83,6 +90,7 @@ jobs:
           MONITORING_ENABLED=true
           if [ "${MONITORING,,}" = "false" ]; then
             MONITORING_ENABLED=false
+          fi
 
           if [[ -z "${ADMIN_NAME//[[:space:]]/}" ]] || [[ -z "${ADMIN_EMAIL//[[:space:]]/}" ]] || [[ -z "${ADMIN_PASSWORD//[[:space:]]/}" ]]; then
             echo "::error::ADMIN_NAME, ADMIN_EMAIL, and ADMIN_PASSWORD must be configured for production"

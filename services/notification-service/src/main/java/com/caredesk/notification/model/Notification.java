@@ -76,6 +76,14 @@ public class Notification {
     @Column(nullable = false)
     private boolean delivered;
 
+    /**
+     * How many delivery attempts have been made. Service-internal — bounds the
+     * reminder scheduler's retries so an undeliverable appointment doesn't
+     * re-attempt forever.
+     */
+    @Column(name = "delivery_attempts", nullable = false)
+    private int deliveryAttempts;
+
     @NotNull
     @Column(name = "sent_at", nullable = false)
     private OffsetDateTime sentAt;
@@ -127,6 +135,12 @@ public class Notification {
 
     /** @param delivered whether the email was accepted by the SMTP server */
     public void setDelivered(boolean delivered) { this.delivered = delivered; }
+
+    /** @return how many delivery attempts have been made */
+    public int getDeliveryAttempts() { return deliveryAttempts; }
+
+    /** @param deliveryAttempts how many delivery attempts have been made */
+    public void setDeliveryAttempts(int deliveryAttempts) { this.deliveryAttempts = deliveryAttempts; }
 
     /** @return the time the notification was sent, with offset */
     public OffsetDateTime getSentAt() { return sentAt; }

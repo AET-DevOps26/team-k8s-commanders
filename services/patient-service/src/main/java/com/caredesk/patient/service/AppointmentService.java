@@ -99,7 +99,7 @@ public class AppointmentService {
         Appointment saved = appointmentRepository.save(entity);
 
         notify(saved, "CONFIRMATION", "Appointment confirmed",
-                "Your appointment on " + formatWhen(saved.getDateTime())
+                "Your appointment on " + formatWhen(saved.getDateTime()) + doctorSuffix(saved.getDoctorId())
                         + " is confirmed. We look forward to seeing you.");
         return appointmentMapper.toApi(saved);
     }
@@ -176,7 +176,8 @@ public class AppointmentService {
         Appointment saved = appointmentRepository.save(entity);
 
         notify(saved, "RESCHEDULE", "Appointment rescheduled",
-                "Your appointment has been moved to " + formatWhen(saved.getDateTime()) + ".");
+                "Your appointment" + doctorSuffix(saved.getDoctorId()) + " has been moved to "
+                        + formatWhen(saved.getDateTime()) + ".");
         return appointmentMapper.toApi(saved);
     }
 
@@ -199,7 +200,7 @@ public class AppointmentService {
             entity = appointmentRepository.save(entity);
 
             notify(entity, "CANCELLATION", "Appointment cancelled",
-                    "Your appointment on " + formatWhen(entity.getDateTime())
+                    "Your appointment on " + formatWhen(entity.getDateTime()) + doctorSuffix(entity.getDoctorId())
                             + " has been cancelled.");
         }
         return appointmentMapper.toApi(entity);
@@ -225,6 +226,19 @@ public class AppointmentService {
     private String resolvePatientEmail(UUID patientId) {
         UserProfile profile = authServiceClient.getUserById(patientId);
         return profile != null ? profile.getEmail() : null;
+    }
+
+    /**
+     * Best-effort " with Dr <name>" phrase for notification messages, resolved
+     * from the authoritative doctor profile. Returns an empty string if the
+     * profile can't be reached or has no name, so the message stays well-formed.
+     */
+    private String doctorSuffix(UUID doctorId) {
+        UserProfile profile = authServiceClient.getUserById(doctorId);
+        if (profile == null || profile.getName() == null || profile.getName().isBlank()) {
+            return "";
+        }
+        return " with Dr " + profile.getName();
     }
 
     private static String formatWhen(OffsetDateTime when) {

@@ -221,6 +221,46 @@ class NotificationsServiceTest {
         assertThat(created.getId()).isNotNull();
     }
 
+    @Test
+    void recordAndSendReminder_createsSingleRowAndCountsAttempt() {
+        UUID appointmentId = UUID.randomUUID();
+        when(repository.findFirstByAppointmentIdAndType(appointmentId, NotificationType.REMINDER))
+                .thenReturn(Optional.empty());
+        when(repository.save(any(Notification.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(emailSender.send(any(), any(), any())).thenReturn(true);
+
+        service.recordAndSendReminder(appointmentId, UUID.randomUUID(), "anna@example.com",
+                "Appointment reminder", "See you soon.");
+
+        ArgumentCaptor<Notification> captor = ArgumentCaptor.forClass(Notification.class);
+        verify(repository, times(2)).save(captor.capture());
+        Notification saved = captor.getValue();
+        assertThat(saved.getType()).isEqualTo(NotificationType.REMINDER);
+        assertThat(saved.getDeliveryAttempts()).isEqualTo(1);
+        assertThat(saved.isDelivered()).isTrue();
+    }
+
+    @Test
+    void recordAndSendReminder_reusesExistingRowAndIncrementsAttempts() {
+        UUID appointmentId = UUID.randomUUID();
+        Notification existing = new Notification();
+        existing.setId(UUID.randomUUID());
+        existing.setAppointmentId(appointmentId);
+        existing.setType(NotificationType.REMINDER);
+        existing.setDeliveryAttempts(2);
+        when(repository.findFirstByAppointmentIdAndType(appointmentId, NotificationType.REMINDER))
+                .thenReturn(Optional.of(existing));
+        when(repository.save(any(Notification.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(emailSender.send(any(), any(), any())).thenReturn(false);
+
+        service.recordAndSendReminder(appointmentId, UUID.randomUUID(), "anna@example.com",
+                "Appointment reminder", "See you soon.");
+
+        // The same row is updated (not a new insert), attempts bumped, still undelivered.
+        assertThat(existing.getDeliveryAttempts()).isEqualTo(3);
+        assertThat(existing.isDelivered()).isFalse();
+    }
+
     private static Notification notification(UUID patientId, UUID appointmentId) {
         Notification n = new Notification();
         n.setId(UUID.randomUUID());

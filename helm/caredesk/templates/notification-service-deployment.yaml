@@ -38,8 +38,13 @@ spec:
               value: {{ .Values.notification.smtp.port | default .Values.mailpit.smtpPort | quote }}
             - name: SMTP_USERNAME
               value: {{ .Values.notification.smtp.username | quote }}
+            # From the app Secret rather than a plaintext manifest value, so a real
+            # SMTP password never lands in the rendered Deployment/release values.
             - name: SMTP_PASSWORD
-              value: {{ .Values.notification.smtp.password | quote }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "caredesk.fullname" . }}-app
+                  key: SMTP_PASSWORD
             - name: SMTP_AUTH
               value: {{ .Values.notification.smtp.auth | quote }}
             - name: SMTP_STARTTLS

@@ -50,26 +50,28 @@ public class NotificationsService {
     }
 
     /**
-     * Records a notification and attempts to deliver it by email, in that order.
+     * Records a notification and attempts to deliver it by email.
      *
-     * <p>The record is persisted first, so a failed or skipped send never loses
-     * the audit trail and never blocks the caller (booking triggers and the
-     * reminder scheduler both rely on this). The record then captures whether
-     * delivery actually succeeded: the reminder scheduler dedupes only on
-     * <em>delivered</em> reminders, so a failed send is retried on a later scan
-     * rather than being silently marked done. Delivery is best-effort — see
+     * <p>Used for one-off event notifications (booking confirmations), so each
+     * call inserts a fresh row. The record is persisted first (so a failed or
+     * skipped send never loses the audit trail or blocks the caller), then
+     * updated with the actual delivery outcome. Delivery is best-effort — see
      * {@link EmailSender}.
+     *
+     * <p>Deliberately <strong>not</strong> {@code @Transactional}: each
+     * {@code save} runs in its own short transaction, so the SMTP call happens
+     * with no database transaction (and no connection) held open — a slow mail
+     * server can't tie up a DB connection for the duration of the send.
      *
      * @param appointmentId  the appointment this notification refers to, may be {@code null}
      * @param patientId      the recipient patient's user id, may be {@code null}
      * @param recipientEmail the address to deliver to; if {@code null}/blank the
      *                       record is still stored but no email is sent
-     * @param type           the internal classification (confirmation, reminder, …)
+     * @param type           the internal classification (confirmation, …)
      * @param subject        the email subject line
      * @param message        the message body, also stored as the record's message
      * @return the persisted notification as an API DTO
      */
-    @Transactional
     public org.openapitools.model.Notification recordAndSend(UUID appointmentId, UUID patientId,
                                                              String recipientEmail, NotificationType type,
                                                              String subject, String message) {
@@ -84,10 +86,45 @@ public class NotificationsService {
         entity.setDelivered(false);
         repository.save(entity);
 
-        // Record the actual outcome so an undelivered reminder is retried rather
-        // than treated as sent.
+        // Send outside any transaction, then record the outcome.
         entity.setDelivered(emailSender.send(recipientEmail, subject, message));
         return NotificationMapper.toModel(repository.save(entity));
+    }
+
+    /**
+     * Records and (re)sends the reminder for an appointment, keeping <strong>at
+     * most one</strong> REMINDER row per appointment. The row is upserted and
+     * retried in place (incrementing {@code deliveryAttempts}), so a
+     * repeatedly-failing appointment never accumulates rows. The caller (the
+     * scheduler) decides <em>whether</em> to invoke this based on delivery
+     * status and the retry cap; here we just upsert-and-send. Like
+     * {@link #recordAndSend}, the send runs outside any transaction.
+     *
+     * @param appointmentId  the appointment the reminder is for
+     * @param patientId      the recipient patient's user id
+     * @param recipientEmail the address to deliver to (the scheduler skips blanks)
+     * @param subject        the email subject line
+     * @param message        the message body
+     */
+    public void recordAndSendReminder(UUID appointmentId, UUID patientId, String recipientEmail,
+                                      String subject, String message) {
+        Notification reminder = repository
+                .findFirstByAppointmentIdAndType(appointmentId, NotificationType.REMINDER)
+                .orElseGet(Notification::new);
+        reminder.setAppointmentId(appointmentId);
+        reminder.setPatientId(patientId);
+        reminder.setRecipientEmail(recipientEmail);
+        reminder.setType(NotificationType.REMINDER);
+        reminder.setChannel(NotificationChannel.EMAIL);
+        reminder.setMessage(message);
+        if (reminder.getSentAt() == null) {
+            reminder.setSentAt(OffsetDateTime.now());
+        }
+        reminder.setDeliveryAttempts(reminder.getDeliveryAttempts() + 1);
+        repository.save(reminder);
+
+        reminder.setDelivered(emailSender.send(recipientEmail, subject, message));
+        repository.save(reminder);
     }
 
     /**

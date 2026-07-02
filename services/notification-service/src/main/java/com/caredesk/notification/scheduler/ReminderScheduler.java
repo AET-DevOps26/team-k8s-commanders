@@ -2,6 +2,7 @@ package com.caredesk.notification.scheduler;
 
 import com.caredesk.notification.client.PatientServiceClient;
 import com.caredesk.notification.client.UpcomingAppointment;
+import com.caredesk.notification.model.Notification;
 import com.caredesk.notification.model.NotificationType;
 import com.caredesk.notification.repository.NotificationRepository;
 import com.caredesk.notification.service.NotificationsService;
@@ -11,19 +12,28 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
+import java.util.Optional;
 
 /**
  * Periodically sends reminder emails for appointments due soon.
  *
  * <p>On each tick the scheduler asks patient-service for appointments starting
- * within the configured window (default 24h) and, for any that have not been
- * reminded yet, records and sends a reminder. Idempotency is enforced against
- * the persisted record ({@link NotificationType#REMINDER}) rather than
- * in-memory state, so an appointment is reminded at most once even if the
- * service restarts between ticks.
+ * within the configured window (default 24h) and sends a reminder for each.
+ * There is at most one {@link NotificationType#REMINDER} record per appointment
+ * (upserted in place), so:
+ * <ul>
+ *   <li>an appointment with no deliverable email is skipped entirely — no record
+ *       is created, so no-email patients never accumulate rows;</li>
+ *   <li>a reminder that has already been delivered is never sent again (checked
+ *       against the persisted record, so the guarantee holds across restarts);</li>
+ *   <li>a failing send is retried on later ticks, but only up to
+ *       {@code max-attempts} — an undeliverable appointment doesn't re-attempt
+ *       forever.</li>
+ * </ul>
  *
  * <p>The whole scan is best-effort: a reminder that fails for one appointment
  * is logged and skipped without aborting the rest of the tick. Disable with
@@ -40,21 +50,26 @@ public class ReminderScheduler {
     private final NotificationsService notificationsService;
     private final NotificationRepository repository;
     private final int windowHours;
+    private final int maxAttempts;
 
     /**
      * @param patientServiceClient client for the upcoming-appointments feed
      * @param notificationsService notification record + delivery logic
-     * @param repository           used to check whether a reminder already exists
+     * @param repository           used to look up the existing reminder record
      * @param windowHours          how far ahead to look for appointments to remind
+     * @param maxAttempts          how many times to retry an undelivered reminder
+     *                             before giving up
      */
     public ReminderScheduler(PatientServiceClient patientServiceClient,
                              NotificationsService notificationsService,
                              NotificationRepository repository,
-                             @Value("${notification.reminder.window-hours:24}") int windowHours) {
+                             @Value("${notification.reminder.window-hours:24}") int windowHours,
+                             @Value("${notification.reminder.max-attempts:5}") int maxAttempts) {
         this.patientServiceClient = patientServiceClient;
         this.notificationsService = notificationsService;
         this.repository = repository;
         this.windowHours = windowHours;
+        this.maxAttempts = maxAttempts;
     }
 
     /**
@@ -73,15 +88,22 @@ public class ReminderScheduler {
         int sent = 0;
         for (UpcomingAppointment appt : upcoming) {
             try {
-                if (repository.existsByAppointmentIdAndTypeAndDeliveredTrue(
-                        appt.appointmentId(), NotificationType.REMINDER)) {
+                // No deliverable address → nothing to send, and recording an
+                // undeliverable reminder would just accumulate dead rows.
+                if (!StringUtils.hasText(appt.recipientEmail())) {
                     continue;
                 }
-                notificationsService.recordAndSend(
+                Optional<Notification> existing = repository.findFirstByAppointmentIdAndType(
+                        appt.appointmentId(), NotificationType.REMINDER);
+                if (existing.isPresent()
+                        && (existing.get().isDelivered() || existing.get().getDeliveryAttempts() >= maxAttempts)) {
+                    // Already delivered, or retries exhausted — leave it alone.
+                    continue;
+                }
+                notificationsService.recordAndSendReminder(
                         appt.appointmentId(),
                         appt.patientId(),
                         appt.recipientEmail(),
-                        NotificationType.REMINDER,
                         "Appointment reminder",
                         reminderBody(appt));
                 sent++;
@@ -92,7 +114,7 @@ public class ReminderScheduler {
             }
         }
         if (sent > 0) {
-            log.info("Reminder scan sent {} reminder(s)", sent);
+            log.info("Reminder scan processed {} reminder(s)", sent);
         }
     }
 

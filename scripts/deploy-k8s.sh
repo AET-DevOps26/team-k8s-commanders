@@ -11,7 +11,7 @@
 #   - helm v3 + kubectl + python3 on PATH
 #   - kubeconfig at ~/.kube/config (download stud.yaml from https://rancher.ase.cit.tum.de)
 #
-# Optional overrides (env or .env.k8s at repo root): TUM_ID, RELEASE,
+# Optional overrides (env or .env.k8s at repo root): RELEASE,
 # IMAGE_TAG, LLM_API_KEY, LLM_PROVIDER, LLM_MODEL, OPENWEBUI_BASE_URL,
 # JWT_SECRET, POSTGRES_PASSWORD, INGRESS_HOST, INGRESS_TLS_ENABLED,
 # GHCR_USER, GHCR_PAT.
@@ -48,8 +48,7 @@ if [[ -f "${ENV_FILE}" ]]; then
 fi
 
 # Defaults make the script runnable with no config at all.
-TUM_ID="${TUM_ID:-ge38yuc}"
-NAMESPACE="${TUM_ID}-devops26-team-k8s-commanders"
+NAMESPACE="team-k8s-commanders"
 RELEASE="${RELEASE:-caredesk}"
 IMAGE_TAG="${IMAGE_TAG:-latest}"
 
@@ -71,7 +70,6 @@ bash "${SCRIPT_DIR}/check-k8s-quota.sh" "${NAMESPACE}"
 # The full stack (web, gateway, auth, patient, notes, ai + one Postgres each)
 # is enabled by chart defaults. Everything below is an OPTIONAL override.
 SET_FLAGS=(
-  --set "tumId=${TUM_ID}"
   --set "images.tag=${IMAGE_TAG}"
 )
 [[ -n "${LLM_API_KEY:-}" ]]         && SET_FLAGS+=(--set "ai.secrets.llmApiKey=${LLM_API_KEY}")

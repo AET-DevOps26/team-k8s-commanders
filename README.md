@@ -107,6 +107,10 @@ Dev compose seeds these local credentials:
 | Doctor | doctor@doctor.com | doctor123 |
 | Admin | admin@admin.com | admin123 |
 
+### Demo dataset
+
+For presentations, dev compose also seeds a coherent, cross-service demo dataset on startup (`CAREDESK_SEED_DEMO=true`, dev profile only — never in production). It populates every dashboard without any manual clicking: appointments across all statuses (including one due within 24h), clinical notes with diagnoses, notification records, and a second demo patient ("Anna Müller", `anna.mueller@caredesk.dev` / `patient123`) with a Type 2 diabetes history for the AI-assistant example. Seeding is idempotent (fixed UUIDs, upserted) so it survives restarts. Log in as the doctor to see full patient records, schedule and AI context.
+
 The notes service is a scaffold for clinical notes — the structured visit notes and diagnoses a doctor records against an appointment (`/appointments/{appointmentId}/note`). It follows the same pattern as the patient service: it sits behind the API gateway, trusts the gateway-injected `X-User-Email` / `X-User-Role` headers, and uses its own Postgres container (`notes-db`). The gateway routes the clinical note sub-path to it while the rest of `/appointments/**` stays with the patient service.
 
 The notification service records the automated messages CareDesk sends to patients (appointment confirmations and reminders) and serves them via `/notifications` and `/appointments/{appointmentId}/notifications`. It follows the same pattern as the notes service: it sits behind the API gateway, trusts the gateway-injected `X-User-*` headers, and uses its own Postgres container (`notification-db`). Reads are role-scoped — admins see everything, patients only their own. Actual email delivery (and the reminder scheduler) is a separate iteration; in this one, notifications are persisted records created via the API.

@@ -149,6 +149,8 @@ services:
       JWT_SECRET: caredesk-compose-dev-secret-must-be-at-least-32-chars
       SPRING_PROFILES_ACTIVE: dev
       CAREDESK_SEED_TEST_PATIENTS: "true"
+      # Seed the coherent cross-service demo dataset for presentations (#168).
+      CAREDESK_SEED_DEMO: "true"
       # application.yml ships with ddl-auto: validate for production safety.
       # Compose dev profile overrides to `update` so schema is auto-created
       # against a fresh Postgres. Production should use proper migrations.
@@ -203,6 +205,8 @@ services:
       AUTH_SERVICE_URL: http://auth-service:8081
       SPRING_PROFILES_ACTIVE: dev
       CAREDESK_SEED_TEST_PATIENTS: "true"
+      # Seed the coherent cross-service demo dataset for presentations (#168).
+      CAREDESK_SEED_DEMO: "true"
       # application.yml ships with ddl-auto: validate. Compose dev profile
       # overrides to update so the schema is auto-created against a fresh DB.
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
@@ -252,6 +256,9 @@ services:
       DB_NAME: notes_db
       DB_USER: caredesk
       DB_PASSWORD: caredesk
+      SPRING_PROFILES_ACTIVE: dev
+      # Seed the coherent cross-service demo dataset for presentations (#168).
+      CAREDESK_SEED_DEMO: "true"
       # application.yml ships with ddl-auto: validate. Compose dev profile
       # overrides to update so the schema is auto-created against a fresh DB.
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
@@ -301,6 +308,9 @@ services:
       DB_NAME: notification_db
       DB_USER: caredesk
       DB_PASSWORD: caredesk
+      SPRING_PROFILES_ACTIVE: dev
+      # Seed the coherent cross-service demo dataset for presentations (#168).
+      CAREDESK_SEED_DEMO: "true"
       # application.yml ships with ddl-auto: validate. Compose dev profile
       # overrides to update so the schema is auto-created against a fresh DB.
       SPRING_JPA_HIBERNATE_DDL_AUTO: update

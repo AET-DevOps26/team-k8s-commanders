@@ -12,7 +12,12 @@ deploymentStrategy:
 images:
   registry: ghcr.io/aet-devops26/team-k8s-commanders
   tag: latest
-  pullPolicy: IfNotPresent
+  # Always, not IfNotPresent: `tag: latest` is a mutable tag, and this cluster
+  # has multiple worker nodes. IfNotPresent only pulls when a node has never
+  # seen this tag string before — once cached, that node keeps serving the
+  # same (possibly months-stale) image forever, even after CI publishes a new
+  # `:latest`. Always forces a registry digest check on every pull.
+  pullPolicy: Always
   # GHCR packages for this project are PUBLIC — no pull secret is needed, so the
   # chart installs with a single command and zero credentials. CI may flip
   # create=true and inject a PAT for rate-limit headroom; not required to deploy.

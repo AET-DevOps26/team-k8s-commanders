@@ -114,6 +114,10 @@ services:
       DB_USER: ${AUTH_DB_USER:?AUTH_DB_USER must be set}
       DB_PASSWORD: ${AUTH_DB_PASSWORD:?AUTH_DB_PASSWORD must be set}
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set}
+      CAREDESK_BOOTSTRAP_ADMIN_ENABLED: "true"
+      CAREDESK_ADMIN_NAME: ${ADMIN_NAME:?ADMIN_NAME must be set}
+      CAREDESK_ADMIN_EMAIL: ${ADMIN_EMAIL:?ADMIN_EMAIL must be set}
+      CAREDESK_ADMIN_PASSWORD: ${ADMIN_PASSWORD:?ADMIN_PASSWORD must be set}
       # application.yml ships with ddl-auto: validate. Set AUTH_DDL_AUTO=update for
       # the first deployment so the schema is created, then revert to validate.
       SPRING_JPA_HIBERNATE_DDL_AUTO: ${AUTH_DDL_AUTO:-validate}

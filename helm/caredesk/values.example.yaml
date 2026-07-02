@@ -23,6 +23,15 @@ ai:
 backend:
   jwtSecret: <64-byte-hex>      # `openssl rand -hex 64`
 
+# Initial production administrator. Keep password in a secrets-only values file
+# or pass it with --set-file; never commit it.
+auth:
+  bootstrapAdmin:
+    enabled: true
+    name: Production Admin
+    email: admin@example.com
+    password: <strong-admin-password>
+
 # Password for every per-service Postgres (auth-db / patient-db / notes-db).
 postgres:
   password: <strong-password>

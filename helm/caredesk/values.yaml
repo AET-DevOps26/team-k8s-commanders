@@ -137,6 +137,13 @@ auth:
     port: 8081
   dbHost: caredesk-auth-db
   dbName: auth_db
+  # Disabled for local installs. Production CI enables this and injects values
+  # from GitHub Actions repository variables/secrets.
+  bootstrapAdmin:
+    enabled: false
+    name: ""
+    email: ""
+    password: ""
   resources:
     requests: { cpu: 100m, memory: 384Mi }
     limits:   { cpu: 400m, memory: 768Mi }

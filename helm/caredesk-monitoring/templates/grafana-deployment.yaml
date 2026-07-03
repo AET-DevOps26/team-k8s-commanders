@@ -17,6 +17,10 @@ spec:
     metadata:
       labels:
         {{- include "caredesk-monitoring.selectorLabels" (dict "root" . "component" "grafana") | nindent 8 }}
+      annotations:
+        # Grafana reads alerting/datasource provisioning only at startup; a changed
+        # pod-spec hash forces a rollout when dashboards or alert rules change.
+        checksum/config: {{ include (print $.Template.BasePath "/grafana-configmap.yaml") . | sha256sum }}
     spec:
       securityContext:
         runAsNonRoot: true

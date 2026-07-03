@@ -18,6 +18,10 @@ spec:
     metadata:
       labels:
         {{- include "caredesk-monitoring.selectorLabels" (dict "root" . "component" "prometheus") | nindent 8 }}
+      annotations:
+        # Prometheus has no config auto-reload; a changed pod-spec hash forces a
+        # rollout when the scrape config (incl. .Values.prometheus.targets) changes.
+        checksum/config: {{ include (print $.Template.BasePath "/prometheus-configmap.yaml") . | sha256sum }}
     spec:
       securityContext:
         runAsNonRoot: true

@@ -1,0 +1,63 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "caredesk-monitoring.fullname" . }}-prometheus
+  labels:
+    {{- include "caredesk-monitoring.labels" . | nindent 4 }}
+    app.kubernetes.io/component: prometheus
+spec:
+  replicas: 1
+  strategy:
+    # Recreate: the TSDB PVC is ReadWriteOnce, so the old pod must release it
+    # before the new one can mount it.
+    type: Recreate
+  selector:
+    matchLabels:
+      {{- include "caredesk-monitoring.selectorLabels" (dict "root" . "component" "prometheus") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "caredesk-monitoring.selectorLabels" (dict "root" . "component" "prometheus") | nindent 8 }}
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+        fsGroup: 65534
+      containers:
+        - name: prometheus
+          image: {{ .Values.prometheus.image }}
+          args:
+            - '--config.file=/etc/prometheus/prometheus.yml'
+            - '--storage.tsdb.path=/prometheus'
+            - '--storage.tsdb.retention.time={{ .Values.prometheus.retention }}'
+          ports:
+            - name: http
+              containerPort: 9090
+              protocol: TCP
+          volumeMounts:
+            - name: config
+              mountPath: /etc/prometheus
+              readOnly: true
+            - name: data
+              mountPath: /prometheus
+          resources:
+            {{- toYaml .Values.prometheus.resources | nindent 12 }}
+          livenessProbe:
+            httpGet:
+              path: /-/healthy
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 15
+          readinessProbe:
+            httpGet:
+              path: /-/ready
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+      volumes:
+        - name: config
+          configMap:
+            name: {{ include "caredesk-monitoring.fullname" . }}-prometheus
+        - name: data
+          persistentVolumeClaim:
+            claimName: {{ include "caredesk-monitoring.fullname" . }}-prometheus

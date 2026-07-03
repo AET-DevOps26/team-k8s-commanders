@@ -17,14 +17,15 @@ restricted here so the ingress-controller path stays open.
 Each database accepts connections only from its owning backend service.
 */ -}}
 
-{{- /* Backend services: allowed callers per component */ -}}
-{{- $prometheusCallers := ternary (list "prometheus") (list) .Values.monitoring.enabled -}}
+{{- /* Backend services: allowed same-namespace callers per component.
+     Prometheus (in the monitoring namespace, see helm/caredesk-monitoring) is
+     added as a cross-namespace peer below when monitoring.enabled. */ -}}
 {{- $backends := dict
-  "auth"         (concat (list "gateway") $prometheusCallers)
-  "patient"      (concat (list "gateway" "ai") $prometheusCallers)
-  "notes"        (concat (list "gateway" "ai") $prometheusCallers)
-  "notification" (concat (list "gateway") $prometheusCallers)
-  "ai"           (concat (list "gateway") $prometheusCallers)
+  "auth"         (list "gateway")
+  "patient"      (list "gateway" "ai")
+  "notes"        (list "gateway" "ai")
+  "notification" (list "gateway")
+  "ai"           (list "gateway")
 -}}
 {{- range $svc, $callers := $backends }}
 {{- $cfg := index $root.Values $svc }}
@@ -48,6 +49,18 @@ spec:
         - podSelector:
             matchLabels:
               {{- include "caredesk.selectorLabels" (dict "root" $root "component" $caller) | nindent 14 }}
+        {{- end }}
+        {{- if $root.Values.monitoring.enabled }}
+        {{- /* A bare podSelector only matches this namespace; scraping from the
+             monitoring namespace needs an explicit namespaceSelector. Matched by
+             component label only — the caredesk-monitoring chart has its own
+             name/instance labels. */}}
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: {{ $root.Values.monitoring.namespace }}
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/component: prometheus
         {{- end }}
       ports:
         - protocol: TCP

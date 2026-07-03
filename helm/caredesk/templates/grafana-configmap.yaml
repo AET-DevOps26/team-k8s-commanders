@@ -32,6 +32,12 @@ data:
         editable: false
         options:
           path: /var/lib/grafana/dashboards
+  # Grafana-managed alert rules, loaded verbatim from the chart's `alerting/` directory
+  # (a symlink to infra/grafana/provisioning/alerting — the single source of truth shared
+  # with the docker-compose stack). .Files.Get returns raw bytes without template processing,
+  # so Grafana's double-brace label tokens in the rules pass through untouched.
+  alerting.yaml: |
+{{ .Files.Get "alerting/alerts.yaml" | indent 4 }}
 ---
 apiVersion: v1
 kind: ConfigMap

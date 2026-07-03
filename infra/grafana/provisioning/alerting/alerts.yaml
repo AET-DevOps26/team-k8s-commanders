@@ -28,7 +28,10 @@ groups:
         title: Service target down
         condition: B
         for: 2m
-        # A vanished target has no `up` series → NoData → treat as firing.
+        # Every expected job always yields a series: `up` is 0/1 while the target
+        # is in the scrape config, and the absent() arms fill in 0 if a job is
+        # removed/renamed there (a lone missing series would otherwise be masked
+        # by the remaining healthy ones — NoData only covers the whole query).
         noDataState: Alerting
         execErrState: Error
         labels:
@@ -46,7 +49,14 @@ groups:
               refId: A
               instant: true
               editorMode: code
-              expr: up{job=~"api-gateway|auth-service|patient-service|notes-service|notification-service|ai-assistant"}
+              expr: |
+                up{job=~"api-gateway|auth-service|patient-service|notes-service|notification-service|ai-assistant"}
+                  or (absent(up{job="api-gateway"}) * 0)
+                  or (absent(up{job="auth-service"}) * 0)
+                  or (absent(up{job="patient-service"}) * 0)
+                  or (absent(up{job="notes-service"}) * 0)
+                  or (absent(up{job="notification-service"}) * 0)
+                  or (absent(up{job="ai-assistant"}) * 0)
               legendFormat: __auto
           - refId: B
             datasourceUid: __expr__

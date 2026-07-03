@@ -27,8 +27,7 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class AuthServiceImplTest {
 
-    private static final String USER_DOES_NOT_EXIST = "User does not exist";
-    private static final String WRONG_PASSWORD = "Wrong password";
+    private static final String INVALID_CREDENTIALS = "Invalid email or password";
     private static final String ACCOUNT_DEACTIVATED = "Account deactivated";
 
     private final UserRepository userRepository = mock(UserRepository.class);
@@ -38,13 +37,13 @@ class AuthServiceImplTest {
             new AuthServiceImpl(userRepository, new BCryptPasswordEncoder(), authenticationManager, jwtUtil, new UserProfileMapper());
 
     @Test
-    void loginRejectsUnknownUser() {
+    void loginRejectsUnknownUserWithGenericMessage() {
         when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
                 .thenThrow(new UsernameNotFoundException("User not found"));
 
         assertThatThrownBy(() -> service.login(new LoginRequest("missing@clinic.com", "secret123")))
                 .isInstanceOf(LoginFailedException.class)
-                .hasMessage(USER_DOES_NOT_EXIST);
+                .hasMessage(INVALID_CREDENTIALS);
     }
 
     @Test
@@ -58,13 +57,38 @@ class AuthServiceImplTest {
     }
 
     @Test
-    void loginRejectsWrongPassword() {
+    void loginRejectsWrongPasswordWithGenericMessage() {
         when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
                 .thenThrow(new BadCredentialsException("bad credentials"));
 
         assertThatThrownBy(() -> service.login(new LoginRequest("patient@clinic.com", "wrong")))
                 .isInstanceOf(LoginFailedException.class)
-                .hasMessage(WRONG_PASSWORD);
+                .hasMessage(INVALID_CREDENTIALS);
+    }
+
+    /**
+     * The core anti-enumeration property: unknown email and wrong password must
+     * be byte-identical to the caller.
+     */
+    @Test
+    void unknownUserAndWrongPasswordAreIndistinguishable() {
+        when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
+                .thenThrow(new UsernameNotFoundException("User not found"))
+                .thenThrow(new BadCredentialsException("bad credentials"));
+
+        String unknownUserMessage = loginFailureMessage("missing@clinic.com");
+        String wrongPasswordMessage = loginFailureMessage("patient@clinic.com");
+
+        org.assertj.core.api.Assertions.assertThat(unknownUserMessage).isEqualTo(wrongPasswordMessage);
+    }
+
+    private String loginFailureMessage(String email) {
+        try {
+            service.login(new LoginRequest(email, "whatever"));
+            throw new AssertionError("login should have failed");
+        } catch (LoginFailedException ex) {
+            return ex.getMessage();
+        }
     }
 
     @Test

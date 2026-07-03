@@ -43,6 +43,17 @@ public interface AppointmentRepository extends JpaRepository<Appointment, UUID> 
      */
     List<Appointment> findByDoctorId(UUID doctorId);
 
+    /**
+     * Paged variant of {@link #findByDoctorId(UUID)}. Backs the doctor-scoped
+     * view of {@code GET /appointments}, so a doctor only ever receives their
+     * own schedule.
+     *
+     * @param doctorId the doctor's user id from auth-service
+     * @param pageable paging and sorting instructions
+     * @return a page of matching appointments
+     */
+    Page<Appointment> findByDoctorId(UUID doctorId, Pageable pageable);
+
     Optional<Appointment> findFirstByPatientIdAndDoctorIdAndReason(UUID patientId,
                                                                    UUID doctorId,
                                                                    String reason);

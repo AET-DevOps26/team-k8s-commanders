@@ -29,6 +29,7 @@ spec:
           env:
             - name: SERVER_PORT
               value: {{ .Values.notification.service.port | quote }}
+            {{- include "caredesk.appVersionEnv" (dict "root" $ "image" .Values.notification.image) | nindent 12 }}
             {{- include "caredesk.dbEnv" (dict "root" $ "host" .Values.notification.dbHost "name" .Values.notification.dbName) | nindent 12 }}
           startupProbe:
             httpGet:

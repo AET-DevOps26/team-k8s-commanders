@@ -60,6 +60,8 @@ services:
       dockerfile: Dockerfile
     restart: unless-stopped
     environment:
+      # Surfaces in the app_info metric; compose builds from source, so no image tag.
+      APP_VERSION: local
       LLM_PROVIDER: openwebui
       LLM_MODEL: llama3.2
       LLM_API_KEY: ollama
@@ -140,6 +142,8 @@ services:
         condition: service_healthy
     # No published port — only reachable inside the compose network via the gateway.
     environment:
+      # Surfaces as the `version` tag on all metrics; compose builds from source.
+      APP_VERSION: local
       DB_HOST: auth-db
       DB_PORT: 5432
       DB_NAME: auth_db
@@ -194,6 +198,8 @@ services:
         condition: service_healthy
     # No published port — only reachable inside the compose network via the gateway.
     environment:
+      # Surfaces as the `version` tag on all metrics; compose builds from source.
+      APP_VERSION: local
       DB_HOST: patient-db
       DB_PORT: 5432
       DB_NAME: patient_db
@@ -247,6 +253,8 @@ services:
         condition: service_healthy
     # No published port — only reachable inside the compose network via the gateway.
     environment:
+      # Surfaces as the `version` tag on all metrics; compose builds from source.
+      APP_VERSION: local
       DB_HOST: notes-db
       DB_PORT: 5432
       DB_NAME: notes_db
@@ -296,6 +304,8 @@ services:
         condition: service_healthy
     # No published port — only reachable inside the compose network via the gateway.
     environment:
+      # Surfaces as the `version` tag on all metrics; compose builds from source.
+      APP_VERSION: local
       DB_HOST: notification-db
       DB_PORT: 5432
       DB_NAME: notification_db
@@ -332,6 +342,8 @@ services:
     ports:
       - "8080:8080"
     environment:
+      # Surfaces as the `version` tag on all metrics; compose builds from source.
+      APP_VERSION: local
       AUTH_SERVICE_URL: http://auth-service:8081
       AI_ASSISTANT_URL: http://ai-assistant:8000
       PATIENT_SERVICE_URL: http://patient-service:8082

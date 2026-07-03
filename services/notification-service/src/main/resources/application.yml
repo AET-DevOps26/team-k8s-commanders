@@ -42,3 +42,8 @@ management:
   endpoint:
     prometheus:
       enabled: true
+  metrics:
+    tags:
+      # Deployed version (image tag), injected as APP_VERSION by Helm/compose.
+      # Tags every metric so changes can be correlated with releases in Grafana.
+      version: ${APP_VERSION:unknown}

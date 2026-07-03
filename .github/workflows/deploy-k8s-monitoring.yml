@@ -61,8 +61,11 @@ jobs:
           RANCHER_PROJECT_ID: ${{ vars.RANCHER_PROJECT_ID }}
         run: |
           NS="team-k8s-commanders-monitoring"
-          bash scripts/ensure-k8s-namespace.sh "${NS}"
-          # Chart steady-state limits: Prometheus 150m/512Mi + Grafana 200m/256Mi.
+          # Reserve this namespace's share of the project quota (Prometheus
+          # 150m/512Mi + Grafana 200m/256Mi steady state, plus headroom). The
+          # app namespace reserves the remaining 5500m/7168Mi of the project's
+          # 6000m/8192Mi — keep the two splits summing to at most that total.
+          bash scripts/ensure-k8s-namespace.sh "${NS}" 500m 1024Mi
           bash scripts/check-k8s-quota.sh "${NS}" 350 768
 
       - name: Deploy with Helm

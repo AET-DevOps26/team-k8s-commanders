@@ -73,7 +73,11 @@ jobs:
           RANCHER_PROJECT_ID: ${{ vars.RANCHER_PROJECT_ID }}
         run: |
           NS="team-k8s-commanders"
-          bash scripts/ensure-k8s-namespace.sh "${NS}"
+          # Reserve this namespace's share of the project quota (chart steady
+          # state 3850m/5504Mi plus headroom). The monitoring namespace reserves
+          # the remaining 500m/1024Mi of the project's 6000m/8192Mi — keep the
+          # two splits summing to at most that total.
+          bash scripts/ensure-k8s-namespace.sh "${NS}" 5500m 7168Mi
           bash scripts/check-k8s-quota.sh "${NS}"
 
       - name: Deploy with Helm

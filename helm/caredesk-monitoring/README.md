@@ -28,9 +28,15 @@ For production, override the Grafana admin password:
 > `RANCHER_PROJECT_ID` variable set in the AET environment
 > (`<cluster-id>:<project-id>`, both visible in the Rancher URL while the
 > project is open), a fresh namespace lands directly in the team's Rancher
-> project and shares the project quota. Without it, the namespace is created
-> unassigned and must be moved into the project manually (Rancher UI →
-> Cluster → Projects/Namespaces); the quota check skips gracefully until then.
+> project **and reserves its share of the project quota** (500m CPU / 1024Mi;
+> the app namespace reserves the remaining 5500m / 7168Mi) via the
+> `field.cattle.io/resourceQuota` annotation — so a full redeploy after a
+> cluster wipe reproduces the split without manual steps. Rancher allocates
+> project quota by reservation, not usage: a namespace joining without a
+> reservation only gets what the others left over (possibly 0). Without
+> `RANCHER_PROJECT_ID`, the namespace is created unassigned and must be moved
+> into the project manually (Rancher UI → Cluster → Projects/Namespaces); the
+> quota check skips gracefully until then.
 
 ## What gets deployed
 

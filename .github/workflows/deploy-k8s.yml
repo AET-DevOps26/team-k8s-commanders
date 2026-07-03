@@ -66,9 +66,14 @@ jobs:
           fi
 
       - name: Check namespace quota
+        env:
+          # Set in the AET environment as <cluster-id>:<project-id> so a fresh
+          # namespace lands directly in the team's Rancher project (shared
+          # project quota). See scripts/ensure-k8s-namespace.sh.
+          RANCHER_PROJECT_ID: ${{ vars.RANCHER_PROJECT_ID }}
         run: |
           NS="team-k8s-commanders"
-          kubectl get ns "${NS}" >/dev/null 2>&1 || kubectl create namespace "${NS}"
+          bash scripts/ensure-k8s-namespace.sh "${NS}"
           bash scripts/check-k8s-quota.sh "${NS}"
 
       - name: Deploy with Helm

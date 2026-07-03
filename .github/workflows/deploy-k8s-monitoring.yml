@@ -7,9 +7,7 @@ name: Deploy Monitoring to AET Cluster
 
 on:
   push:
-    # TODO: remove the feature branch after merge — it's only here because
-    # workflow_dispatch is unavailable until the workflow exists on main.
-    branches: [main, 176-switch-k8s-monitoring-to-seperate-namespace]
+    branches: [main]
     paths:
       - 'helm/caredesk-monitoring/**'
       # Dashboards and alert rules are baked into ConfigMaps from infra/grafana
@@ -54,13 +52,16 @@ jobs:
           kubectl config current-context
 
       - name: Check namespace quota
+        env:
+          # Set in the AET environment as <cluster-id>:<project-id> so a fresh
+          # namespace lands directly in the team's Rancher project (shared
+          # project quota). If unset, the namespace is created unassigned and
+          # must be moved into the project manually; until then it has no
+          # ResourceQuota and check-k8s-quota.sh skips gracefully.
+          RANCHER_PROJECT_ID: ${{ vars.RANCHER_PROJECT_ID }}
         run: |
           NS="team-k8s-commanders-monitoring"
-          # First deploy creates the namespace outside the Rancher project; move
-          # it into the project afterwards (Rancher UI → Cluster → Projects/
-          # Namespaces) so it shares the project-wide quota. Until then it has
-          # no ResourceQuota and check-k8s-quota.sh skips gracefully.
-          kubectl get ns "${NS}" >/dev/null 2>&1 || kubectl create namespace "${NS}"
+          bash scripts/ensure-k8s-namespace.sh "${NS}"
           # Chart steady-state limits: Prometheus 150m/512Mi + Grafana 200m/256Mi.
           bash scripts/check-k8s-quota.sh "${NS}" 350 768
 

@@ -23,11 +23,14 @@ helm upgrade --install caredesk-monitoring helm/caredesk-monitoring \
 For production, override the Grafana admin password:
 `--set grafana.adminPassword=<secret>`.
 
-> **Rancher note:** the first deploy creates the namespace outside the team's
-> Rancher project. Move it into the project afterwards (Rancher UI → Cluster →
-> Projects/Namespaces) so it shares the project quota. CI
-> (`.github/workflows/deploy-k8s-monitoring.yml`) does the same
-> create-if-missing dance and tolerates the quota appearing later.
+> **Rancher note:** CI (`.github/workflows/deploy-k8s-monitoring.yml`) creates
+> the namespace via `scripts/ensure-k8s-namespace.sh`. With the
+> `RANCHER_PROJECT_ID` variable set in the AET environment
+> (`<cluster-id>:<project-id>`, both visible in the Rancher URL while the
+> project is open), a fresh namespace lands directly in the team's Rancher
+> project and shares the project quota. Without it, the namespace is created
+> unassigned and must be moved into the project manually (Rancher UI →
+> Cluster → Projects/Namespaces); the quota check skips gracefully until then.
 
 ## What gets deployed
 

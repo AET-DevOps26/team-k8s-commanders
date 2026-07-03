@@ -73,6 +73,10 @@ jobs:
           if [ -n "${{ secrets.GRAFANA_ADMIN_PASSWORD }}" ]; then
             SET_FLAGS+=(--set "grafana.adminPassword=${{ secrets.GRAFANA_ADMIN_PASSWORD }}")
           fi
+          # Discord alert delivery — without the secret, alerts only show in the UI.
+          if [ -n "${{ secrets.DISCORD_WEBHOOK_URL }}" ]; then
+            SET_FLAGS+=(--set "grafana.discordWebhookUrl=${{ secrets.DISCORD_WEBHOOK_URL }}")
+          fi
           if [ -n "${{ vars.MONITORING_INGRESS_HOST }}" ]; then
             SET_FLAGS+=(--set "ingress.host=${{ vars.MONITORING_INGRESS_HOST }}")
           fi

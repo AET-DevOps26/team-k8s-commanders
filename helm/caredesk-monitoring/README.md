@@ -60,6 +60,20 @@ pods labeled `app.kubernetes.io/component=prometheus` **from this namespace**
 Scrape jobs are defined in `values.yaml` under `prometheus.targets`; the ports
 mirror `<svc>.service.port` in the caredesk chart — keep them in sync.
 
+## Alert delivery (Discord)
+
+Alert rules and their delivery are provisioned from
+`infra/grafana/provisioning/alerting/` (shared with compose): `alerts.yaml`
+holds the rules, `contact-points.yaml` a Discord contact point plus the default
+notification policy. The webhook URL is interpolated from the
+`DISCORD_WEBHOOK_URL` env var at Grafana startup — set the `DISCORD_WEBHOOK_URL`
+GitHub secret (CI passes it as `--set grafana.discordWebhookUrl=...`), or for
+manual deploys pass the flag yourself. Unset, a non-resolving placeholder keeps
+Grafana booting; alerts then only show in the UI.
+
+To get the URL: Discord channel → Edit channel → Integrations → Webhooks →
+New Webhook → Copy Webhook URL.
+
 ## Single source of truth with docker-compose
 
 Dashboards and alert rules are the same files the compose stack mounts:

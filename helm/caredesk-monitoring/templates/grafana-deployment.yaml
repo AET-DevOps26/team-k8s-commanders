@@ -40,6 +40,11 @@ spec:
               value: {{ .Values.grafana.adminPassword | quote }}
             - name: GF_AUTH_ANONYMOUS_ENABLED
               value: "false"
+            # Interpolated into provisioning/alerting/contact-points.yaml. The
+            # placeholder keeps provisioning valid (empty would abort startup)
+            # while making failed deliveries obvious in the logs.
+            - name: DISCORD_WEBHOOK_URL
+              value: {{ .Values.grafana.discordWebhookUrl | default "https://alerts-disabled.invalid/discord" | quote }}
             {{- if .Values.ingress.enabled }}
             # Grafana owns the root path of its dedicated host — no sub-path
             # serving needed (unlike the compose stack, which sits behind
@@ -81,6 +86,8 @@ spec:
                 path: dashboards/dashboards.yaml
               - key: alerting.yaml
                 path: alerting/alerts.yaml
+              - key: contact-points.yaml
+                path: alerting/contact-points.yaml
         - name: dashboards
           configMap:
             name: {{ $fullName }}-grafana-dashboards

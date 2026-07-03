@@ -63,6 +63,12 @@ grafana:
   adminUser: admin
   # Override in production: --set grafana.adminPassword=<secret>
   adminPassword: caredesk-grafana-admin
+  # Discord webhook that alert notifications are delivered to (see
+  # infra/grafana/provisioning/alerting/contact-points.yaml). Set in production
+  # via --set grafana.discordWebhookUrl=<url> (CI: DISCORD_WEBHOOK_URL secret).
+  # Empty → a non-resolving placeholder is used: Grafana boots, alerts evaluate
+  # and show in the UI, but nothing is delivered.
+  discordWebhookUrl: ""
   resources:
     requests: { cpu: 50m,  memory: 64Mi }
     limits:   { cpu: 200m, memory: 256Mi }

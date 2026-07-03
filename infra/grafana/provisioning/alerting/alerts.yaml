@@ -5,9 +5,9 @@
 #   - the Helm chart pulls this file in via a `alerting` symlink + grafana-configmap.yaml
 #
 # Rules are evaluated by Grafana's built-in alerting engine against the Prometheus
-# datasource (uid: prometheus). No Alertmanager is required. To actually deliver
-# notifications, wire a contact point + notification policy (Slack/email) — until
-# then, firing alerts are visible under Grafana → Alerting → Alert rules.
+# datasource (uid: prometheus). No Alertmanager is required. Delivery is wired in
+# contact-points.yaml (Discord webhook + default notification policy); firing
+# alerts are also always visible under Grafana → Alerting → Alert rules.
 #
 # Each rule uses a two-node model: an instant PromQL query (refId A) reduced to one
 # value per series, and a threshold expression (refId B) that is the alert condition.

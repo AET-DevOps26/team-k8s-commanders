@@ -330,6 +330,10 @@ services:
       GF_SERVER_ROOT_URL: ${GRAFANA_ROOT_URL:-https://localhost/grafana}
       GF_SERVER_SERVE_FROM_SUB_PATH: "true"
       PROMETHEUS_URL: http://prometheus:9090
+      # Alert delivery (provisioning/alerting/contact-points.yaml). The
+      # placeholder keeps Grafana provisioning valid when no webhook is set —
+      # alerts then only show in the UI.
+      DISCORD_WEBHOOK_URL: ${DISCORD_WEBHOOK_URL:-https://alerts-disabled.invalid/discord}
     volumes:
       - ./infra/grafana/provisioning:/etc/grafana/provisioning:ro
       - ./infra/grafana/dashboards:/var/lib/grafana/dashboards:ro

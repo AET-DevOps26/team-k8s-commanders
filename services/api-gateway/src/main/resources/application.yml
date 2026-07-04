@@ -70,6 +70,14 @@ management:
   endpoint:
     prometheus:
       enabled: true
+  metrics:
+    distribution:
+      # Emit http_server_requests_seconds_bucket so Grafana's p95 latency alert
+      # (histogram_quantile in infra/grafana/provisioning/alerting/alerts.yaml)
+      # has buckets to read. Without this Micrometer only exports _count/_sum and
+      # the p95 rule sits at NoData forever.
+      percentiles-histogram:
+        http.server.requests: true
 
 # Shared secret used to verify JWTs issued by auth-service.
 # Must match auth-service's JWT_SECRET.

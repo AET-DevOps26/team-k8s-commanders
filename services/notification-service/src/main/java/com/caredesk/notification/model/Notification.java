@@ -51,6 +51,39 @@ public class Notification {
     @Column(nullable = false, length = 16)
     private NotificationChannel channel;
 
+    /**
+     * Why this notification was sent. Service-internal — not exposed in the API
+     * model. Lets the reminder scheduler dedupe reminders per appointment.
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(length = 16)
+    private NotificationType type;
+
+    /**
+     * The address this notification was delivered to, if any. Service-internal
+     * — kept for the record of what was actually sent, not exposed in the API
+     * model. Null when no recipient address was known (the record is still
+     * stored).
+     */
+    @Column(name = "recipient_email")
+    private String recipientEmail;
+
+    /**
+     * Whether the email was actually accepted by the SMTP server. Service-internal
+     * — not exposed in the API model. The reminder scheduler dedupes only on
+     * <em>delivered</em> reminders, so a failed send is retried on a later scan.
+     */
+    @Column(nullable = false)
+    private boolean delivered;
+
+    /**
+     * How many delivery attempts have been made. Service-internal — bounds the
+     * reminder scheduler's retries so an undeliverable appointment doesn't
+     * re-attempt forever.
+     */
+    @Column(name = "delivery_attempts", nullable = false)
+    private int deliveryAttempts;
+
     @NotNull
     @Column(name = "sent_at", nullable = false)
     private OffsetDateTime sentAt;
@@ -84,6 +117,30 @@ public class Notification {
 
     /** @param channel the delivery channel */
     public void setChannel(NotificationChannel channel) { this.channel = channel; }
+
+    /** @return why this notification was sent, or {@code null} */
+    public NotificationType getType() { return type; }
+
+    /** @param type why this notification was sent */
+    public void setType(NotificationType type) { this.type = type; }
+
+    /** @return the address this notification was delivered to, or {@code null} */
+    public String getRecipientEmail() { return recipientEmail; }
+
+    /** @param recipientEmail the address this notification was delivered to */
+    public void setRecipientEmail(String recipientEmail) { this.recipientEmail = recipientEmail; }
+
+    /** @return whether the email was accepted by the SMTP server */
+    public boolean isDelivered() { return delivered; }
+
+    /** @param delivered whether the email was accepted by the SMTP server */
+    public void setDelivered(boolean delivered) { this.delivered = delivered; }
+
+    /** @return how many delivery attempts have been made */
+    public int getDeliveryAttempts() { return deliveryAttempts; }
+
+    /** @param deliveryAttempts how many delivery attempts have been made */
+    public void setDeliveryAttempts(int deliveryAttempts) { this.deliveryAttempts = deliveryAttempts; }
 
     /** @return the time the notification was sent, with offset */
     public OffsetDateTime getSentAt() { return sentAt; }

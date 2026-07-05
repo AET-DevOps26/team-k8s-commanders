@@ -4,7 +4,7 @@
 # (not RollingUpdate) terminates the old pod before starting the new one, so
 # rollouts do not need temporary spare quota for overlapping pods.
 # Budget with monitoring enabled: 6×400m backends + 5×250m Postgres + 1×200m web
-# + 350m monitoring = 4200m CPU (1800m spare), 6272Mi memory (1920Mi spare).
+# + 350m monitoring + 100m mailpit = 4300m CPU (1700m spare), 6400Mi memory (1792Mi spare).
 deploymentStrategy:
   type: Recreate
 
@@ -189,9 +189,40 @@ notification:
     port: 8084
   dbHost: caredesk-notification-db
   dbName: notification_db
+  # SMTP target. Empty host falls back to the in-cluster Mailpit service; set
+  # these to a real provider to send actual mail. username/password/auth/startTls
+  # stay empty/false for Mailpit; provide them (password ideally via --set) for an
+  # authenticated/TLS provider.
+  smtp:
+    host: ""
+    port: ""
+    username: ""
+    password: ""
+    auth: false
+    startTls: false
+  mailFrom: "CareDesk <no-reply@caredesk.local>"
   resources:
     requests: { cpu: 100m, memory: 384Mi }
     limits:   { cpu: 400m, memory: 768Mi }
+
+# ─── Mailpit (catch-all SMTP server + web UI) ──────────────────────────────────
+# notification-service sends SMTP here; Mailpit catches every message and shows
+# it in a web UI. Image is from Docker Hub (not the project GHCR registry).
+# The web UI is ClusterIP-only — reach it with:
+#   kubectl port-forward svc/caredesk-mailpit 8025:8025 -n <namespace>
+# Point notification-service at a real SMTP provider (notification.smtp.*) to
+# send actual mail instead.
+mailpit:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: axllent/mailpit
+    tag: latest
+  smtpPort: 1025
+  webPort: 8025
+  resources:
+    requests: { cpu: 25m,  memory: 32Mi }
+    limits:   { cpu: 100m, memory: 128Mi }
 
 # ─── Prometheus (metrics collection, port 9090) ───────────────────────────────
 # Enabled by default now that the team namespace quota (6000m CPU / 8192Mi mem)

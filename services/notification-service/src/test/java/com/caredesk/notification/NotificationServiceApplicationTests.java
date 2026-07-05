@@ -20,7 +20,9 @@ import com.caredesk.notification.repository.NotificationRepository;
         // Skip the JPA dialect / connection so the context loads without a real DB.
         "spring.autoconfigure.exclude=org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration," +
                 "org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration," +
-                "org.springframework.boot.autoconfigure.data.jpa.JpaRepositoriesAutoConfiguration"
+                "org.springframework.boot.autoconfigure.data.jpa.JpaRepositoriesAutoConfiguration",
+        // Keep the reminder scheduler from firing (and calling patient-service) during the smoke test.
+        "notification.reminder.enabled=false"
 })
 class NotificationServiceApplicationTests {
 

@@ -10,6 +10,11 @@ services:
       # endpoint (https://acme-v02.api.letsencrypt.org/directory) for a
       # browser-trusted certificate.
       ACME_CA: ${ACME_CA:-https://acme-staging-v02.api.letsencrypt.org/directory}
+      # HTTP basic auth for the public /mailpit UI. Defaults to the dev
+      # credentials (mailpit / mailpit) — OVERRIDE in production by setting
+      # MAILPIT_BASIC_AUTH_USER and MAILPIT_BASIC_AUTH_HASH (a bcrypt hash).
+      MAILPIT_BASIC_AUTH_USER: ${MAILPIT_BASIC_AUTH_USER:-mailpit}
+      MAILPIT_BASIC_AUTH_HASH: ${MAILPIT_BASIC_AUTH_HASH:-$$2y$$05$$EKc8Qn8M119jQbj.A2W1JuOfZl3O7QJ7LYyrPikreFIG/BgfgQpPu}
     volumes:
       - ./infra/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
       # Persists issued certificates across deploys — essential to avoid
@@ -162,6 +167,8 @@ services:
       DB_PASSWORD: ${PATIENT_DB_PASSWORD:?PATIENT_DB_PASSWORD must be set}
       # Internal auth-service URL for the cross-service profile lookup.
       AUTH_SERVICE_URL: http://auth-service:8081
+      # Internal notification-service URL for booking-confirmation triggers.
+      NOTIFICATION_SERVICE_URL: http://notification-service:8084
       # application.yml ships with ddl-auto: validate. Set PATIENT_DDL_AUTO=update
       # for the first deployment so the schema is created, then revert.
       SPRING_JPA_HIBERNATE_DDL_AUTO: ${PATIENT_DDL_AUTO:-validate}
@@ -234,6 +241,18 @@ services:
     networks:
       - caredesk
 
+  # Catch-all SMTP server. The web UI is reached through Caddy at /mailpit
+  # (behind basic auth); no host ports are published. Point notification-service
+  # at a real SMTP provider via SMTP_* to send actual mail instead.
+  mailpit:
+    image: axllent/mailpit:latest
+    restart: always
+    environment:
+      # Serve the UI under /mailpit so its assets resolve behind the Caddy route.
+      MP_WEBROOT: mailpit
+    networks:
+      - caredesk
+
   notification-service:
     image: ghcr.io/aet-devops26/team-k8s-commanders/notification-service:${IMAGE_TAG:-latest}
     restart: always
@@ -249,6 +268,17 @@ services:
       # application.yml ships with ddl-auto: validate. Set NOTIFICATION_DDL_AUTO=update
       # for the first deployment so the schema is created, then revert.
       SPRING_JPA_HIBERNATE_DDL_AUTO: ${NOTIFICATION_DDL_AUTO:-validate}
+      # SMTP target defaults to the Mailpit container; override SMTP_* for a real
+      # (authenticated/TLS) provider. Defaults keep Mailpit working with no auth.
+      SMTP_HOST: ${SMTP_HOST:-mailpit}
+      SMTP_PORT: ${SMTP_PORT:-1025}
+      SMTP_USERNAME: ${SMTP_USERNAME:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_AUTH: ${SMTP_AUTH:-false}
+      SMTP_STARTTLS: ${SMTP_STARTTLS:-false}
+      MAIL_FROM: ${MAIL_FROM:-CareDesk <no-reply@caredesk.local>}
+      # Reminder scheduler reads upcoming appointments from patient-service.
+      PATIENT_SERVICE_URL: http://patient-service:8082
     healthcheck:
       test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8084/actuator/health || exit 1"]
       interval: 10s

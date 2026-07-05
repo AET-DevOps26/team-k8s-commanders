@@ -63,6 +63,11 @@ public class SecurityConfig {
                         // Spring forwards errors internally to /error — must be reachable
                         // without authentication or the real status code is swallowed by 401.
                         .requestMatchers("/error").permitAll()
+                        // Service-to-service trigger endpoint. Not exposed through the
+                        // gateway (no /api/v1/internal route) and reachable only from
+                        // patient-service under the cluster NetworkPolicy, so it carries no
+                        // X-User-* identity and is permitted here at the application layer.
+                        .requestMatchers("/internal/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/notifications").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.GET, "/notifications", "/notifications/*").hasAnyRole("PATIENT", "ADMIN")
                         .requestMatchers(HttpMethod.GET, "/appointments/*/notifications").hasAnyRole("PATIENT", "ADMIN")

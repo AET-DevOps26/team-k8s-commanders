@@ -1,10 +1,12 @@
 package com.caredesk.notification.repository;
 
 import com.caredesk.notification.model.Notification;
+import com.caredesk.notification.model.NotificationType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -44,4 +46,20 @@ public interface NotificationRepository extends JpaRepository<Notification, UUID
      * @return the matching page, possibly empty
      */
     Page<Notification> findByAppointmentIdAndPatientId(UUID appointmentId, UUID patientId, Pageable pageable);
+
+    /**
+     * Returns the single notification of the given type for an appointment, if
+     * one has been recorded. Backs the reminder scheduler's idempotency: there
+     * is at most one {@link NotificationType#REMINDER} row per appointment, and
+     * the scheduler re-sends (updating that row in place) only while it is
+     * undelivered and under the retry cap — so a no-email or persistently
+     * failing appointment never accumulates rows, and a delivered reminder is
+     * never sent again (including across restarts, since the check is against
+     * the persisted record).
+     *
+     * @param appointmentId the appointment id
+     * @param type          the notification type to look for
+     * @return the matching record, or empty if none has been recorded yet
+     */
+    Optional<Notification> findFirstByAppointmentIdAndType(UUID appointmentId, NotificationType type);
 }

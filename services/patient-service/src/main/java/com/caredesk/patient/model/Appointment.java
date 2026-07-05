@@ -48,6 +48,15 @@ public class Appointment {
 
     private String reason;
 
+    /**
+     * Contact email captured at booking time (from the gateway-injected
+     * {@code X-User-Email} of the booking patient). Stored so the notification
+     * service can deliver confirmations and reminders without resolving the
+     * address from auth-service. Service-internal — not part of the API model.
+     */
+    @Column(name = "patient_email")
+    private String patientEmail;
+
     /** @return the generated appointment id */
     public UUID getId() { return id; }
 
@@ -89,6 +98,12 @@ public class Appointment {
 
     /** @param reason a free-text reason for the appointment */
     public void setReason(String reason) { this.reason = reason; }
+
+    /** @return the contact email captured at booking, or {@code null} */
+    public String getPatientEmail() { return patientEmail; }
+
+    /** @param patientEmail the contact email captured at booking */
+    public void setPatientEmail(String patientEmail) { this.patientEmail = patientEmail; }
 
     /**
      * JPA-safe equality based on the primary key.

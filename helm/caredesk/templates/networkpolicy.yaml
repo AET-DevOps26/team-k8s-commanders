@@ -24,7 +24,7 @@ Each database accepts connections only from its owning backend service.
        port-forward and notification-service can deliver SMTP to it. */ -}}
 {{- $prometheusCallers := ternary (list "prometheus") (list) .Values.monitoring.enabled -}}
 {{- $backends := dict
-  "auth"         (concat (list "gateway" "patient" "patient") $prometheusCallers)
+  "auth"         (concat (list "gateway" "patient") $prometheusCallers)
   "patient"      (concat (list "gateway" "ai" "notification") $prometheusCallers)
   "notes"        (concat (list "gateway" "ai") $prometheusCallers)
   "notification" (concat (list "gateway" "patient") $prometheusCallers)

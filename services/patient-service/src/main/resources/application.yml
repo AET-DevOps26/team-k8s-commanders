@@ -10,6 +10,10 @@ openapi:
 auth-service:
   url: ${AUTH_SERVICE_URL:http://localhost:8081}
 
+# Internal notification-service URL for best-effort booking-confirmation triggers.
+notification-service:
+  url: ${NOTIFICATION_SERVICE_URL:http://localhost:8084}
+
 spring:
   application:
     name: patient-service

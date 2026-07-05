@@ -19,14 +19,20 @@ Each database accepts connections only from its owning backend service.
 
 {{- /* Backend services: allowed same-namespace callers per component.
      Prometheus (in the monitoring namespace, see helm/caredesk-monitoring) is
-     added as a cross-namespace peer below when monitoring.enabled. */ -}}
+     added as a cross-namespace peer below when monitoring.enabled.
+     notification reaches patient (reminder scheduler reads the upcoming feed);
+     patient reaches notification (booking-confirmation triggers) and auth
+     (cross-service profile lookup). mailpit is intentionally left unrestricted
+     (no policy) so its web UI is reachable via port-forward and
+     notification-service can deliver SMTP to it. */ -}}
 {{- $backends := dict
-  "auth"         (list "gateway")
-  "patient"      (list "gateway" "ai")
+  "auth"         (list "gateway" "patient")
+  "patient"      (list "gateway" "ai" "notification")
   "notes"        (list "gateway" "ai")
-  "notification" (list "gateway")
+  "notification" (list "gateway" "patient")
   "ai"           (list "gateway")
 -}}
+
 {{- range $svc, $callers := $backends }}
 {{- $cfg := index $root.Values $svc }}
 {{- if $cfg.enabled }}

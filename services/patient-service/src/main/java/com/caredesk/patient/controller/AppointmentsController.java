@@ -39,14 +39,17 @@ public class AppointmentsController implements AppointmentsApi {
     }
 
     /**
-     * Books a new appointment.
+     * Books a new appointment. The patient's contact email is resolved from the
+     * authoritative user profile inside the service, so a doctor booking on a
+     * patient's behalf still notifies the patient rather than the caller.
      *
      * @param appointmentCreate the booking request
      * @return 201 with the newly created appointment
      */
     @Override
     public ResponseEntity<Appointment> bookAppointment(AppointmentCreate appointmentCreate) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(appointmentService.book(appointmentCreate));
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(appointmentService.book(appointmentCreate));
     }
 
     /**

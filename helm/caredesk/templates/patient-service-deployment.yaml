@@ -30,6 +30,12 @@ spec:
             - name: SERVER_PORT
               value: {{ .Values.patient.service.port | quote }}
             {{- include "caredesk.dbEnv" (dict "root" $ "host" .Values.patient.dbHost "name" .Values.patient.dbName) | nindent 12 }}
+            # Resolve the patient's contact email from the authoritative profile.
+            - name: AUTH_SERVICE_URL
+              value: {{ printf "http://%s-auth:%d" (include "caredesk.fullname" .) (int .Values.auth.service.port) | quote }}
+            # Fire booking-confirmation triggers to notification-service.
+            - name: NOTIFICATION_SERVICE_URL
+              value: {{ printf "http://%s-notification:%d" (include "caredesk.fullname" .) (int .Values.notification.service.port) | quote }}
           startupProbe:
             httpGet:
               path: /actuator/health

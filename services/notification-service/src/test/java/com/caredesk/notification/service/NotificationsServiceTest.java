@@ -1,6 +1,8 @@
 package com.caredesk.notification.service;
 
+import com.caredesk.notification.email.EmailSender;
 import com.caredesk.notification.model.Notification;
+import com.caredesk.notification.model.NotificationType;
 import com.caredesk.notification.repository.NotificationRepository;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -27,6 +29,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -37,7 +40,8 @@ import static org.mockito.Mockito.when;
 class NotificationsServiceTest {
 
     private final NotificationRepository repository = mock(NotificationRepository.class);
-    private final NotificationsService service = new NotificationsService(repository);
+    private final EmailSender emailSender = mock(EmailSender.class);
+    private final NotificationsService service = new NotificationsService(repository, emailSender);
 
     @Test
     void create_persistsRecordAndStampsSentAt() {
@@ -162,6 +166,99 @@ class NotificationsServiceTest {
 
         assertThat(response.getContent()).hasSize(1);
         verify(repository, never()).findByAppointmentId(any(), any());
+    }
+
+    @Test
+    void recordAndSend_persistsRecordThenSendsEmail() {
+        UUID patientId = UUID.randomUUID();
+        UUID appointmentId = UUID.randomUUID();
+        when(repository.save(any(Notification.class))).thenAnswer(inv -> {
+            Notification n = inv.getArgument(0);
+            if (n.getId() == null) {
+                n.setId(UUID.randomUUID());
+            }
+            return n;
+        });
+        when(emailSender.send(any(), any(), any())).thenReturn(true);
+
+        org.openapitools.model.Notification created = service.recordAndSend(
+                appointmentId, patientId, "anna@example.com",
+                NotificationType.CONFIRMATION, "Appointment confirmed", "You're booked.");
+
+        // Saved twice: once before send, then again to record the delivery outcome.
+        ArgumentCaptor<Notification> captor = ArgumentCaptor.forClass(Notification.class);
+        verify(repository, times(2)).save(captor.capture());
+        Notification persisted = captor.getValue();
+        assertThat(persisted.getType()).isEqualTo(NotificationType.CONFIRMATION);
+        assertThat(persisted.getChannel()).isEqualTo(NotificationChannel.EMAIL);
+        assertThat(persisted.getRecipientEmail()).isEqualTo("anna@example.com");
+        assertThat(persisted.getMessage()).isEqualTo("You're booked.");
+        assertThat(persisted.getSentAt()).isNotNull();
+        // Delivery succeeded, so the record is marked delivered.
+        assertThat(persisted.isDelivered()).isTrue();
+        verify(emailSender).send("anna@example.com", "Appointment confirmed", "You're booked.");
+        assertThat(created.getId()).isNotNull();
+    }
+
+    @Test
+    void recordAndSend_persistsRecordEvenWhenDeliveryFails() {
+        when(repository.save(any(Notification.class))).thenAnswer(inv -> {
+            Notification n = inv.getArgument(0);
+            n.setId(UUID.randomUUID());
+            return n;
+        });
+        // EmailSender swallows failures and returns false; recordAndSend must still return the saved record.
+        when(emailSender.send(any(), any(), any())).thenReturn(false);
+
+        org.openapitools.model.Notification created = service.recordAndSend(
+                UUID.randomUUID(), UUID.randomUUID(), "down@example.com",
+                NotificationType.REMINDER, "Reminder", "See you soon.");
+
+        // Still persisted (twice), but marked undelivered so the scheduler retries it.
+        ArgumentCaptor<Notification> captor = ArgumentCaptor.forClass(Notification.class);
+        verify(repository, times(2)).save(captor.capture());
+        assertThat(captor.getValue().isDelivered()).isFalse();
+        assertThat(created.getId()).isNotNull();
+    }
+
+    @Test
+    void recordAndSendReminder_createsSingleRowAndCountsAttempt() {
+        UUID appointmentId = UUID.randomUUID();
+        when(repository.findFirstByAppointmentIdAndType(appointmentId, NotificationType.REMINDER))
+                .thenReturn(Optional.empty());
+        when(repository.save(any(Notification.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(emailSender.send(any(), any(), any())).thenReturn(true);
+
+        service.recordAndSendReminder(appointmentId, UUID.randomUUID(), "anna@example.com",
+                "Appointment reminder", "See you soon.");
+
+        ArgumentCaptor<Notification> captor = ArgumentCaptor.forClass(Notification.class);
+        verify(repository, times(2)).save(captor.capture());
+        Notification saved = captor.getValue();
+        assertThat(saved.getType()).isEqualTo(NotificationType.REMINDER);
+        assertThat(saved.getDeliveryAttempts()).isEqualTo(1);
+        assertThat(saved.isDelivered()).isTrue();
+    }
+
+    @Test
+    void recordAndSendReminder_reusesExistingRowAndIncrementsAttempts() {
+        UUID appointmentId = UUID.randomUUID();
+        Notification existing = new Notification();
+        existing.setId(UUID.randomUUID());
+        existing.setAppointmentId(appointmentId);
+        existing.setType(NotificationType.REMINDER);
+        existing.setDeliveryAttempts(2);
+        when(repository.findFirstByAppointmentIdAndType(appointmentId, NotificationType.REMINDER))
+                .thenReturn(Optional.of(existing));
+        when(repository.save(any(Notification.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(emailSender.send(any(), any(), any())).thenReturn(false);
+
+        service.recordAndSendReminder(appointmentId, UUID.randomUUID(), "anna@example.com",
+                "Appointment reminder", "See you soon.");
+
+        // The same row is updated (not a new insert), attempts bumped, still undelivered.
+        assertThat(existing.getDeliveryAttempts()).isEqualTo(3);
+        assertThat(existing.isDelivered()).isFalse();
     }
 
     private static Notification notification(UUID patientId, UUID appointmentId) {

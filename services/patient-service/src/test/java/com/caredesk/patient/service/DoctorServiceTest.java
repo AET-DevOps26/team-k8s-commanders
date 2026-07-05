@@ -10,6 +10,7 @@ import org.openapitools.model.Schedule;
 import org.openapitools.model.ScheduleSlot;
 import org.openapitools.model.ScheduleSlotCreate;
 import org.openapitools.model.UserProfile;
+import org.openapitools.model.UserRole;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 
@@ -125,6 +126,27 @@ class DoctorServiceTest {
         OffsetDateTime endAt = startAt.plusMinutes(45);
         ScheduleSlotCreate request = new ScheduleSlotCreate(startAt, endAt);
         when(doctorProfileRepository.findByIdForUpdate(doctorId)).thenReturn(Optional.of(doctor()));
+        when(doctorSlotRepository.existsOverlappingSlot(doctorId, startAt, endAt)).thenReturn(false);
+        when(doctorSlotRepository.save(any(DoctorSlot.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        ScheduleSlot slot = service.createScheduleSlot(doctorId, request);
+
+        assertThat(slot.getStartAt()).isEqualTo(startAt);
+        assertThat(slot.getEndAt()).isEqualTo(endAt);
+        assertThat(slot.getAvailable()).isTrue();
+        verify(doctorSlotRepository).save(any(DoctorSlot.class));
+    }
+
+    @Test
+    void createScheduleSlot_acceptsAuthDoctorWithoutLocalProfile() {
+        UUID doctorId = UUID.randomUUID();
+        OffsetDateTime startAt = OffsetDateTime.parse("2035-06-08T09:00:00Z");
+        OffsetDateTime endAt = startAt.plusMinutes(45);
+        ScheduleSlotCreate request = new ScheduleSlotCreate(startAt, endAt);
+        UserProfile authDoctor = new UserProfile(
+                doctorId, "Dr. Admin Created", "doctor@clinic.com", UserRole.DOCTOR);
+        when(doctorProfileRepository.findByIdForUpdate(doctorId)).thenReturn(Optional.empty());
+        when(authServiceClient.getUserById(doctorId)).thenReturn(authDoctor);
         when(doctorSlotRepository.existsOverlappingSlot(doctorId, startAt, endAt)).thenReturn(false);
         when(doctorSlotRepository.save(any(DoctorSlot.class))).thenAnswer(invocation -> invocation.getArgument(0));
 

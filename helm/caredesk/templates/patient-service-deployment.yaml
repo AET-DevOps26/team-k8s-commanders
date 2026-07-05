@@ -29,6 +29,8 @@ spec:
           env:
             - name: SERVER_PORT
               value: {{ .Values.patient.service.port | quote }}
+            - name: AUTH_SERVICE_URL
+              value: {{ printf "http://%s-auth:%d" (include "caredesk.fullname" .) (int .Values.auth.service.port) | quote }}
             {{- include "caredesk.dbEnv" (dict "root" $ "host" .Values.patient.dbHost "name" .Values.patient.dbName) | nindent 12 }}
           startupProbe:
             httpGet:

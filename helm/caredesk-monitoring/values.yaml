@@ -61,7 +61,9 @@ prometheus:
 grafana:
   image: grafana/grafana:11.2.0
   adminUser: admin
-  # Override in production: --set grafana.adminPassword=<secret>
+  # Dev default keeps `helm install` deployable with one command for local use.
+  # The k8s deploy workflow refuses to run with this value — it requires the
+  # GRAFANA_ADMIN_PASSWORD secret so Grafana never ships with a known password.
   adminPassword: caredesk-grafana-admin
   # Discord webhook that alert notifications are delivered to (see
   # infra/grafana/provisioning/alerting/contact-points.yaml). Set in production

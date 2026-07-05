@@ -73,9 +73,13 @@ jobs:
           NS="team-k8s-commanders-monitoring"
 
           SET_FLAGS=()
-          if [ -n "${{ secrets.GRAFANA_ADMIN_PASSWORD }}" ]; then
-            SET_FLAGS+=(--set "grafana.adminPassword=${{ secrets.GRAFANA_ADMIN_PASSWORD }}")
+          # Require an explicit admin password: never ship Grafana with the
+          # chart's dev default (that value stays only for local `helm install`).
+          if [ -z "${{ secrets.GRAFANA_ADMIN_PASSWORD }}" ]; then
+            echo "::error::GRAFANA_ADMIN_PASSWORD secret is not set — refusing to deploy Grafana with the built-in default password. Add it in the repository secrets."
+            exit 1
           fi
+          SET_FLAGS+=(--set "grafana.adminPassword=${{ secrets.GRAFANA_ADMIN_PASSWORD }}")
           # Discord alert delivery — without the secret, alerts only show in the UI.
           if [ -n "${{ secrets.DISCORD_WEBHOOK_URL }}" ]; then
             SET_FLAGS+=(--set "grafana.discordWebhookUrl=${{ secrets.DISCORD_WEBHOOK_URL }}")

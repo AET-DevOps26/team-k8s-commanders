@@ -35,17 +35,14 @@ CareDesk covers four core functional areas:
 
 ## 4. GenAI Integration
 
-The AI component is a **RAG-based clinical assistant** embedded in the Doctor Dashboard. It is powered by a Large Language Model grounded in two data sources:
+The AI component is a **clinical assistant** embedded in the Doctor Dashboard. It is powered by a Large Language Model grounded in **live patient data** — structured records pulled at query time from the Clinical Notes and Appointments services (visit history, diagnoses, follow-up status).
 
-1. **Live patient data** — structured records from the Clinical Notes and Appointments services (visit history, diagnoses, follow-up status)
-2. **Medical guidelines knowledge base** — a curated set of documents from sources such as WHO and NHS clinical guidelines, indexed for retrieval
-
-This means the assistant does not hallucinate freely — every response is grounded in either real patient data or established medical guidelines.
+Because every answer is built from the doctor's real patient records rather than the model's open-ended recall, the assistant stays anchored to the clinic's own data instead of hallucinating freely.
 
 **Example queries a doctor can ask:**
 - *"Summarise the last 5 visits for patient Anna Müller"*
 - *"Which of my patients are overdue for a follow-up this week?"*
-- *"What are the recommended follow-up intervals for a patient diagnosed with hypertension?"*
+- *"List my patients diagnosed with Type 2 diabetes who haven't had a follow-up in 6 months"*
 
 The integration is meaningful rather than cosmetic: it directly addresses the documented problem of doctor time lost to admin by making patient history instantly queryable in natural language.
 

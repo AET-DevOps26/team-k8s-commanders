@@ -21,6 +21,9 @@ spec:
         # Grafana reads alerting/datasource provisioning only at startup; a changed
         # pod-spec hash forces a rollout when dashboards or alert rules change.
         checksum/config: {{ include (print $.Template.BasePath "/grafana-configmap.yaml") . | sha256sum }}
+        # Roll the pod when the admin password or Discord webhook changes — a
+        # secretKeyRef alone would not restart it on a rotated Secret.
+        checksum/secret: {{ include (print $.Template.BasePath "/grafana-secret.yaml") . | sha256sum }}
     spec:
       securityContext:
         runAsNonRoot: true
@@ -36,15 +39,23 @@ spec:
           env:
             - name: GF_SECURITY_ADMIN_USER
               value: {{ .Values.grafana.adminUser | quote }}
+            # From the grafana Secret rather than a plaintext manifest value, so the
+            # password never lands in the rendered Deployment/release.
             - name: GF_SECURITY_ADMIN_PASSWORD
-              value: {{ .Values.grafana.adminPassword | quote }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $fullName }}-grafana
+                  key: GF_SECURITY_ADMIN_PASSWORD
             - name: GF_AUTH_ANONYMOUS_ENABLED
               value: "false"
-            # Interpolated into provisioning/alerting/contact-points.yaml. The
-            # placeholder keeps provisioning valid (empty would abort startup)
-            # while making failed deliveries obvious in the logs.
+            # Interpolated into provisioning/alerting/contact-points.yaml. Sourced
+            # from the grafana Secret (a webhook URL is a credential); the Secret
+            # supplies the placeholder default when none is configured.
             - name: DISCORD_WEBHOOK_URL
-              value: {{ .Values.grafana.discordWebhookUrl | default "https://alerts-disabled.invalid/discord" | quote }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $fullName }}-grafana
+                  key: DISCORD_WEBHOOK_URL
             {{- if .Values.ingress.enabled }}
             # Grafana owns the root path of its dedicated host — no sub-path
             # serving needed (unlike the compose stack, which sits behind

@@ -10,11 +10,14 @@ import org.openapitools.model.AppointmentRescheduleRequest;
 import org.openapitools.model.AppointmentStatus;
 import org.openapitools.model.PaginatedAppointmentResponse;
 import org.openapitools.model.UserProfile;
+import org.openapitools.model.UserRole;
 import org.mockito.ArgumentCaptor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.AccessDeniedException;
 
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -32,7 +35,8 @@ import static org.mockito.Mockito.when;
 
 /**
  * Unit tests for {@link AppointmentService}. Backed by a mocked repository
- * so the tests do not need a database.
+ * so the tests do not need a database. Ownership rules (issue #172) are
+ * exercised with callers in each role.
  */
 class AppointmentServiceTest {
 
@@ -46,6 +50,18 @@ class AppointmentServiceTest {
 
     private static UserProfile profileWithEmail(UUID id, String email) {
         return new UserProfile(id, "Test User", email, org.openapitools.model.UserRole.PATIENT);
+    }
+
+    private static Caller admin() {
+        return new Caller(UUID.randomUUID(), UserRole.ADMIN);
+    }
+
+    private static Caller patient(UUID patientId) {
+        return new Caller(patientId, UserRole.PATIENT);
+    }
+
+    private static Caller doctor(UUID doctorId) {
+        return new Caller(doctorId, UserRole.DOCTOR);
     }
 
     @Test
@@ -67,7 +83,7 @@ class AppointmentServiceTest {
         // The patient's email is resolved from the authoritative profile by id.
         when(authServiceClient.getUserById(patientId)).thenReturn(profileWithEmail(patientId, "anna@example.com"));
 
-        org.openapitools.model.Appointment created = service.book(request);
+        org.openapitools.model.Appointment created = service.book(request, patient(patientId));
 
         ArgumentCaptor<Appointment> captor = ArgumentCaptor.forClass(Appointment.class);
         verify(repository).save(captor.capture());
@@ -95,6 +111,35 @@ class AppointmentServiceTest {
     }
 
     @Test
+    void book_allowsDoctorToBookForAPatient() {
+        UUID patientId = UUID.randomUUID();
+        UUID doctorId = UUID.randomUUID();
+        OffsetDateTime when = OffsetDateTime.now().plusDays(2);
+        AppointmentCreate request = new AppointmentCreate(patientId, doctorId, when, 30);
+        DoctorSlot slot = slot(doctorId, when, 30, true);
+        when(doctorSlotRepository.findAndLockAvailableSlot(eq(doctorId), eq(when), eq(when.plusMinutes(30))))
+                .thenReturn(Optional.of(slot));
+        when(doctorSlotRepository.save(any(DoctorSlot.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(repository.save(any(Appointment.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        service.book(request, doctor(doctorId));
+
+        verify(repository).save(any(Appointment.class));
+    }
+
+    @Test
+    void book_deniesPatientBookingForSomeoneElse() {
+        UUID patientId = UUID.randomUUID();
+        AppointmentCreate request = new AppointmentCreate(
+                patientId, UUID.randomUUID(), OffsetDateTime.now().plusDays(2), 30);
+
+        assertThatThrownBy(() -> service.book(request, patient(UUID.randomUUID())))
+                .isInstanceOf(AccessDeniedException.class);
+        verify(doctorSlotRepository, never()).findAndLockAvailableSlot(any(), any(), any());
+        verify(repository, never()).save(any());
+    }
+
+    @Test
     void book_rejectsUnavailableSlot() {
         UUID patientId = UUID.randomUUID();
         UUID doctorId = UUID.randomUUID();
@@ -103,7 +148,7 @@ class AppointmentServiceTest {
         when(doctorSlotRepository.findAndLockAvailableSlot(eq(doctorId), eq(when), eq(when.plusMinutes(30))))
                 .thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> service.book(request))
+        assertThatThrownBy(() -> service.book(request, patient(patientId)))
                 .isInstanceOf(AppointmentStateConflictException.class);
         verify(repository, never()).save(any());
         verify(eventPublisher, never()).publishEvent(any());
@@ -116,7 +161,7 @@ class AppointmentServiceTest {
         OffsetDateTime when = OffsetDateTime.now().minusHours(1);
         AppointmentCreate request = new AppointmentCreate(patientId, doctorId, when, 30);
 
-        assertThatThrownBy(() -> service.book(request))
+        assertThatThrownBy(() -> service.book(request, patient(patientId)))
                 .isInstanceOf(AppointmentStateConflictException.class)
                 .hasMessageContaining("Past appointment cannot be booked");
         verify(doctorSlotRepository, never()).findAndLockAvailableSlot(any(), any(), any());
@@ -124,27 +169,68 @@ class AppointmentServiceTest {
     }
 
     @Test
-    void list_returnsPagedResponse() {
+    void list_returnsAllAppointments_forAdmin() {
         Appointment a = appointment(AppointmentStatus.SCHEDULED);
         Page<Appointment> page = new PageImpl<>(List.of(a), PageRequest.of(0, 20), 1);
-        when(repository.findAll(any(org.springframework.data.domain.Pageable.class))).thenReturn(page);
+        when(repository.findAll(any(Pageable.class))).thenReturn(page);
 
-        PaginatedAppointmentResponse response = service.list(0, 20);
+        PaginatedAppointmentResponse response = service.list(0, 20, admin());
 
         assertThat(response.getContent()).hasSize(1);
         assertThat(response.getPage().getTotalElements()).isEqualTo(1);
         assertThat(response.getPage().getTotalPages()).isEqualTo(1);
+        verify(repository, never()).findByDoctorId(any(), any(Pageable.class));
     }
 
     @Test
-    void getById_returnsAppointment_whenFound() {
+    void list_scopesDoctorToTheirOwnAppointments() {
+        UUID doctorId = UUID.randomUUID();
+        Appointment a = appointment(AppointmentStatus.SCHEDULED);
+        a.setDoctorId(doctorId);
+        Page<Appointment> page = new PageImpl<>(List.of(a), PageRequest.of(0, 20), 1);
+        when(repository.findByDoctorId(eq(doctorId), any(Pageable.class))).thenReturn(page);
+
+        PaginatedAppointmentResponse response = service.list(0, 20, doctor(doctorId));
+
+        assertThat(response.getContent()).hasSize(1);
+        verify(repository, never()).findAll(any(Pageable.class));
+    }
+
+    @Test
+    void list_deniesPatients() {
+        assertThatThrownBy(() -> service.list(0, 20, patient(UUID.randomUUID())))
+                .isInstanceOf(AccessDeniedException.class);
+        verify(repository, never()).findAll(any(Pageable.class));
+    }
+
+    @Test
+    void getById_returnsAppointment_forItsPatient() {
         Appointment a = appointment(AppointmentStatus.SCHEDULED);
         when(repository.findById(a.getId())).thenReturn(Optional.of(a));
 
-        org.openapitools.model.Appointment dto = service.getById(a.getId());
+        org.openapitools.model.Appointment dto = service.getById(a.getId(), patient(a.getPatientId()));
 
         assertThat(dto.getId()).isEqualTo(a.getId());
         assertThat(dto.getStatus()).isEqualTo(AppointmentStatus.SCHEDULED);
+    }
+
+    @Test
+    void getById_returnsAppointment_forItsDoctor() {
+        Appointment a = appointment(AppointmentStatus.SCHEDULED);
+        when(repository.findById(a.getId())).thenReturn(Optional.of(a));
+
+        org.openapitools.model.Appointment dto = service.getById(a.getId(), doctor(a.getDoctorId()));
+
+        assertThat(dto.getId()).isEqualTo(a.getId());
+    }
+
+    @Test
+    void getById_deniesNonParticipant() {
+        Appointment a = appointment(AppointmentStatus.SCHEDULED);
+        when(repository.findById(a.getId())).thenReturn(Optional.of(a));
+
+        assertThatThrownBy(() -> service.getById(a.getId(), patient(UUID.randomUUID())))
+                .isInstanceOf(AccessDeniedException.class);
     }
 
     @Test
@@ -152,7 +238,7 @@ class AppointmentServiceTest {
         UUID id = UUID.randomUUID();
         when(repository.findById(id)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> service.getById(id))
+        assertThatThrownBy(() -> service.getById(id, admin()))
                 .isInstanceOf(AppointmentNotFoundException.class);
     }
 
@@ -172,7 +258,7 @@ class AppointmentServiceTest {
 
         AppointmentRescheduleRequest req = new AppointmentRescheduleRequest(newWhen);
         req.setDuration(45);
-        org.openapitools.model.Appointment dto = service.reschedule(a.getId(), req);
+        org.openapitools.model.Appointment dto = service.reschedule(a.getId(), req, patient(a.getPatientId()));
 
         assertThat(dto.getDateTime()).isEqualTo(newWhen);
         assertThat(dto.getDuration()).isEqualTo(45);
@@ -203,7 +289,7 @@ class AppointmentServiceTest {
         when(repository.save(any(Appointment.class))).thenAnswer(inv -> inv.getArgument(0));
 
         AppointmentRescheduleRequest req = new AppointmentRescheduleRequest(newWhen);
-        org.openapitools.model.Appointment dto = service.reschedule(a.getId(), req);
+        org.openapitools.model.Appointment dto = service.reschedule(a.getId(), req, patient(a.getPatientId()));
 
         assertThat(dto.getDuration()).isEqualTo(30);
     }
@@ -215,7 +301,7 @@ class AppointmentServiceTest {
 
         AppointmentRescheduleRequest req = new AppointmentRescheduleRequest(
                 OffsetDateTime.now().plusDays(3));
-        assertThatThrownBy(() -> service.reschedule(a.getId(), req))
+        assertThatThrownBy(() -> service.reschedule(a.getId(), req, patient(a.getPatientId())))
                 .isInstanceOf(AppointmentStateConflictException.class);
         verify(repository, never()).save(any());
     }
@@ -227,9 +313,22 @@ class AppointmentServiceTest {
 
         AppointmentRescheduleRequest req = new AppointmentRescheduleRequest(
                 OffsetDateTime.now().plusDays(2));
-        assertThatThrownBy(() -> service.reschedule(a.getId(), req))
+        assertThatThrownBy(() -> service.reschedule(a.getId(), req, patient(a.getPatientId())))
                 .isInstanceOf(AppointmentStateConflictException.class)
                 .hasMessageContaining("Past appointment cannot be rescheduled");
+        verify(doctorSlotRepository, never()).findAndLockAvailableSlot(any(), any(), any());
+        verify(repository, never()).save(any());
+    }
+
+    @Test
+    void reschedule_deniesNonParticipant() {
+        Appointment a = appointment(AppointmentStatus.SCHEDULED);
+        when(repository.findById(a.getId())).thenReturn(Optional.of(a));
+
+        AppointmentRescheduleRequest req = new AppointmentRescheduleRequest(
+                OffsetDateTime.now().plusDays(3));
+        assertThatThrownBy(() -> service.reschedule(a.getId(), req, patient(UUID.randomUUID())))
+                .isInstanceOf(AccessDeniedException.class);
         verify(doctorSlotRepository, never()).findAndLockAvailableSlot(any(), any(), any());
         verify(repository, never()).save(any());
     }
@@ -244,7 +343,7 @@ class AppointmentServiceTest {
         when(doctorSlotRepository.save(any(DoctorSlot.class))).thenAnswer(inv -> inv.getArgument(0));
         when(repository.save(any(Appointment.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        org.openapitools.model.Appointment dto = service.cancel(a.getId());
+        org.openapitools.model.Appointment dto = service.cancel(a.getId(), patient(a.getPatientId()));
 
         assertThat(dto.getStatus()).isEqualTo(AppointmentStatus.CANCELLED);
         assertThat(slot.getAvailable()).isTrue();
@@ -260,7 +359,7 @@ class AppointmentServiceTest {
         Appointment a = appointment(AppointmentStatus.CANCELLED);
         when(repository.findById(a.getId())).thenReturn(Optional.of(a));
 
-        org.openapitools.model.Appointment dto = service.cancel(a.getId());
+        org.openapitools.model.Appointment dto = service.cancel(a.getId(), patient(a.getPatientId()));
 
         assertThat(dto.getStatus()).isEqualTo(AppointmentStatus.CANCELLED);
         // The already-cancelled row should not be saved again.
@@ -274,10 +373,20 @@ class AppointmentServiceTest {
         Appointment a = appointment(AppointmentStatus.SCHEDULED, OffsetDateTime.now().minusDays(1));
         when(repository.findById(a.getId())).thenReturn(Optional.of(a));
 
-        assertThatThrownBy(() -> service.cancel(a.getId()))
+        assertThatThrownBy(() -> service.cancel(a.getId(), patient(a.getPatientId())))
                 .isInstanceOf(AppointmentStateConflictException.class)
                 .hasMessageContaining("Past appointment cannot be cancelled");
         verify(doctorSlotRepository, never()).findSlotByTime(any(), any(), any());
+        verify(repository, never()).save(any());
+    }
+
+    @Test
+    void cancel_deniesNonParticipant() {
+        Appointment a = appointment(AppointmentStatus.SCHEDULED);
+        when(repository.findById(a.getId())).thenReturn(Optional.of(a));
+
+        assertThatThrownBy(() -> service.cancel(a.getId(), patient(UUID.randomUUID())))
+                .isInstanceOf(AccessDeniedException.class);
         verify(repository, never()).save(any());
     }
 
@@ -286,7 +395,7 @@ class AppointmentServiceTest {
         UUID id = UUID.randomUUID();
         when(repository.findById(id)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> service.cancel(id))
+        assertThatThrownBy(() -> service.cancel(id, admin()))
                 .isInstanceOf(AppointmentNotFoundException.class);
     }
 

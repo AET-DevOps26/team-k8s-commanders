@@ -57,6 +57,8 @@ class DoctorServiceTest {
     void getProfile_returnsAuthServiceProfile_whenFound() {
         UUID doctorId = UUID.randomUUID();
         UserProfile authProfile = doctor(doctorId, "Dr Who");
+        authProfile.setPhoneNumber("+1-555-0100");
+        authProfile.setDateOfBirth(java.time.LocalDate.of(1970, 1, 1));
         when(authServiceClient.getUserById(doctorId)).thenReturn(authProfile);
 
         UserProfile profile = service.getProfile(doctorId);
@@ -64,6 +66,8 @@ class DoctorServiceTest {
         assertThat(profile.getId()).isEqualTo(doctorId);
         assertThat(profile.getName()).isEqualTo("Dr Who");
         assertThat(profile.getRole()).isEqualTo(UserRole.DOCTOR);
+        assertThat(profile.getPhoneNumber()).isNull();
+        assertThat(profile.getDateOfBirth()).isNull();
     }
 
     @Test

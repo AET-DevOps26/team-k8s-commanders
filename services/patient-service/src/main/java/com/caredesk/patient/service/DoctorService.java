@@ -51,8 +51,10 @@ public class DoctorService {
     public UserProfile getProfile(UUID doctorId) {
         UserProfile profile = authServiceClient.getUserById(doctorId);
         if (profile == null) {
-            profile = new UserProfile().id(doctorId);
+            return new UserProfile().id(doctorId);
         }
+        profile.setPhoneNumber(null);
+        profile.setDateOfBirth(null);
         return profile;
     }
 

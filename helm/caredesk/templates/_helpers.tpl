@@ -98,6 +98,15 @@ imagePullSecrets:
   value: {{ .root.Values.backend.ddlAuto | quote }}
 {{- end -}}
 
+{{/* APP_VERSION env entry — the resolved image tag of the service. The services
+     surface it in their metrics (Micrometer common tag / app_info) so Grafana
+     can show which version is deployed.
+     Call with: include "caredesk.appVersionEnv" (dict "root" $ "image" .Values.auth.image) */}}
+{{- define "caredesk.appVersionEnv" -}}
+- name: APP_VERSION
+  value: {{ default .root.Values.images.tag .image.tag | quote }}
+{{- end -}}
+
 {{/* JWT secret env entry (shared by auth-service and api-gateway) */}}
 {{- define "caredesk.jwtEnv" -}}
 - name: JWT_SECRET

@@ -1,10 +1,13 @@
 package com.caredesk.patient.repository;
 
 import com.caredesk.patient.model.Appointment;
+import org.openapitools.model.AppointmentStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.time.OffsetDateTime;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -57,4 +60,18 @@ public interface AppointmentRepository extends JpaRepository<Appointment, UUID> 
     Optional<Appointment> findFirstByPatientIdAndDoctorIdAndReason(UUID patientId,
                                                                    UUID doctorId,
                                                                    String reason);
+
+    /**
+     * Returns appointments whose status is in the given set and whose start
+     * time falls in {@code [from, to]}. Backs the internal upcoming-appointments
+     * feed the notification service's reminder scheduler consumes.
+     *
+     * @param statuses the statuses to include (e.g. SCHEDULED, RESCHEDULED)
+     * @param from     window start (inclusive)
+     * @param to       window end (inclusive)
+     * @return matching appointments, possibly empty
+     */
+    List<Appointment> findByStatusInAndDateTimeBetween(Collection<AppointmentStatus> statuses,
+                                                       OffsetDateTime from,
+                                                       OffsetDateTime to);
 }

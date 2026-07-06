@@ -46,7 +46,10 @@ public class AppointmentsController implements AppointmentsApi {
 
     /**
      * Books a new appointment. A patient may only book for themselves; doctors
-     * and admins may book on a patient's behalf.
+     * and admins may book on a patient's behalf. The patient's contact email is
+     * resolved from the authoritative user profile inside the service, so a
+     * doctor booking on a patient's behalf still notifies the patient rather
+     * than the caller.
      *
      * @param appointmentCreate the booking request
      * @return 201 with the newly created appointment

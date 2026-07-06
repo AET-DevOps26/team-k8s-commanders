@@ -9,6 +9,8 @@ import org.openapitools.model.AppointmentRescheduleRequest;
 import org.openapitools.model.AppointmentStatus;
 import org.openapitools.model.PageMeta;
 import org.openapitools.model.PaginatedAppointmentResponse;
+import org.openapitools.model.UserProfile;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -17,6 +19,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.UUID;
 
@@ -37,20 +41,33 @@ import java.util.UUID;
 @Transactional
 public class AppointmentService {
 
+    private static final DateTimeFormatter WHEN_FORMAT =
+            DateTimeFormatter.ofPattern("EEE d MMM yyyy, HH:mm 'UTC'");
+
     private final AppointmentRepository appointmentRepository;
     private final DoctorSlotRepository doctorSlotRepository;
     private final AppointmentMapper appointmentMapper;
+    private final AuthServiceClient authServiceClient;
+    private final ApplicationEventPublisher eventPublisher;
 
     /**
      * @param appointmentRepository repository for appointment rows
      * @param appointmentMapper     converts JPA entities to API DTOs
+     * @param authServiceClient     resolves the patient's contact email from the
+     *                              authoritative user profile
+     * @param eventPublisher        publishes notification triggers, dispatched
+     *                              after commit by {@link AppointmentNotificationListener}
      */
     public AppointmentService(AppointmentRepository appointmentRepository,
                               DoctorSlotRepository doctorSlotRepository,
-                              AppointmentMapper appointmentMapper) {
+                              AppointmentMapper appointmentMapper,
+                              AuthServiceClient authServiceClient,
+                              ApplicationEventPublisher eventPublisher) {
         this.appointmentRepository = appointmentRepository;
         this.doctorSlotRepository = doctorSlotRepository;
         this.appointmentMapper = appointmentMapper;
+        this.authServiceClient = authServiceClient;
+        this.eventPublisher = eventPublisher;
     }
 
     /**
@@ -59,6 +76,13 @@ public class AppointmentService {
      *
      * <p>A {@code PATIENT} may only book for themselves; doctors and admins may
      * book on any patient's behalf (the doctor booking flow).
+     *
+     * <p>The <em>patient's</em> contact email is resolved from the authoritative
+     * user profile by {@code patientId} (not from the caller, who may be a doctor
+     * booking on the patient's behalf) and stored on the appointment so
+     * notification-service can deliver the confirmation and any later reminder.
+     * The confirmation notification is published and dispatched only after the
+     * booking transaction commits.
      *
      * @param request the booking request from the caller
      * @param caller  the authenticated caller
@@ -80,8 +104,13 @@ public class AppointmentService {
         entity.setDateTime(request.getDateTime());
         entity.setDuration(request.getDuration());
         entity.setReason(request.getReason());
+        entity.setPatientEmail(resolvePatientEmail(request.getPatientId()));
         entity.setStatus(AppointmentStatus.SCHEDULED);
         Appointment saved = appointmentRepository.save(entity);
+
+        notify(saved, "CONFIRMATION", "Appointment confirmed",
+                "Your appointment on " + formatWhen(saved.getDateTime()) + doctorSuffix(saved.getDoctorId())
+                        + " is confirmed. We look forward to seeing you.");
         return appointmentMapper.toApi(saved);
     }
 
@@ -172,7 +201,12 @@ public class AppointmentService {
         entity.setDuration(duration);
         // Mark as RESCHEDULED so the patient and doctor dashboards can flag it.
         entity.setStatus(AppointmentStatus.RESCHEDULED);
-        return appointmentMapper.toApi(appointmentRepository.save(entity));
+        Appointment saved = appointmentRepository.save(entity);
+
+        notify(saved, "RESCHEDULE", "Appointment rescheduled",
+                "Your appointment" + doctorSuffix(saved.getDoctorId()) + " has been moved to "
+                        + formatWhen(saved.getDateTime()) + ".");
+        return appointmentMapper.toApi(saved);
     }
 
     /**
@@ -193,6 +227,10 @@ public class AppointmentService {
             releaseSlot(entity.getDoctorId(), entity.getDateTime(), entity.getDuration());
             entity.setStatus(AppointmentStatus.CANCELLED);
             entity = appointmentRepository.save(entity);
+
+            notify(entity, "CANCELLATION", "Appointment cancelled",
+                    "Your appointment on " + formatWhen(entity.getDateTime()) + doctorSuffix(entity.getDoctorId())
+                            + " has been cancelled.");
         }
         return appointmentMapper.toApi(entity);
     }
@@ -211,6 +249,49 @@ public class AppointmentService {
             return;
         }
         throw new AccessDeniedException("Not your appointment");
+    }
+
+    /**
+     * Publishes a notification trigger for a booking event. The event is
+     * dispatched by {@link AppointmentNotificationListener} only after the
+     * surrounding transaction commits, so nothing is sent for a change that
+     * rolled back. The recipient email is whatever was resolved and stored on
+     * the appointment at booking.
+     */
+    private void notify(Appointment appt, String type, String subject, String message) {
+        eventPublisher.publishEvent(new AppointmentNotificationEvent(new NotificationTriggerRequest(
+                appt.getId(), appt.getPatientId(), appt.getPatientEmail(), type, subject, message)));
+    }
+
+    /**
+     * Resolves the patient's contact email from the authoritative auth-service
+     * profile. Returns {@code null} if the profile can't be reached or has no
+     * email — the notification record is still created, just without delivery.
+     */
+    private String resolvePatientEmail(UUID patientId) {
+        UserProfile profile = authServiceClient.getUserById(patientId);
+        return profile != null ? profile.getEmail() : null;
+    }
+
+    /**
+     * Best-effort " with Dr <name>" phrase for notification messages, resolved
+     * from the authoritative doctor profile. Returns an empty string if the
+     * profile can't be reached or has no name, so the message stays well-formed.
+     */
+    private String doctorSuffix(UUID doctorId) {
+        UserProfile profile = authServiceClient.getUserById(doctorId);
+        if (profile == null || profile.getName() == null || profile.getName().isBlank()) {
+            return "";
+        }
+        return " with Dr " + profile.getName();
+    }
+
+    private static String formatWhen(OffsetDateTime when) {
+        // Convert to UTC before formatting — WHEN_FORMAT hard-codes the "UTC"
+        // label, so a non-UTC offset would otherwise be mislabelled.
+        return when != null
+                ? WHEN_FORMAT.format(when.withOffsetSameInstant(ZoneOffset.UTC))
+                : "the scheduled time";
     }
 
     private void rejectPastAppointment(Appointment appointment, String operation) {

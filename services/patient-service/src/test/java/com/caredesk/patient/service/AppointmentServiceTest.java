@@ -9,8 +9,10 @@ import org.openapitools.model.AppointmentCreate;
 import org.openapitools.model.AppointmentRescheduleRequest;
 import org.openapitools.model.AppointmentStatus;
 import org.openapitools.model.PaginatedAppointmentResponse;
+import org.openapitools.model.UserProfile;
 import org.openapitools.model.UserRole;
 import org.mockito.ArgumentCaptor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -41,7 +43,14 @@ class AppointmentServiceTest {
     private final AppointmentRepository repository = mock(AppointmentRepository.class);
     private final DoctorSlotRepository doctorSlotRepository = mock(DoctorSlotRepository.class);
     private final AppointmentMapper mapper = new AppointmentMapper();
-    private final AppointmentService service = new AppointmentService(repository, doctorSlotRepository, mapper);
+    private final AuthServiceClient authServiceClient = mock(AuthServiceClient.class);
+    private final ApplicationEventPublisher eventPublisher = mock(ApplicationEventPublisher.class);
+    private final AppointmentService service =
+            new AppointmentService(repository, doctorSlotRepository, mapper, authServiceClient, eventPublisher);
+
+    private static UserProfile profileWithEmail(UUID id, String email) {
+        return new UserProfile(id, "Test User", email, org.openapitools.model.UserRole.PATIENT);
+    }
 
     private static Caller admin() {
         return new Caller(UUID.randomUUID(), UserRole.ADMIN);
@@ -71,6 +80,8 @@ class AppointmentServiceTest {
             a.setId(UUID.randomUUID());
             return a;
         });
+        // The patient's email is resolved from the authoritative profile by id.
+        when(authServiceClient.getUserById(patientId)).thenReturn(profileWithEmail(patientId, "anna@example.com"));
 
         org.openapitools.model.Appointment created = service.book(request, patient(patientId));
 
@@ -83,9 +94,20 @@ class AppointmentServiceTest {
         assertThat(persisted.getDuration()).isEqualTo(30);
         assertThat(persisted.getReason()).isEqualTo("Check-up");
         assertThat(persisted.getStatus()).isEqualTo(AppointmentStatus.SCHEDULED);
+        // The patient's resolved email is stored for later notifications.
+        assertThat(persisted.getPatientEmail()).isEqualTo("anna@example.com");
         assertThat(slot.getAvailable()).isFalse();
         assertThat(created.getId()).isNotNull();
         assertThat(created.getStatus()).isEqualTo(AppointmentStatus.SCHEDULED);
+        // A confirmation notification is published (dispatched after commit),
+        // addressed to the patient's resolved email.
+        ArgumentCaptor<AppointmentNotificationEvent> eventCaptor = ArgumentCaptor.forClass(AppointmentNotificationEvent.class);
+        verify(eventPublisher).publishEvent(eventCaptor.capture());
+        NotificationTriggerRequest trigger = eventCaptor.getValue().request();
+        assertThat(trigger.type()).isEqualTo("CONFIRMATION");
+        assertThat(trigger.recipientEmail()).isEqualTo("anna@example.com");
+        assertThat(trigger.appointmentId()).isEqualTo(created.getId());
+        assertThat(trigger.subject()).isEqualTo("Appointment confirmed");
     }
 
     @Test
@@ -129,6 +151,7 @@ class AppointmentServiceTest {
         assertThatThrownBy(() -> service.book(request, patient(patientId)))
                 .isInstanceOf(AppointmentStateConflictException.class);
         verify(repository, never()).save(any());
+        verify(eventPublisher, never()).publishEvent(any());
     }
 
     @Test
@@ -242,6 +265,12 @@ class AppointmentServiceTest {
         assertThat(dto.getStatus()).isEqualTo(AppointmentStatus.RESCHEDULED);
         assertThat(oldSlot.getAvailable()).isTrue();
         assertThat(newSlot.getAvailable()).isFalse();
+        ArgumentCaptor<AppointmentNotificationEvent> eventCaptor = ArgumentCaptor.forClass(AppointmentNotificationEvent.class);
+        verify(eventPublisher).publishEvent(eventCaptor.capture());
+        NotificationTriggerRequest trigger = eventCaptor.getValue().request();
+        assertThat(trigger.type()).isEqualTo("RESCHEDULE");
+        assertThat(trigger.recipientEmail()).isEqualTo("patient@example.com");
+        assertThat(trigger.appointmentId()).isEqualTo(a.getId());
     }
 
     @Test
@@ -318,6 +347,11 @@ class AppointmentServiceTest {
 
         assertThat(dto.getStatus()).isEqualTo(AppointmentStatus.CANCELLED);
         assertThat(slot.getAvailable()).isTrue();
+        ArgumentCaptor<AppointmentNotificationEvent> eventCaptor = ArgumentCaptor.forClass(AppointmentNotificationEvent.class);
+        verify(eventPublisher).publishEvent(eventCaptor.capture());
+        NotificationTriggerRequest trigger = eventCaptor.getValue().request();
+        assertThat(trigger.type()).isEqualTo("CANCELLATION");
+        assertThat(trigger.appointmentId()).isEqualTo(a.getId());
     }
 
     @Test
@@ -330,6 +364,8 @@ class AppointmentServiceTest {
         assertThat(dto.getStatus()).isEqualTo(AppointmentStatus.CANCELLED);
         // The already-cancelled row should not be saved again.
         verify(repository, never()).save(any());
+        // No state change → no notification.
+        verify(eventPublisher, never()).publishEvent(any());
     }
 
     @Test
@@ -375,6 +411,8 @@ class AppointmentServiceTest {
         a.setDateTime(dateTime);
         a.setStatus(status);
         a.setDuration(30);
+        // Contact email captured at booking — used by the confirmation triggers.
+        a.setPatientEmail("patient@example.com");
         return a;
     }
 

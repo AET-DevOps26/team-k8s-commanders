@@ -44,7 +44,3 @@ management:
   endpoint:
     prometheus:
       enabled: true
-
-caredesk:
-  seed:
-    test-patients: ${CAREDESK_SEED_TEST_PATIENTS:false}

@@ -1,5 +1,6 @@
 package com.caredesk.patient.service;
 
+import org.openapitools.model.PaginatedUserProfileResponse;
 import org.openapitools.model.UserProfile;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
@@ -60,5 +61,18 @@ public class AuthServiceClient {
             // Network errors, timeouts, etc. Caller falls back to id-only profile.
             return null;
         }
+    }
+
+    /**
+     * Searches enabled doctors owned by auth-service. Unlike {@link #getUserById},
+     * failures are not swallowed: an empty list is indistinguishable from "no
+     * doctors", so the error propagates and the listing surfaces as 5xx.
+     */
+    public PaginatedUserProfileResponse searchDoctors(String q, String specialization, int page, int size) {
+        return restClient.get()
+                .uri("/internal/doctors?q={q}&specialization={specialization}&page={page}&size={size}",
+                        q, specialization, page, size)
+                .retrieve()
+                .body(PaginatedUserProfileResponse.class);
     }
 }

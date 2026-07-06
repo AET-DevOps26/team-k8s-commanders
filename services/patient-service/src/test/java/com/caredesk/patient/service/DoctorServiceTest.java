@@ -1,22 +1,18 @@
 package com.caredesk.patient.service;
 
-import com.caredesk.patient.model.DoctorProfile;
 import com.caredesk.patient.model.DoctorSlot;
-import com.caredesk.patient.repository.DoctorProfileRepository;
 import com.caredesk.patient.repository.DoctorSlotRepository;
 import org.junit.jupiter.api.Test;
+import org.openapitools.model.PageMeta;
 import org.openapitools.model.PaginatedUserProfileResponse;
 import org.openapitools.model.Schedule;
 import org.openapitools.model.ScheduleSlot;
 import org.openapitools.model.ScheduleSlotCreate;
 import org.openapitools.model.UserProfile;
 import org.openapitools.model.UserRole;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.PageRequest;
 
 import java.time.OffsetDateTime;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -30,52 +26,44 @@ import static org.mockito.Mockito.when;
 
 class DoctorServiceTest {
 
-    private final DoctorProfileRepository doctorProfileRepository = mock(DoctorProfileRepository.class);
     private final DoctorSlotRepository doctorSlotRepository = mock(DoctorSlotRepository.class);
     private final ScheduleSlotMapper scheduleSlotMapper = new ScheduleSlotMapper();
     private final AuthServiceClient authServiceClient = mock(AuthServiceClient.class);
     private final DoctorService service = new DoctorService(
-            doctorProfileRepository, doctorSlotRepository, scheduleSlotMapper, authServiceClient);
+            doctorSlotRepository, scheduleSlotMapper, authServiceClient);
 
     @Test
-    void listDoctors_mapsSearchResults() {
-        DoctorProfile doctor = doctor();
-        when(doctorProfileRepository.search(eq("general"), eq("medicine"), any()))
-                .thenReturn(new PageImpl<>(List.of(doctor), PageRequest.of(0, 20), 1));
+    void listDoctors_readsThroughToAuthService() {
+        PaginatedUserProfileResponse expected = response(doctor(UUID.randomUUID(), "Doctor"));
+        when(authServiceClient.searchDoctors(eq("general"), eq("medicine"), eq(0), eq(20)))
+                .thenReturn(expected);
 
         PaginatedUserProfileResponse response = service.listDoctors(" general ", " medicine ", 0, 20);
 
-        assertThat(response.getContent()).hasSize(1);
-        assertThat(response.getContent().getFirst().getId()).isEqualTo(doctor.getId());
-        assertThat(response.getContent().getFirst().getSpecialization()).isEqualTo("General Medicine");
-        assertThat(response.getPage().getTotalElements()).isEqualTo(1);
+        assertThat(response).isSameAs(expected);
     }
 
     @Test
     void listDoctors_usesEmptySearchTerms_whenFiltersAreBlank() {
-        DoctorProfile doctor = doctor();
-        when(doctorProfileRepository.search(eq(""), eq(""), any()))
-                .thenReturn(new PageImpl<>(List.of(doctor), PageRequest.of(0, 12), 1));
+        PaginatedUserProfileResponse expected = response(doctor(UUID.randomUUID(), "Doctor"));
+        when(authServiceClient.searchDoctors(eq(""), eq(""), eq(0), eq(12))).thenReturn(expected);
 
         PaginatedUserProfileResponse response = service.listDoctors(null, " ", 0, 12);
 
-        assertThat(response.getContent()).hasSize(1);
-        assertThat(response.getContent().getFirst().getName()).isEqualTo("Doctor");
+        assertThat(response).isSameAs(expected);
     }
 
     @Test
     void getProfile_returnsAuthServiceProfile_whenFound() {
         UUID doctorId = UUID.randomUUID();
-        UserProfile authProfile = new UserProfile(doctorId, "Dr Who", "who@tardis.com",
-                org.openapitools.model.UserRole.DOCTOR);
+        UserProfile authProfile = doctor(doctorId, "Dr Who");
         when(authServiceClient.getUserById(doctorId)).thenReturn(authProfile);
 
         UserProfile profile = service.getProfile(doctorId);
 
         assertThat(profile.getId()).isEqualTo(doctorId);
         assertThat(profile.getName()).isEqualTo("Dr Who");
-        assertThat(profile.getEmail()).isEqualTo("who@tardis.com");
-        assertThat(profile.getRole()).isEqualTo(org.openapitools.model.UserRole.DOCTOR);
+        assertThat(profile.getRole()).isEqualTo(UserRole.DOCTOR);
     }
 
     @Test
@@ -120,12 +108,38 @@ class DoctorServiceTest {
     }
 
     @Test
+    void verifyDoctorExists_passes_forAuthDoctor() {
+        UUID doctorId = UUID.randomUUID();
+        when(authServiceClient.getUserById(doctorId)).thenReturn(doctor(doctorId, "Dr. Admin Created"));
+
+        service.verifyDoctorExists(doctorId);
+    }
+
+    @Test
+    void verifyDoctorExists_rejectsUnknownUser() {
+        UUID doctorId = UUID.randomUUID();
+        when(authServiceClient.getUserById(doctorId)).thenReturn(null);
+
+        assertThatThrownBy(() -> service.verifyDoctorExists(doctorId))
+                .isInstanceOf(DoctorNotFoundException.class);
+    }
+
+    @Test
+    void verifyDoctorExists_rejectsNonDoctorRole() {
+        UUID doctorId = UUID.randomUUID();
+        UserProfile patient = new UserProfile(doctorId, "Pat", "pat@x.com", UserRole.PATIENT);
+        when(authServiceClient.getUserById(doctorId)).thenReturn(patient);
+
+        assertThatThrownBy(() -> service.verifyDoctorExists(doctorId))
+                .isInstanceOf(DoctorNotFoundException.class);
+    }
+
+    @Test
     void createScheduleSlot_persistsAvailableSlot() {
         UUID doctorId = UUID.randomUUID();
         OffsetDateTime startAt = OffsetDateTime.parse("2035-06-08T09:00:00Z");
         OffsetDateTime endAt = startAt.plusMinutes(45);
         ScheduleSlotCreate request = new ScheduleSlotCreate(startAt, endAt);
-        when(doctorProfileRepository.findByIdForUpdate(doctorId)).thenReturn(Optional.of(doctor()));
         when(doctorSlotRepository.existsOverlappingSlot(doctorId, startAt, endAt)).thenReturn(false);
         when(doctorSlotRepository.save(any(DoctorSlot.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -134,27 +148,7 @@ class DoctorServiceTest {
         assertThat(slot.getStartAt()).isEqualTo(startAt);
         assertThat(slot.getEndAt()).isEqualTo(endAt);
         assertThat(slot.getAvailable()).isTrue();
-        verify(doctorSlotRepository).save(any(DoctorSlot.class));
-    }
-
-    @Test
-    void createScheduleSlot_acceptsAuthDoctorWithoutLocalProfile() {
-        UUID doctorId = UUID.randomUUID();
-        OffsetDateTime startAt = OffsetDateTime.parse("2035-06-08T09:00:00Z");
-        OffsetDateTime endAt = startAt.plusMinutes(45);
-        ScheduleSlotCreate request = new ScheduleSlotCreate(startAt, endAt);
-        UserProfile authDoctor = new UserProfile(
-                doctorId, "Dr. Admin Created", "doctor@clinic.com", UserRole.DOCTOR);
-        when(doctorProfileRepository.findByIdForUpdate(doctorId)).thenReturn(Optional.empty());
-        when(authServiceClient.getUserById(doctorId)).thenReturn(authDoctor);
-        when(doctorSlotRepository.existsOverlappingSlot(doctorId, startAt, endAt)).thenReturn(false);
-        when(doctorSlotRepository.save(any(DoctorSlot.class))).thenAnswer(invocation -> invocation.getArgument(0));
-
-        ScheduleSlot slot = service.createScheduleSlot(doctorId, request);
-
-        assertThat(slot.getStartAt()).isEqualTo(startAt);
-        assertThat(slot.getEndAt()).isEqualTo(endAt);
-        assertThat(slot.getAvailable()).isTrue();
+        verify(doctorSlotRepository).lockForSlotWrite(doctorId);
         verify(doctorSlotRepository).save(any(DoctorSlot.class));
     }
 
@@ -164,7 +158,6 @@ class DoctorServiceTest {
         OffsetDateTime startAt = OffsetDateTime.parse("2035-06-08T09:00:00Z");
         OffsetDateTime endAt = startAt.plusMinutes(30);
         ScheduleSlotCreate request = new ScheduleSlotCreate(startAt, endAt);
-        when(doctorProfileRepository.findByIdForUpdate(doctorId)).thenReturn(Optional.of(doctor()));
         when(doctorSlotRepository.existsOverlappingSlot(doctorId, startAt, endAt)).thenReturn(true);
 
         assertThatThrownBy(() -> service.createScheduleSlot(doctorId, request))
@@ -185,15 +178,15 @@ class DoctorServiceTest {
         verify(doctorSlotRepository, never()).save(any());
     }
 
-    private static DoctorProfile doctor() {
-        DoctorProfile doctor = new DoctorProfile();
-        doctor.setId(UUID.randomUUID());
-        doctor.setName("Doctor");
-        doctor.setEmail("doctor@doctor.com");
-        doctor.setSpecialization("General Medicine");
-        doctor.setLicenseNumber("DE-CARE-1001");
-        doctor.setClinicId(UUID.randomUUID());
-        return doctor;
+    private static UserProfile doctor(UUID id, String name) {
+        UserProfile profile = new UserProfile(id, name, "doctor@clinic.com", UserRole.DOCTOR);
+        profile.setSpecialization("General Medicine");
+        return profile;
+    }
+
+    private static PaginatedUserProfileResponse response(UserProfile... doctors) {
+        return new PaginatedUserProfileResponse(
+                List.of(doctors), new PageMeta(0, 20, (long) doctors.length, 1));
     }
 
     private static DoctorSlot slot(UUID doctorId, OffsetDateTime startAt, boolean available) {

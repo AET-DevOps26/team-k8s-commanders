@@ -2,11 +2,16 @@ package com.caredesk.auth.service;
 
 import com.caredesk.auth.model.User;
 import com.caredesk.auth.repository.UserRepository;
+import org.openapitools.model.PageMeta;
+import org.openapitools.model.PaginatedUserProfileResponse;
 import org.openapitools.model.UserProfile;
 import org.openapitools.model.UserRole;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -39,6 +44,26 @@ public class UserService {
      */
     public UserProfile findById(UUID id) {
         return userRepository.findById(id).map(UserService::toUserProfile).orElse(null);
+    }
+
+    /**
+     * Searches enabled doctors by name / specialization for the internal
+     * doctor-directory endpoint that patient-service composes into its
+     * {@code /doctors} listing.
+     */
+    public PaginatedUserProfileResponse searchDoctors(String q, String specialization, int page, int size) {
+        Page<User> result = userRepository.searchDoctors(
+                blankToEmpty(q), blankToEmpty(specialization), PageRequest.of(page, size));
+        List<UserProfile> content = result.getContent().stream()
+                .map(UserService::toUserProfile)
+                .toList();
+        PageMeta meta = new PageMeta(result.getNumber(), result.getSize(),
+                result.getTotalElements(), result.getTotalPages());
+        return new PaginatedUserProfileResponse(content, meta);
+    }
+
+    private static String blankToEmpty(String value) {
+        return value == null || value.isBlank() ? "" : value.trim();
     }
 
     /**

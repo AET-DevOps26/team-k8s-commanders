@@ -24,6 +24,16 @@ public interface DoctorSlotRepository extends JpaRepository<DoctorSlot, UUID> {
      */
     List<DoctorSlot> findByDoctorId(UUID doctorId);
 
+    /**
+     * Serializes slot writes per doctor for the current transaction. Replaces the
+     * row lock that the removed doctor_profiles table used to provide, so the
+     * overlap check in {@code createScheduleSlot} stays race-free without a local
+     * doctor row to lock. The cast to text yields an empty string return value.
+     */
+    @Query(value = "select cast(pg_advisory_xact_lock(hashtext(cast(:doctorId as text))) as text)",
+            nativeQuery = true)
+    String lockForSlotWrite(@Param("doctorId") UUID doctorId);
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("""
             select slot from DoctorSlot slot

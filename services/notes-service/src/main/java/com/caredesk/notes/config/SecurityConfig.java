@@ -58,8 +58,9 @@ public class SecurityConfig {
                         // Spring forwards errors internally to /error — must be reachable
                         // without authentication or the real status code is swallowed by 401.
                         .requestMatchers("/error").permitAll()
-                        // Note endpoints are restricted to doctors; ownership is enforced
-                        // per-request in the controller and service.
+                        // Note endpoints are restricted to doctors. Reads are shared
+                        // across doctors (clinical-record continuity); authoring is
+                        // enforced per-request for writes and deletes in the service.
                         .requestMatchers(HttpMethod.GET, "/appointments/*/note").hasRole("DOCTOR")
                         .requestMatchers(HttpMethod.PUT, "/appointments/*/note").hasRole("DOCTOR")
                         .requestMatchers(HttpMethod.DELETE, "/appointments/*/note").hasRole("DOCTOR")

@@ -46,19 +46,19 @@ public class NotesController implements AppointmentsApi {
     /**
      * Returns the clinical note for an appointment.
      *
+     * <p>Any doctor may read any note, matching the shared clinical-record model
+     * used for the patient chart (a doctor reads a patient's full history for
+     * continuity of care). Authoring is only enforced on writes and deletes.
+     *
      * @param appointmentId the appointment id
      * @return 200 with the note, or 204 if no note has been written yet
      */
     @Override
     public ResponseEntity<ClinicalNote> getAppointmentNote(UUID appointmentId) {
-        UUID doctorId = currentDoctorId();
         com.caredesk.notes.model.ClinicalNote note = notesService.getByAppointment(appointmentId)
                 .orElse(null);
         if (note == null) {
             return ResponseEntity.noContent().build();
-        }
-        if (!note.getDoctorId().equals(doctorId)) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Not your appointment");
         }
         return ResponseEntity.ok(NoteMapper.toModel(note));
     }

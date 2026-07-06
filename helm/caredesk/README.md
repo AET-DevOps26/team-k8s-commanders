@@ -95,18 +95,20 @@ does **not**, so locally the policies are harmless no-ops. Disable with
 ### AET namespace CPU/memory quota
 
 The `team-k8s-commanders` namespace on the AET Rancher cluster enforces
-**`limits.cpu=6000m`** / **`limits.memory=8192Mi`**. The chart defaults
-(monitoring included) are sized to fit with headroom:
+**`limits.cpu=6000m`** / **`limits.memory=8192Mi`**. The chart defaults are
+sized to fit with headroom:
 
 | Component | CPU limit | Mem limit | Count | CPU total | Mem total |
 |-----------|-----------|-----------|-------|-----------|-----------|
 | Backend services | 400m | 512–768Mi | 6 | 2400m | 4096Mi |
 | PostgreSQL | 250m | 256Mi | 5 | 1250m | 1280Mi |
 | web-client | 200m | 128Mi | 1 | 200m | 128Mi |
-| Prometheus + Grafana | — | — | — | 350m | 768Mi |
-| **Steady state** | | | | **4200m** | **6272Mi** |
+| **Steady state** | | | | **3850m** | **5504Mi** |
 
-That leaves ~1800m CPU / ~1920Mi memory spare.
+That leaves ~2150m CPU / ~2688Mi memory spare. Prometheus + Grafana deploy
+separately into the `team-k8s-commanders-monitoring` namespace via the
+[caredesk-monitoring chart](../caredesk-monitoring/), so they no longer count
+against this namespace's quota.
 
 All Deployments use **`Recreate`** strategy (not `RollingUpdate`) so image
 rollouts terminate the old pod before starting the new one. That avoids
@@ -152,6 +154,7 @@ A `Makefile` wrapper (`make deploy` / `make undeploy`, driven by an optional
 |----------|---------|--------|
 | `publish.yml` | push to `main` touching `services/**` or `web-client/**` | Build + push all 6 images to GHCR (matrix: web-client, api-gateway, auth-service, patient-service, notes-service, ai-assistant) |
 | `deploy-k8s.yml` | after Publish Images succeeds, or manual `workflow_dispatch` | `helm upgrade --install` against the AET cluster (image tag = `sha-<short>` or `latest`) |
+| `deploy-k8s-monitoring.yml` | push to `main` touching `helm/caredesk-monitoring/**` or `infra/grafana/**`, or manual `workflow_dispatch` | Deploys Prometheus + Grafana ([caredesk-monitoring chart](../caredesk-monitoring/)) into the `team-k8s-commanders-monitoring` namespace |
 
 Helm-only changes deploy via **Actions → Deploy to AET Cluster → Run workflow**
 (manual dispatch uses the `latest` image tag). The workflow no longer triggers on
@@ -187,7 +190,7 @@ update** — Kubernetes keeps old pods while starting new ones, which can exceed
 the namespace's `limits.cpu=6000m` / `limits.memory=8192Mi`.
 
 The chart now uses **Recreate** deployments so old and new pods never overlap
-(steady state: 4200m CPU / 6272Mi memory with monitoring enabled). If a previous
+(steady state: 3850m CPU / 5504Mi memory). If a previous
 failed rollout left stuck ReplicaSets, clean up and redeploy:
 
 ```bash

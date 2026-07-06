@@ -1,35 +1,39 @@
-{{- if .Values.monitoring.enabled -}}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "caredesk.fullname" . }}-prometheus
+  name: {{ include "caredesk-monitoring.fullname" . }}-prometheus
   labels:
-    {{- include "caredesk.labels" . | nindent 4 }}
+    {{- include "caredesk-monitoring.labels" . | nindent 4 }}
     app.kubernetes.io/component: prometheus
 spec:
   replicas: 1
   strategy:
+    # Recreate: the TSDB PVC is ReadWriteOnce, so the old pod must release it
+    # before the new one can mount it.
     type: Recreate
   selector:
     matchLabels:
-      {{- include "caredesk.selectorLabels" (dict "root" . "component" "prometheus") | nindent 6 }}
+      {{- include "caredesk-monitoring.selectorLabels" (dict "root" . "component" "prometheus") | nindent 6 }}
   template:
     metadata:
       labels:
-        {{- include "caredesk.selectorLabels" (dict "root" . "component" "prometheus") | nindent 8 }}
+        {{- include "caredesk-monitoring.selectorLabels" (dict "root" . "component" "prometheus") | nindent 8 }}
+      annotations:
+        # Prometheus has no config auto-reload; a changed pod-spec hash forces a
+        # rollout when the scrape config (incl. .Values.prometheus.targets) changes.
+        checksum/config: {{ include (print $.Template.BasePath "/prometheus-configmap.yaml") . | sha256sum }}
     spec:
-      {{- include "caredesk.imagePullSecrets" . | nindent 6 }}
       securityContext:
         runAsNonRoot: true
         runAsUser: 65534
         fsGroup: 65534
       containers:
         - name: prometheus
-          image: {{ .Values.monitoring.image }}
+          image: {{ .Values.prometheus.image }}
           args:
             - '--config.file=/etc/prometheus/prometheus.yml'
             - '--storage.tsdb.path=/prometheus'
-            - '--storage.tsdb.retention.time={{ .Values.monitoring.retention }}'
+            - '--storage.tsdb.retention.time={{ .Values.prometheus.retention }}'
           ports:
             - name: http
               containerPort: 9090
@@ -41,7 +45,7 @@ spec:
             - name: data
               mountPath: /prometheus
           resources:
-            {{- toYaml .Values.monitoring.resources | nindent 12 }}
+            {{- toYaml .Values.prometheus.resources | nindent 12 }}
           livenessProbe:
             httpGet:
               path: /-/healthy
@@ -57,8 +61,7 @@ spec:
       volumes:
         - name: config
           configMap:
-            name: {{ include "caredesk.fullname" . }}-prometheus
+            name: {{ include "caredesk-monitoring.fullname" . }}-prometheus
         - name: data
           persistentVolumeClaim:
-            claimName: {{ include "caredesk.fullname" . }}-prometheus
-{{- end }}
+            claimName: {{ include "caredesk-monitoring.fullname" . }}-prometheus

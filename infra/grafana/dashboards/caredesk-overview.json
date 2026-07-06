@@ -106,8 +106,47 @@
       "type": "stat"
     },
     {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "description": "Which version (image tag) each service is running. Spring services attach APP_VERSION as a Micrometer common tag; the AI assistant exposes it via app_info.",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {"align": "left", "cellOptions": {"type": "auto"}, "filterable": false}
+        },
+        "overrides": []
+      },
+      "gridPos": {"h": 6, "w": 24, "x": 0, "y": 5},
+      "id": 13,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {"countRows": false, "fields": "", "reducer": ["sum"], "show": false},
+        "showHeader": true,
+        "sortBy": [{"desc": false, "displayName": "Service"}]
+      },
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "expr": "group by (job, version) (process_uptime_seconds or app_info)",
+          "format": "table",
+          "instant": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Deployed Versions",
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {"Time": true, "Value": true},
+            "indexByName": {"job": 0, "version": 1},
+            "renameByName": {"job": "Service", "version": "Version"}
+          }
+        }
+      ],
+      "type": "table"
+    },
+    {
       "collapsed": false,
-      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 5},
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 11},
       "id": 11,
       "title": "HTTP Traffic",
       "type": "row"
@@ -131,7 +170,7 @@
         },
         "overrides": []
       },
-      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 6},
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 12},
       "id": 2,
       "options": {
         "legend": {"calcs": ["mean", "max"], "displayMode": "table", "placement": "bottom"},
@@ -172,7 +211,7 @@
           }
         ]
       },
-      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 6},
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 12},
       "id": 3,
       "options": {
         "legend": {"calcs": ["mean", "max"], "displayMode": "table", "placement": "bottom"},
@@ -191,7 +230,7 @@
     },
     {
       "collapsed": false,
-      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 14},
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 20},
       "id": 12,
       "title": "Latency",
       "type": "row"
@@ -215,7 +254,7 @@
         },
         "overrides": []
       },
-      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 15},
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 21},
       "id": 4,
       "options": {
         "legend": {"calcs": ["mean", "max"], "displayMode": "table", "placement": "bottom"},
@@ -251,7 +290,7 @@
         },
         "overrides": []
       },
-      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 15},
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 21},
       "id": 5,
       "options": {
         "legend": {"calcs": ["mean", "max"], "displayMode": "table", "placement": "bottom"},

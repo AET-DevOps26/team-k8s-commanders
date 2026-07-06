@@ -1,9 +1,7 @@
 package com.caredesk.patient.service;
 
 import com.caredesk.patient.model.Appointment;
-import com.caredesk.patient.model.Patient;
 import com.caredesk.patient.repository.AppointmentRepository;
-import com.caredesk.patient.repository.PatientRepository;
 import org.junit.jupiter.api.Test;
 import org.openapitools.model.AppointmentStatus;
 import org.openapitools.model.PaginatedAppointmentResponse;
@@ -16,7 +14,6 @@ import org.springframework.data.domain.PageRequest;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -26,30 +23,25 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 /**
- * Unit tests for {@link PatientService}. Backed by mocked repositories so the
+ * Unit tests for {@link PatientService}. Backed by mocked collaborators so the
  * tests do not need a database.
  */
 class PatientServiceTest {
 
-    private final PatientRepository patientRepository = mock(PatientRepository.class);
     private final AppointmentRepository appointmentRepository = mock(AppointmentRepository.class);
     private final AppointmentMapper appointmentMapper = new AppointmentMapper();
     private final AuthServiceClient authServiceClient = mock(AuthServiceClient.class);
     private final PatientService service = new PatientService(
-            patientRepository, appointmentRepository, appointmentMapper, authServiceClient);
+            appointmentRepository, appointmentMapper, authServiceClient);
 
     @Test
-    void getProfile_mergesAuthIdentityWithLocalFields() {
+    void getProfile_returnsAuthServiceIdentity() {
         UUID id = UUID.randomUUID();
         UserProfile authProfile = new UserProfile(id, "Alice", "alice@x.com",
                 org.openapitools.model.UserRole.PATIENT);
+        authProfile.setDateOfBirth(LocalDate.of(1990, 1, 15));
+        authProfile.setPhoneNumber("+44 20 1234 5678");
         when(authServiceClient.getUserById(id)).thenReturn(authProfile);
-
-        Patient patient = new Patient();
-        patient.setId(id);
-        patient.setDateOfBirth(LocalDate.of(1990, 1, 15));
-        patient.setPhoneNumber("+44 20 1234 5678");
-        when(patientRepository.findById(id)).thenReturn(Optional.of(patient));
 
         UserProfile profile = service.getProfile(id);
 
@@ -62,25 +54,9 @@ class PatientServiceTest {
     }
 
     @Test
-    void getProfile_returnsAuthIdentityOnly_whenNoLocalPatientRow() {
-        UUID id = UUID.randomUUID();
-        UserProfile authProfile = new UserProfile(id, "Bob", "bob@x.com",
-                org.openapitools.model.UserRole.PATIENT);
-        when(authServiceClient.getUserById(id)).thenReturn(authProfile);
-        when(patientRepository.findById(id)).thenReturn(Optional.empty());
-
-        UserProfile profile = service.getProfile(id);
-
-        assertThat(profile.getName()).isEqualTo("Bob");
-        assertThat(profile.getDateOfBirth()).isNull();
-        assertThat(profile.getPhoneNumber()).isNull();
-    }
-
-    @Test
     void getProfile_fallsBackToIdOnly_whenAuthServiceMisses() {
         UUID id = UUID.randomUUID();
         when(authServiceClient.getUserById(id)).thenReturn(null);
-        when(patientRepository.findById(id)).thenReturn(Optional.empty());
 
         UserProfile profile = service.getProfile(id);
 

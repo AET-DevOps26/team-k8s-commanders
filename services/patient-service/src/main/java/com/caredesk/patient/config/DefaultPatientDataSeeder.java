@@ -1,6 +1,5 @@
 package com.caredesk.patient.config;
 
-import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
@@ -13,61 +12,34 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
 import com.caredesk.patient.model.Appointment;
-import com.caredesk.patient.model.DoctorProfile;
 import com.caredesk.patient.model.DoctorSlot;
-import com.caredesk.patient.model.Patient;
 import com.caredesk.patient.repository.AppointmentRepository;
-import com.caredesk.patient.repository.DoctorProfileRepository;
 import com.caredesk.patient.repository.DoctorSlotRepository;
-import com.caredesk.patient.repository.PatientRepository;
 
+/**
+ * Seeds clinical data (slots and appointments) for the dev doctor / patient
+ * that auth-service's {@code DefaultUserSeeder} owns. The referenced identities
+ * live in auth-service; this seeder only owns the scheduling data keyed by their ids.
+ */
 @Component
 @Profile("dev")
 public class DefaultPatientDataSeeder implements ApplicationRunner {
 
     private static final UUID PATIENT_ID = UUID.fromString("11111111-1111-1111-1111-111111111111");
     private static final UUID DOCTOR_ID = UUID.fromString("22222222-2222-2222-2222-222222222222");
-    private static final UUID CLINIC_ID = UUID.fromString("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
 
-    private final PatientRepository patientRepository;
-    private final DoctorProfileRepository doctorProfileRepository;
     private final DoctorSlotRepository doctorSlotRepository;
     private final AppointmentRepository appointmentRepository;
 
-    public DefaultPatientDataSeeder(PatientRepository patientRepository,
-                                    DoctorProfileRepository doctorProfileRepository,
-                                    DoctorSlotRepository doctorSlotRepository,
+    public DefaultPatientDataSeeder(DoctorSlotRepository doctorSlotRepository,
                                     AppointmentRepository appointmentRepository) {
-        this.patientRepository = patientRepository;
-        this.doctorProfileRepository = doctorProfileRepository;
         this.doctorSlotRepository = doctorSlotRepository;
         this.appointmentRepository = appointmentRepository;
     }
 
     @Override
     public void run(ApplicationArguments args) {
-        seedPatient();
-        seedDoctor();
         seedSchedule();
-    }
-
-    private void seedPatient() {
-        Patient patient = patientRepository.findById(PATIENT_ID).orElseGet(Patient::new);
-        patient.setId(PATIENT_ID);
-        patient.setPhoneNumber("+49 89 123456");
-        patient.setDateOfBirth(LocalDate.parse("1990-04-12"));
-        patientRepository.save(patient);
-    }
-
-    private void seedDoctor() {
-        DoctorProfile doctor = doctorProfileRepository.findById(DOCTOR_ID).orElseGet(DoctorProfile::new);
-        doctor.setId(DOCTOR_ID);
-        doctor.setName("Doctor");
-        doctor.setEmail("doctor@doctor.com");
-        doctor.setSpecialization("General Medicine");
-        doctor.setLicenseNumber("DE-CARE-1001");
-        doctor.setClinicId(CLINIC_ID);
-        doctorProfileRepository.save(doctor);
     }
 
     private void seedSchedule() {

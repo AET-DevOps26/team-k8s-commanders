@@ -66,6 +66,8 @@ services:
       ai-db:
         condition: service_healthy
     environment:
+      # Surfaces in the app_info metric — the deployed image tag.
+      APP_VERSION: ${IMAGE_TAG:-latest}
       LLM_PROVIDER: ${LLM_PROVIDER:?LLM_PROVIDER must be set}
       LLM_MODEL: ${LLM_MODEL:?LLM_MODEL must be set}
       OPENWEBUI_BASE_URL: ${OPENWEBUI_BASE_URL:-}
@@ -113,6 +115,8 @@ services:
       auth-db:
         condition: service_healthy
     environment:
+      # Surfaces as the `version` tag on all metrics — the deployed image tag.
+      APP_VERSION: ${IMAGE_TAG:-latest}
       DB_HOST: auth-db
       DB_PORT: 5432
       DB_NAME: ${AUTH_DB_NAME:?AUTH_DB_NAME must be set}
@@ -160,6 +164,8 @@ services:
       patient-db:
         condition: service_healthy
     environment:
+      # Surfaces as the `version` tag on all metrics — the deployed image tag.
+      APP_VERSION: ${IMAGE_TAG:-latest}
       DB_HOST: patient-db
       DB_PORT: 5432
       DB_NAME: ${PATIENT_DB_NAME:?PATIENT_DB_NAME must be set}
@@ -206,6 +212,8 @@ services:
       notes-db:
         condition: service_healthy
     environment:
+      # Surfaces as the `version` tag on all metrics — the deployed image tag.
+      APP_VERSION: ${IMAGE_TAG:-latest}
       DB_HOST: notes-db
       DB_PORT: 5432
       DB_NAME: ${NOTES_DB_NAME:?NOTES_DB_NAME must be set}
@@ -260,6 +268,8 @@ services:
       notification-db:
         condition: service_healthy
     environment:
+      # Surfaces as the `version` tag on all metrics — the deployed image tag.
+      APP_VERSION: ${IMAGE_TAG:-latest}
       DB_HOST: notification-db
       DB_PORT: 5432
       DB_NAME: ${NOTIFICATION_DB_NAME:?NOTIFICATION_DB_NAME must be set}
@@ -303,6 +313,8 @@ services:
       notification-service:
         condition: service_healthy
     environment:
+      # Surfaces as the `version` tag on all metrics — the deployed image tag.
+      APP_VERSION: ${IMAGE_TAG:-latest}
       AUTH_SERVICE_URL: http://auth-service:8081
       AI_ASSISTANT_URL: http://ai-assistant:8000
       PATIENT_SERVICE_URL: http://patient-service:8082
@@ -348,6 +360,10 @@ services:
       GF_SERVER_ROOT_URL: ${GRAFANA_ROOT_URL:-https://localhost/grafana}
       GF_SERVER_SERVE_FROM_SUB_PATH: "true"
       PROMETHEUS_URL: http://prometheus:9090
+      # Alert delivery (provisioning/alerting/contact-points.yaml). The
+      # placeholder keeps Grafana provisioning valid when no webhook is set —
+      # alerts then only show in the UI.
+      DISCORD_WEBHOOK_URL: ${DISCORD_WEBHOOK_URL:-https://alerts-disabled.invalid/discord}
     volumes:
       - ./infra/grafana/provisioning:/etc/grafana/provisioning:ro
       - ./infra/grafana/dashboards:/var/lib/grafana/dashboards:ro

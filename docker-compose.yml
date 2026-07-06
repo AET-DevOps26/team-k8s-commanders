@@ -64,6 +64,8 @@ services:
       dockerfile: Dockerfile
     restart: unless-stopped
     environment:
+      # Surfaces in the app_info metric; compose builds from source, so no image tag.
+      APP_VERSION: local
       LLM_PROVIDER: openwebui
       LLM_MODEL: llama3.2
       LLM_API_KEY: ollama
@@ -144,6 +146,8 @@ services:
         condition: service_healthy
     # No published port — only reachable inside the compose network via the gateway.
     environment:
+      # Surfaces as the `version` tag on all metrics; compose builds from source.
+      APP_VERSION: local
       DB_HOST: auth-db
       DB_PORT: 5432
       DB_NAME: auth_db
@@ -198,6 +202,8 @@ services:
         condition: service_healthy
     # No published port — only reachable inside the compose network via the gateway.
     environment:
+      # Surfaces as the `version` tag on all metrics; compose builds from source.
+      APP_VERSION: local
       DB_HOST: patient-db
       DB_PORT: 5432
       DB_NAME: patient_db
@@ -253,6 +259,8 @@ services:
         condition: service_healthy
     # No published port — only reachable inside the compose network via the gateway.
     environment:
+      # Surfaces as the `version` tag on all metrics; compose builds from source.
+      APP_VERSION: local
       DB_HOST: notes-db
       DB_PORT: 5432
       DB_NAME: notes_db
@@ -317,6 +325,8 @@ services:
         condition: service_healthy
     # No published port — only reachable inside the compose network via the gateway.
     environment:
+      # Surfaces as the `version` tag on all metrics; compose builds from source.
+      APP_VERSION: local
       DB_HOST: notification-db
       DB_PORT: 5432
       DB_NAME: notification_db
@@ -358,6 +368,8 @@ services:
     ports:
       - "8080:8080"
     environment:
+      # Surfaces as the `version` tag on all metrics; compose builds from source.
+      APP_VERSION: local
       AUTH_SERVICE_URL: http://auth-service:8081
       AI_ASSISTANT_URL: http://ai-assistant:8000
       PATIENT_SERVICE_URL: http://patient-service:8082
@@ -405,6 +417,10 @@ services:
       GF_SERVER_ROOT_URL: http://localhost/grafana
       GF_SERVER_SERVE_FROM_SUB_PATH: "true"
       PROMETHEUS_URL: http://prometheus:9090
+      # Alert delivery (provisioning/alerting/contact-points.yaml). The
+      # placeholder keeps Grafana provisioning valid when no webhook is set —
+      # alerts then only show in the UI. Set a real URL in .env to deliver.
+      DISCORD_WEBHOOK_URL: ${DISCORD_WEBHOOK_URL:-https://alerts-disabled.invalid/discord}
     volumes:
       - ./infra/grafana/provisioning:/etc/grafana/provisioning:ro
       - ./infra/grafana/dashboards:/var/lib/grafana/dashboards:ro

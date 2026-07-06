@@ -24,7 +24,10 @@
 	# All API traffic goes through the gateway, which validates JWTs and
 	# routes to the backend services. The /api/v1 prefix is preserved (the
 	# gateway routes on it), matching the previous nginx behaviour.
-	handle /api/v1/* {
+	# Match the bare /api/v1 as well as subpaths — /api/v1/* alone would miss
+	# the exact path (Caddy path matchers don't treat the trailing / as optional).
+	@api path /api/v1 /api/v1/*
+	handle @api {
 		reverse_proxy api-gateway:8080
 	}
 

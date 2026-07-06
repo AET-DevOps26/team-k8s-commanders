@@ -1,0 +1,336 @@
+# Grafana-managed alert rules, provisioned on startup.
+#
+# Single source of truth shared by both deployment paths:
+#   - docker-compose mounts infra/grafana/provisioning/ into the grafana container
+#   - the Helm chart pulls this file in via a `alerting` symlink + grafana-configmap.yaml
+#
+# Rules are evaluated by Grafana's built-in alerting engine against the Prometheus
+# datasource (uid: prometheus). No Alertmanager is required. Delivery is wired in
+# contact-points.yaml (Discord webhook + default notification policy); firing
+# alerts are also always visible under Grafana → Alerting → Alert rules.
+#
+# Each rule uses a two-node model: an instant PromQL query (refId A) reduced to one
+# value per series, and a threshold expression (refId B) that is the alert condition.
+# Queries that return multiple series (e.g. one per `job`) produce one alert instance
+# per series automatically.
+apiVersion: 1
+
+groups:
+  # ------------------------------------------------------------------ #
+  # Service availability & application health                          #
+  # ------------------------------------------------------------------ #
+  - orgId: 1
+    name: caredesk-app-health
+    folder: CareDesk Alerts
+    interval: 1m
+    rules:
+      - uid: caredesk-target-down
+        title: Service target down
+        condition: B
+        for: 2m
+        # Every expected job always yields a series: `up` is 0/1 while the target
+        # is in the scrape config, and the absent() arms fill in 0 if a job is
+        # removed/renamed there (a lone missing series would otherwise be masked
+        # by the remaining healthy ones — NoData only covers the whole query).
+        noDataState: Alerting
+        execErrState: Error
+        labels:
+          severity: critical
+        annotations:
+          summary: "{{ $labels.job }} is down"
+          description: "Prometheus target {{ $labels.job }} has up == 0 (or is unreachable) for more than 2 minutes."
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              refId: A
+              instant: true
+              editorMode: code
+              expr: |
+                up{job=~"api-gateway|auth-service|patient-service|notes-service|notification-service|ai-assistant"}
+                  or (absent(up{job="api-gateway"}) * 0)
+                  or (absent(up{job="auth-service"}) * 0)
+                  or (absent(up{job="patient-service"}) * 0)
+                  or (absent(up{job="notes-service"}) * 0)
+                  or (absent(up{job="notification-service"}) * 0)
+                  or (absent(up{job="ai-assistant"}) * 0)
+              legendFormat: __auto
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              refId: B
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator:
+                    type: lt
+                    params: [1]
+
+      - uid: caredesk-http-5xx-spring
+        title: High 5xx error rate (backend services)
+        condition: B
+        for: 5m
+        # No traffic → division yields NoData; that is healthy, not an alert.
+        noDataState: OK
+        execErrState: Error
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $labels.job }} serving 5xx errors"
+          description: "More than 5% of requests to {{ $labels.job }} returned 5xx over the last 5 minutes."
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              refId: A
+              instant: true
+              editorMode: code
+              expr: |
+                sum by (job) (rate(http_server_requests_seconds_count{status=~"5.."}[5m]))
+                  /
+                sum by (job) (rate(http_server_requests_seconds_count[5m]))
+              legendFormat: __auto
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              refId: B
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator:
+                    type: gt
+                    params: [0.05]
+
+      - uid: caredesk-http-5xx-ai
+        title: High 5xx error rate (AI assistant)
+        condition: B
+        for: 5m
+        noDataState: OK
+        execErrState: Error
+        labels:
+          severity: warning
+        annotations:
+          summary: "ai-assistant serving 5xx errors"
+          description: "More than 5% of requests to the AI assistant returned 5xx over the last 5 minutes."
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              refId: A
+              instant: true
+              editorMode: code
+              expr: |
+                sum (rate(http_requests_total{job="ai-assistant",status=~"5.."}[5m]))
+                  /
+                sum (rate(http_requests_total{job="ai-assistant"}[5m]))
+              legendFormat: __auto
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              refId: B
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator:
+                    type: gt
+                    params: [0.05]
+
+      - uid: caredesk-latency-p95
+        title: High request latency (p95, backend services)
+        condition: B
+        for: 10m
+        noDataState: OK
+        execErrState: Error
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $labels.job }} p95 latency high"
+          description: "95th-percentile request latency for {{ $labels.job }} has exceeded 1.5s for 10 minutes."
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              refId: A
+              instant: true
+              editorMode: code
+              expr: |
+                histogram_quantile(
+                  0.95,
+                  sum by (job, le) (rate(http_server_requests_seconds_bucket[5m]))
+                )
+              legendFormat: __auto
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              refId: B
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator:
+                    type: gt
+                    params: [1.5]
+
+      - uid: caredesk-jvm-heap
+        title: JVM heap pressure (backend services)
+        condition: B
+        for: 10m
+        noDataState: OK
+        execErrState: Error
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $labels.job }} heap usage high"
+          description: "JVM heap usage for {{ $labels.job }} has been above 90% of max for 10 minutes."
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              refId: A
+              instant: true
+              editorMode: code
+              expr: |
+                sum by (job) (jvm_memory_used_bytes{area="heap"})
+                  /
+                sum by (job) (jvm_memory_max_bytes{area="heap"})
+              legendFormat: __auto
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              refId: B
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator:
+                    type: gt
+                    params: [0.9]
+
+  # ------------------------------------------------------------------ #
+  # Database health, derived from HikariCP connection-pool metrics that #
+  # the Spring services already export via /actuator/prometheus.        #
+  # (Postgres itself exposes no Prometheus metrics; a postgres_exporter  #
+  # would be needed for DB-internal stats — tracked as a follow-up.)     #
+  # ------------------------------------------------------------------ #
+  - orgId: 1
+    name: caredesk-databases
+    folder: CareDesk Alerts
+    interval: 1m
+    rules:
+      - uid: caredesk-db-pool-saturated
+        title: DB connection pool near saturation
+        condition: B
+        for: 5m
+        noDataState: OK
+        execErrState: Error
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $labels.job }} connection pool almost exhausted"
+          description: "Active HikariCP connections for {{ $labels.job }} have exceeded 90% of the pool maximum for 5 minutes."
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              refId: A
+              instant: true
+              editorMode: code
+              expr: |
+                hikaricp_connections_active
+                  /
+                hikaricp_connections_max
+              legendFormat: __auto
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              refId: B
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator:
+                    type: gt
+                    params: [0.9]
+
+      - uid: caredesk-db-pending
+        title: Threads waiting for a DB connection
+        condition: B
+        for: 5m
+        noDataState: OK
+        execErrState: Error
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $labels.job }} has threads waiting on the DB pool"
+          description: "One or more threads have been waiting for a HikariCP connection in {{ $labels.job }} for 5 minutes (pool undersized or DB slow)."
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              refId: A
+              instant: true
+              editorMode: code
+              expr: hikaricp_connections_pending
+              legendFormat: __auto
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              refId: B
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator:
+                    type: gt
+                    params: [0]
+
+      - uid: caredesk-db-conn-timeouts
+        title: DB connection acquisition timeouts
+        condition: B
+        for: 5m
+        noDataState: OK
+        execErrState: Error
+        labels:
+          severity: critical
+        annotations:
+          summary: "{{ $labels.job }} cannot acquire DB connections"
+          description: "HikariCP connection-acquisition timeouts are occurring for {{ $labels.job }} — the database is likely unreachable or the pool is exhausted."
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              refId: A
+              instant: true
+              editorMode: code
+              expr: rate(hikaricp_connections_timeout_total[5m])
+              legendFormat: __auto
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              refId: B
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator:
+                    type: gt
+                    params: [0]

@@ -65,6 +65,7 @@ jobs:
           GRAFANA_ADMIN_USER: ${{ vars.GRAFANA_ADMIN_USER }}
           GRAFANA_ADMIN_PASSWORD: ${{ secrets.GRAFANA_ADMIN_PASSWORD }}
           GRAFANA_ROOT_URL: "https://${{ vars.AZURE_PUBLIC_IP }}.nip.io/grafana"
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
           ADMIN_NAME: ${{ vars.ADMIN_NAME }}
           ADMIN_EMAIL: ${{ vars.ADMIN_EMAIL }}
           ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
@@ -132,6 +133,7 @@ jobs:
           write_var GRAFANA_ADMIN_USER "$GRAFANA_ADMIN_USER"
           write_var GRAFANA_ADMIN_PASSWORD "$GRAFANA_ADMIN_PASSWORD" required
           write_var GRAFANA_ROOT_URL "$GRAFANA_ROOT_URL"
+          write_var DISCORD_WEBHOOK_URL "$DISCORD_WEBHOOK_URL"
           write_var ADMIN_NAME "$ADMIN_NAME" required
           write_var ADMIN_EMAIL "$ADMIN_EMAIL" required
           write_var ADMIN_PASSWORD "$ADMIN_PASSWORD" required

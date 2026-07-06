@@ -1,0 +1,97 @@
+# CareDesk monitoring stack (Prometheus + Grafana).
+#
+# Runs in its own namespace (team-k8s-commanders-monitoring) so observability is
+# isolated from the app: separate quota accounting within the Rancher project,
+# independent upgrades, and no monitoring pods competing with the app during
+# rollouts. Prometheus scrapes the CareDesk services cross-namespace via their
+# fully-qualified Service DNS names; the caredesk chart's NetworkPolicies open
+# ingress for pods labeled app.kubernetes.io/component=prometheus coming from
+# this namespace (see helm/caredesk/templates/networkpolicy.yaml).
+
+# ─── Where the CareDesk app lives ─────────────────────────────────────────────
+# Scrape targets resolve to <release>-<service>.<namespace>.svc.cluster.local.
+app:
+  namespace: team-k8s-commanders
+  release: caredesk
+
+# ─── Prometheus (metrics collection, port 9090) ───────────────────────────────
+# Not exposed through the ingress: the Prometheus UI/API has no authentication,
+# and on the shared AET cluster that would leak metrics. Reach it with:
+#   kubectl -n team-k8s-commanders-monitoring port-forward svc/caredesk-monitoring-prometheus 9090
+prometheus:
+  image: prom/prometheus:v3.3.1
+  retention: 7d
+  storage: 2Gi
+  resources:
+    requests: { cpu: 50m,  memory: 128Mi }
+    limits:   { cpu: 150m, memory: 512Mi }
+  # One scrape job per CareDesk service. Ports mirror <svc>.service.port in
+  # helm/caredesk/values.yaml — keep the two in sync when a port changes.
+  targets:
+    - job: api-gateway
+      service: gateway
+      port: 8080
+      metricsPath: /actuator/prometheus
+    - job: auth-service
+      service: auth
+      port: 8081
+      metricsPath: /actuator/prometheus
+    - job: patient-service
+      service: patient
+      port: 8082
+      metricsPath: /actuator/prometheus
+    - job: notes-service
+      service: notes
+      port: 8083
+      metricsPath: /actuator/prometheus
+    - job: notification-service
+      service: notification
+      port: 8084
+      metricsPath: /actuator/prometheus
+    - job: ai-assistant
+      service: ai
+      port: 8000
+      metricsPath: /metrics
+
+# ─── Grafana (dashboards + alerting, port 3000) ───────────────────────────────
+# Dashboards, the Prometheus datasource, and alert rules are provisioned from
+# ConfigMaps (sourced from infra/grafana via chart symlinks — the same files the
+# docker-compose stack mounts), so Grafana itself is stateless: no PVC needed,
+# config-as-code survives restarts by construction.
+grafana:
+  image: grafana/grafana:11.2.0
+  adminUser: admin
+  # Dev default keeps `helm install` deployable with one command for local use.
+  # The k8s deploy workflow refuses to run with this value — it requires the
+  # GRAFANA_ADMIN_PASSWORD secret so Grafana never ships with a known password.
+  adminPassword: caredesk-grafana-admin
+  # Discord webhook that alert notifications are delivered to (see
+  # infra/grafana/provisioning/alerting/contact-points.yaml). Set in production
+  # via --set grafana.discordWebhookUrl=<url> (CI: DISCORD_WEBHOOK_URL secret).
+  # Empty → a non-resolving placeholder is used: Grafana boots, alerts evaluate
+  # and show in the UI, but nothing is delivered.
+  discordWebhookUrl: ""
+  resources:
+    requests: { cpu: 50m,  memory: 64Mi }
+    limits:   { cpu: 200m, memory: 256Mi }
+
+# ─── Ingress (Grafana only, served at the root path of its own host) ──────────
+ingress:
+  enabled: true
+  className: nginx
+  # If empty, _helpers renders:
+  # caredesk-monitoring-team-k8s-commanders.student.k8s.aet.cit.tum.de
+  host: ""
+  annotations: {}
+  tls:
+    enabled: true
+    clusterIssuer: letsencrypt-prod
+    secretName: caredesk-monitoring-tls
+
+# ─── NetworkPolicy ─────────────────────────────────────────────────────────────
+# Locks Prometheus down to its only legitimate caller (Grafana): the Prometheus
+# API is unauthenticated, and this namespace shares the AET cluster with other
+# teams. Grafana stays unrestricted so the ingress controller can reach it —
+# it has its own login.
+networkPolicy:
+  enabled: true

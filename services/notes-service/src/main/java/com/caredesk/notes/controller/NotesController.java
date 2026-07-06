@@ -48,7 +48,7 @@ public class NotesController implements AppointmentsApi {
      *
      * <p>Any doctor may read any note, matching the shared clinical-record model
      * used for the patient chart (a doctor reads a patient's full history for
-     * continuity of care). Authoring is only enforced on writes and deletes.
+     * continuity of care).
      *
      * @param appointmentId the appointment id
      * @return 200 with the note, or 204 if no note has been written yet
@@ -64,9 +64,10 @@ public class NotesController implements AppointmentsApi {
     }
 
     /**
-     * Creates or replaces the clinical note for an appointment. The authoring
-     * doctor is taken from the gateway-provided {@code X-User-Id} header, not
-     * from the request body.
+     * Creates or replaces the clinical note for an appointment. Any doctor may
+     * write it (shared clinical-record model); the {@code doctorId} recorded on
+     * the note is the last writer, taken from the gateway-provided
+     * {@code X-User-Id} header, not from the request body.
      *
      * @param appointmentId     the appointment the note documents
      * @param clinicalNoteInput the note content and optional diagnosis
@@ -92,15 +93,15 @@ public class NotesController implements AppointmentsApi {
     }
 
     /**
-     * Deletes the clinical note for an appointment. Only the authoring doctor
-     * may delete their own note.
+     * Deletes the clinical note for an appointment. Any doctor may delete it
+     * (shared clinical-record model).
      *
      * @param appointmentId the appointment whose note should be deleted
-     * @return 204 No Content on success, 404 if no note exists, 403 if not the author
+     * @return 204 No Content on success, 404 if no note exists
      */
     @Override
     public ResponseEntity<Void> deleteAppointmentNote(UUID appointmentId) {
-        notesService.delete(appointmentId, currentDoctorId());
+        notesService.delete(appointmentId);
         return ResponseEntity.noContent().build();
     }
 

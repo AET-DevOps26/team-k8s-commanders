@@ -8,7 +8,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.security.access.AccessDeniedException;
 
 import java.time.OffsetDateTime;
 import java.util.Optional;
@@ -87,7 +86,7 @@ class NotesServiceTest {
     }
 
     @Test
-    void deleteRemovesNoteWhenCallerIsAuthor() {
+    void deleteRemovesNote() {
         ClinicalNote existing = new ClinicalNote();
         existing.setAppointmentId(appointmentId);
         existing.setDoctorId(doctorId);
@@ -96,13 +95,13 @@ class NotesServiceTest {
 
         when(repository.findByAppointmentId(appointmentId)).thenReturn(Optional.of(existing));
 
-        notesService.delete(appointmentId, doctorId);
+        notesService.delete(appointmentId);
 
         verify(repository).delete(existing);
     }
 
     @Test
-    void deleteThrowsWhenCallerIsNotNoteAuthor() {
+    void deleteRemovesNoteAuthoredByAnotherDoctor() {
         UUID otherDoctorId = UUID.randomUUID();
 
         ClinicalNote existing = new ClinicalNote();
@@ -113,22 +112,22 @@ class NotesServiceTest {
 
         when(repository.findByAppointmentId(appointmentId)).thenReturn(Optional.of(existing));
 
-        assertThatThrownBy(() -> notesService.delete(appointmentId, doctorId))
-                .isInstanceOf(AccessDeniedException.class);
-        verify(repository, never()).delete(any());
+        notesService.delete(appointmentId);
+
+        verify(repository).delete(existing);
     }
 
     @Test
     void deleteThrowsNotFoundWhenNoNoteExists() {
         when(repository.findByAppointmentId(appointmentId)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> notesService.delete(appointmentId, doctorId))
+        assertThatThrownBy(() -> notesService.delete(appointmentId))
                 .isInstanceOf(org.springframework.web.server.ResponseStatusException.class);
         verify(repository, never()).delete(any());
     }
 
     @Test
-    void upsertThrowsWhenCallerIsNotNoteAuthor() {
+    void upsertReplacesNoteAuthoredByAnotherDoctorAndRecordsNewWriter() {
         UUID otherDoctorId = UUID.randomUUID();
 
         ClinicalNote existing = new ClinicalNote();
@@ -138,9 +137,14 @@ class NotesServiceTest {
         existing.setCreatedAt(OffsetDateTime.now().minusDays(1));
 
         when(repository.findByAppointmentId(appointmentId)).thenReturn(Optional.of(existing));
+        when(repository.save(any(ClinicalNote.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        assertThatThrownBy(() -> notesService.upsert(appointmentId, doctorId, "New content", null))
-                .isInstanceOf(AccessDeniedException.class);
+        NotesService.UpsertResult result =
+                notesService.upsert(appointmentId, doctorId, "New content", null);
+
+        assertThat(result.created()).isFalse();
+        assertThat(result.note().getContent()).isEqualTo("New content");
+        assertThat(result.note().getDoctorId()).isEqualTo(doctorId);
     }
 
     @Test

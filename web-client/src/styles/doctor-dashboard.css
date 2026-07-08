@@ -312,6 +312,38 @@
   gap: 0.75rem;
 }
 
+.weekday-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.weekday-chip {
+  min-height: 2.3rem;
+  padding: 0 0.7rem;
+  border: 1px solid rgba(19, 35, 34, 0.14);
+  border-radius: 0.55rem;
+  color: #415956;
+  background: rgba(226, 241, 235, 0.7);
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.weekday-chip-active {
+  border-color: #14615b;
+  color: #f8fbf8;
+  background: #14615b;
+}
+
+.recurring-preview {
+  margin: 0;
+  color: #5a6f6b;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
 .availability-count {
   display: inline-grid;
   min-width: 3rem;
@@ -334,11 +366,37 @@
 
 .availability-slot-card {
   display: grid;
-  grid-template-columns: minmax(8rem, 1fr) auto;
+  grid-template-columns: minmax(8rem, 1fr) auto auto;
   gap: 0.75rem;
   align-items: center;
   min-height: 3.15rem;
   padding: 0.62rem 0.72rem;
+}
+
+.availability-slot-card-booked {
+  grid-template-columns: minmax(8rem, 1fr) auto;
+}
+
+.availability-slot-delete {
+  border: 1px solid rgba(124, 31, 31, 0.28);
+  border-radius: 0.45rem;
+  padding: 0.28rem 0.55rem;
+  color: #7c1f1f;
+  background: transparent;
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 900;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.availability-slot-delete:hover:not(:disabled) {
+  background: rgba(124, 31, 31, 0.1);
+}
+
+.availability-slot-delete:disabled {
+  opacity: 0.6;
+  cursor: default;
 }
 
 .availability-slot-card-booked {

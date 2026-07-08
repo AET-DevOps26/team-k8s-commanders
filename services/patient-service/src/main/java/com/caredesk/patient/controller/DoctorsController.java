@@ -4,6 +4,8 @@ import com.caredesk.patient.service.DoctorService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.openapitools.api.DoctorsApi;
 import org.openapitools.model.PaginatedUserProfileResponse;
+import org.openapitools.model.RecurringScheduleCreate;
+import org.openapitools.model.RecurringScheduleResult;
 import org.openapitools.model.Schedule;
 import org.openapitools.model.ScheduleSlot;
 import org.openapitools.model.ScheduleSlotCreate;
@@ -63,6 +65,26 @@ public class DoctorsController implements DoctorsApi {
         }
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(doctorService.createScheduleSlot(doctorId, scheduleSlotCreate));
+    }
+
+    @Override
+    public ResponseEntity<RecurringScheduleResult> createDoctorRecurringSchedule(UUID doctorId,
+                                                                                  RecurringScheduleCreate recurringScheduleCreate) {
+        boolean actingAsAdmin = requireOwnDoctorOrAdmin(doctorId);
+        if (actingAsAdmin) {
+            doctorService.verifyDoctorExists(doctorId);
+        }
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(doctorService.createRecurringScheduleSlots(doctorId, recurringScheduleCreate));
+    }
+
+    @Override
+    public ResponseEntity<Void> deleteDoctorScheduleSlot(UUID doctorId, UUID slotId) {
+        // No verifyDoctorExists for admins: the doctor-scoped lookup already
+        // yields 404 when the slot does not belong to a real doctor.
+        requireOwnDoctorOrAdmin(doctorId);
+        doctorService.deleteScheduleSlot(doctorId, slotId);
+        return ResponseEntity.noContent().build();
     }
 
     @Override

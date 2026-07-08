@@ -8,6 +8,7 @@ import org.openapitools.model.AIMessageRole;
 import org.openapitools.model.AppointmentStatus;
 import org.openapitools.model.NotificationChannel;
 import org.openapitools.model.UserRole;
+import org.openapitools.model.Weekday;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -56,6 +57,15 @@ public class EnumConverterConfiguration {
             @Override
             public UserRole convert(String source) {
                 return UserRole.fromValue(source);
+            }
+        };
+    }
+    @Bean(name = "org.openapitools.configuration.EnumConverterConfiguration.weekdayConverter")
+    Converter<String, Weekday> weekdayConverter() {
+        return new Converter<String, Weekday>() {
+            @Override
+            public Weekday convert(String source) {
+                return Weekday.fromValue(source);
             }
         };
     }

@@ -39,13 +39,17 @@ src/main/java/org/openapitools/model/PaginatedNotificationResponse.java
 src/main/java/org/openapitools/model/PaginatedUserProfileResponse.java
 src/main/java/org/openapitools/model/PasswordChangeRequest.java
 src/main/java/org/openapitools/model/ProblemDetail.java
+src/main/java/org/openapitools/model/RecurringScheduleCreate.java
+src/main/java/org/openapitools/model/RecurringScheduleResult.java
 src/main/java/org/openapitools/model/RegisterRequest.java
 src/main/java/org/openapitools/model/Schedule.java
 src/main/java/org/openapitools/model/ScheduleSlot.java
 src/main/java/org/openapitools/model/ScheduleSlotCreate.java
+src/main/java/org/openapitools/model/SlotInterval.java
 src/main/java/org/openapitools/model/UserCreate.java
 src/main/java/org/openapitools/model/UserProfile.java
 src/main/java/org/openapitools/model/UserRole.java
 src/main/java/org/openapitools/model/UserStats.java
 src/main/java/org/openapitools/model/ValidationError.java
 src/main/java/org/openapitools/model/VisitHistory.java
+src/main/java/org/openapitools/model/Weekday.java

@@ -794,6 +794,7 @@
 
 .ai-message-body {
   overflow-x: auto;
+  overflow-wrap: break-word;
   border-radius: 0.65rem;
   padding: 0.75rem 0.85rem;
   line-height: 1.6;

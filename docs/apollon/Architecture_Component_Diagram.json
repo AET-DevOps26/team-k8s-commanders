@@ -6,20 +6,20 @@
   "nodes": [
     {
       "id": "layer-client",
-      "width": 340,
-      "height": 240,
+      "width": 515,
+      "height": 425,
       "type": "componentSubsystem",
       "position": {
-        "x": -820,
-        "y": -340
+        "x": -970,
+        "y": -500
       },
       "data": {
-        "name": "Client Layer",
+        "name": "Public Edge",
         "isComponentSubsystemHeaderShown": true
       },
       "measured": {
-        "width": 340,
-        "height": 240
+        "width": 515,
+        "height": 425
       }
     },
     {
@@ -28,8 +28,8 @@
       "height": 120,
       "type": "component",
       "position": {
-        "x": 40,
-        "y": 85
+        "x": 45,
+        "y": 275
       },
       "parentId": "layer-client",
       "data": {
@@ -65,11 +65,11 @@
       "height": 20,
       "type": "componentInterface",
       "position": {
-        "x": -350,
-        "y": -220
+        "x": -335,
+        "y": -200
       },
       "data": {
-        "name": "REST / HTTPS"
+        "name": "REST API"
       },
       "measured": {
         "width": 20,
@@ -173,8 +173,8 @@
     },
     {
       "id": "layer-genai",
-      "width": 860,
-      "height": 490,
+      "width": 420,
+      "height": 480,
       "type": "componentSubsystem",
       "position": {
         "x": 1150,
@@ -185,8 +185,8 @@
         "isComponentSubsystemHeaderShown": true
       },
       "measured": {
-        "width": 860,
-        "height": 490
+        "width": 420,
+        "height": 480
       }
     },
     {
@@ -195,8 +195,8 @@
       "height": 95,
       "type": "component",
       "position": {
-        "x": 70,
-        "y": 140
+        "x": 65,
+        "y": 220
       },
       "parentId": "layer-genai",
       "data": {
@@ -210,19 +210,19 @@
     },
     {
       "id": "a2bb5dc2-0930-4fd9-ab6e-37ee97b4d6a2",
-      "width": 440,
+      "width": 420,
       "height": 210,
       "type": "componentSubsystem",
       "position": {
-        "x": 1290,
-        "y": -710
+        "x": 1150,
+        "y": -665
       },
       "data": {
         "name": "External LLM Service",
         "isComponentSubsystemHeaderShown": true
       },
       "measured": {
-        "width": 440,
+        "width": 420,
         "height": 210
       }
     },
@@ -246,31 +246,12 @@
       }
     },
     {
-      "id": "n-vector-store",
-      "width": 270,
-      "height": 90,
-      "type": "component",
-      "position": {
-        "x": 540,
-        "y": 250
-      },
-      "parentId": "layer-genai",
-      "data": {
-        "name": "Vector store",
-        "isComponentHeaderShown": true
-      },
-      "measured": {
-        "width": 270,
-        "height": 90
-      }
-    },
-    {
       "id": "layer-persistence",
-      "width": 1960,
-      "height": 300,
+      "width": 1660,
+      "height": 295,
       "type": "componentSubsystem",
       "position": {
-        "x": -520,
+        "x": -210,
         "y": 220
       },
       "data": {
@@ -278,17 +259,17 @@
         "isComponentSubsystemHeaderShown": true
       },
       "measured": {
-        "width": 1960,
-        "height": 300
+        "width": 1660,
+        "height": 295
       }
     },
     {
       "id": "db-auth",
-      "width": 200,
+      "width": 220,
       "height": 95,
       "type": "component",
       "position": {
-        "x": 400,
+        "x": 80,
         "y": 120
       },
       "parentId": "layer-persistence",
@@ -297,7 +278,7 @@
         "isComponentHeaderShown": true
       },
       "measured": {
-        "width": 200,
+        "width": 220,
         "height": 95
       }
     },
@@ -307,7 +288,7 @@
       "height": 95,
       "type": "component",
       "position": {
-        "x": 1010,
+        "x": 700,
         "y": 120
       },
       "parentId": "layer-persistence",
@@ -322,11 +303,11 @@
     },
     {
       "id": "db-notes",
-      "width": 200,
+      "width": 240,
       "height": 95,
       "type": "component",
       "position": {
-        "x": 1320,
+        "x": 990,
         "y": 120
       },
       "parentId": "layer-persistence",
@@ -335,7 +316,7 @@
         "isComponentHeaderShown": true
       },
       "measured": {
-        "width": 200,
+        "width": 240,
         "height": 95
       }
     },
@@ -345,7 +326,7 @@
       "height": 95,
       "type": "component",
       "position": {
-        "x": 670,
+        "x": 360,
         "y": 120
       },
       "parentId": "layer-persistence",
@@ -359,50 +340,12 @@
       }
     },
     {
-      "id": "db-rag",
-      "width": 280,
-      "height": 95,
-      "type": "component",
-      "position": {
-        "x": 1610,
-        "y": 120
-      },
-      "parentId": "layer-persistence",
-      "data": {
-        "name": "RAG Index DB",
-        "isComponentHeaderShown": true
-      },
-      "measured": {
-        "width": 280,
-        "height": 95
-      }
-    },
-    {
-      "id": "1130047d-a3a5-4d2f-af23-6bb79b9315f2",
-      "width": 300,
-      "height": 120,
-      "type": "component",
-      "position": {
-        "x": 70,
-        "y": 310
-      },
-      "parentId": "layer-genai",
-      "data": {
-        "name": "Clinical Guidelines Knowledge Base",
-        "isComponentHeaderShown": true
-      },
-      "measured": {
-        "width": 300,
-        "height": 120
-      }
-    },
-    {
       "id": "84cd9101-b418-4245-813a-2c44596b68c6",
       "width": 30,
       "height": 30,
       "type": "componentInterface",
       "position": {
-        "x": 1420,
+        "x": 1440,
         "y": -410
       },
       "data": {
@@ -412,29 +355,192 @@
         "width": 30,
         "height": 30
       }
+    },
+    {
+      "id": "5c3db301-ba48-43cf-b04a-d94945c99ee2",
+      "width": 200,
+      "height": 95,
+      "type": "component",
+      "position": {
+        "x": 1320,
+        "y": 120
+      },
+      "parentId": "layer-persistence",
+      "data": {
+        "name": "AI Session DB",
+        "isComponentHeaderShown": true
+      },
+      "measured": {
+        "width": 200,
+        "height": 95
+      }
+    },
+    {
+      "id": "c878535e-78ce-48f3-9e61-ca4a7e195c5f",
+      "width": 280,
+      "height": 120,
+      "type": "component",
+      "position": {
+        "x": 45,
+        "y": 90
+      },
+      "parentId": "layer-client",
+      "data": {
+        "name": "Reverse Proxy (Ingress / Caddy)",
+        "isComponentHeaderShown": true
+      },
+      "measured": {
+        "width": 280,
+        "height": 120
+      }
+    },
+    {
+      "id": "00dfbb22-ba9e-42c5-ac12-2661c6687a89",
+      "width": 860,
+      "height": 255,
+      "type": "componentSubsystem",
+      "position": {
+        "x": -210,
+        "y": -685
+      },
+      "data": {
+        "name": "Observability Layer",
+        "isComponentSubsystemHeaderShown": true
+      },
+      "measured": {
+        "width": 860,
+        "height": 255
+      }
+    },
+    {
+      "id": "b7a06ec9-6e8b-48f9-b1c4-909c48a3be3b",
+      "width": 200,
+      "height": 75,
+      "type": "component",
+      "position": {
+        "x": 125,
+        "y": 95
+      },
+      "parentId": "00dfbb22-ba9e-42c5-ac12-2661c6687a89",
+      "data": {
+        "name": "Grafana",
+        "isComponentHeaderShown": true
+      },
+      "measured": {
+        "width": 200,
+        "height": 75
+      }
+    },
+    {
+      "id": "83975bca-67a3-44ee-bc5d-6dc63b356e2a",
+      "width": 200,
+      "height": 75,
+      "type": "component",
+      "position": {
+        "x": 535,
+        "y": 95
+      },
+      "parentId": "00dfbb22-ba9e-42c5-ac12-2661c6687a89",
+      "data": {
+        "name": "Prometheus",
+        "isComponentHeaderShown": true
+      },
+      "measured": {
+        "width": 200,
+        "height": 75
+      }
+    },
+    {
+      "id": "8572f419-67d7-4fb2-b00e-da87a0483b1c",
+      "width": 440,
+      "height": 210,
+      "type": "componentSubsystem",
+      "position": {
+        "x": -210,
+        "y": -1055
+      },
+      "data": {
+        "name": "External Alert Provider",
+        "isComponentSubsystemHeaderShown": true
+      },
+      "measured": {
+        "width": 440,
+        "height": 210
+      }
+    },
+    {
+      "id": "110e2715-cb22-4a1d-8113-a6acbed28c0a",
+      "width": 180,
+      "height": 85,
+      "type": "component",
+      "position": {
+        "x": 135,
+        "y": 90
+      },
+      "parentId": "8572f419-67d7-4fb2-b00e-da87a0483b1c",
+      "data": {
+        "name": "Discord",
+        "isComponentHeaderShown": true
+      },
+      "measured": {
+        "width": 180,
+        "height": 85
+      }
+    },
+    {
+      "id": "9b923f31-5a34-4ce5-82d4-ff796e0935db",
+      "width": 30,
+      "height": 30,
+      "type": "componentInterface",
+      "position": {
+        "x": 0,
+        "y": -790
+      },
+      "data": {
+        "name": "Webhook"
+      },
+      "measured": {
+        "width": 30,
+        "height": 30
+      }
+    },
+    {
+      "id": "87ebbc60-50c3-4be3-b3c5-936cd995758f",
+      "width": 20,
+      "height": 20,
+      "type": "componentInterface",
+      "position": {
+        "x": -340,
+        "y": -560
+      },
+      "data": {
+        "name": "REST API"
+      },
+      "measured": {
+        "width": 20,
+        "height": 20
+      }
     }
   ],
   "edges": [
     {
-      "id": "e-client-api",
-      "source": "n-client",
-      "target": "n-api-interface",
-      "type": "ComponentProvidedInterface",
-      "sourceHandle": "right",
-      "targetHandle": "left",
-      "data": {
-        "points": []
-      }
-    },
-    {
       "id": "e-server-api",
       "source": "n-server",
       "target": "n-api-interface",
-      "type": "ComponentRequiredInterface",
+      "type": "ComponentProvidedInterface",
       "sourceHandle": "left",
       "targetHandle": "right",
       "data": {
-        "points": []
+        "points": [
+          {
+            "x": 309,
+            "y": -190
+          },
+          {
+            "x": -314,
+            "y": -190
+          }
+        ]
       }
     },
     {
@@ -483,33 +589,22 @@
     },
     {
       "id": "e-appointment-notification",
-      "source": "n-appointment",
-      "target": "n-notification",
+      "source": "n-notification",
+      "target": "n-appointment",
       "type": "ComponentDependency",
-      "sourceHandle": "left",
-      "targetHandle": "right",
+      "sourceHandle": "right",
+      "targetHandle": "left",
       "data": {
         "points": []
       }
     },
     {
       "id": "e-notes-ai",
-      "source": "n-notes",
-      "target": "n-ai-service",
-      "type": "ComponentDependency",
-      "sourceHandle": "right",
-      "targetHandle": "left",
-      "data": {
-        "points": []
-      }
-    },
-    {
-      "id": "e-ai-vector",
       "source": "n-ai-service",
-      "target": "n-vector-store",
+      "target": "n-notes",
       "type": "ComponentDependency",
-      "sourceHandle": "right",
-      "targetHandle": "left",
+      "sourceHandle": "left",
+      "targetHandle": "right",
       "data": {
         "points": []
       }
@@ -521,17 +616,6 @@
       "type": "ComponentDependency",
       "sourceHandle": "bottom",
       "targetHandle": "top",
-      "data": {
-        "points": []
-      }
-    },
-    {
-      "id": "e-vector-db-rag",
-      "source": "n-vector-store",
-      "target": "db-rag",
-      "type": "ComponentDependency",
-      "sourceHandle": "bottom",
-      "targetHandle": "right",
       "data": {
         "points": []
       }
@@ -581,21 +665,10 @@
       }
     },
     {
-      "id": "bd477aa3-5898-48e9-aada-a4d195a0728e",
-      "source": "n-ai-service",
-      "target": "1130047d-a3a5-4d2f-af23-6bb79b9315f2",
-      "type": "ComponentDependency",
-      "sourceHandle": "bottom",
-      "targetHandle": "top",
-      "data": {
-        "points": []
-      }
-    },
-    {
       "id": "2a536fb5-3c10-448f-b284-49e3ff1c925d",
       "source": "n-ai-service",
       "target": "84cd9101-b418-4245-813a-2c44596b68c6",
-      "type": "ComponentProvidedInterface",
+      "type": "ComponentRequiredInterface",
       "sourceHandle": "top",
       "targetHandle": "bottom",
       "data": {
@@ -606,11 +679,294 @@
       "id": "99dfda73-45ba-4833-a426-41e0d130be89",
       "source": "n-llm",
       "target": "84cd9101-b418-4245-813a-2c44596b68c6",
+      "type": "ComponentProvidedInterface",
+      "sourceHandle": "bottom",
+      "targetHandle": "top",
+      "data": {
+        "points": [
+          {
+            "x": 1360,
+            "y": -499
+          },
+          {
+            "x": 1360,
+            "y": -445
+          },
+          {
+            "x": 1455,
+            "y": -445
+          },
+          {
+            "x": 1455,
+            "y": -411
+          }
+        ]
+      }
+    },
+    {
+      "id": "806f954a-18bc-4e12-b0df-3e2aa85e48c6",
+      "source": "n-ai-service",
+      "target": "5c3db301-ba48-43cf-b04a-d94945c99ee2",
+      "type": "ComponentDependency",
+      "sourceHandle": "bottom",
+      "targetHandle": "top",
+      "data": {
+        "points": [
+          {
+            "x": 1365,
+            "y": -24
+          },
+          {
+            "x": 1365,
+            "y": 175
+          },
+          {
+            "x": 1210,
+            "y": 175
+          },
+          {
+            "x": 1210,
+            "y": 339
+          }
+        ]
+      }
+    },
+    {
+      "id": "939f48af-6f1d-4f65-a26d-f2519b620f36",
+      "source": "c878535e-78ce-48f3-9e61-ca4a7e195c5f",
+      "target": "n-api-interface",
       "type": "ComponentRequiredInterface",
+      "sourceHandle": "right",
+      "targetHandle": "left",
+      "data": {
+        "points": [
+          {
+            "x": -644,
+            "y": -350
+          },
+          {
+            "x": -405,
+            "y": -350
+          },
+          {
+            "x": -405,
+            "y": -190
+          },
+          {
+            "x": -340,
+            "y": -190
+          }
+        ]
+      }
+    },
+    {
+      "id": "b06f9683-0c9d-4407-a861-af3dfd8d7c42",
+      "source": "c878535e-78ce-48f3-9e61-ca4a7e195c5f",
+      "target": "n-client",
+      "type": "ComponentDependency",
       "sourceHandle": "bottom",
       "targetHandle": "top",
       "data": {
         "points": []
+      }
+    },
+    {
+      "id": "27749dbb-97b8-4cc5-9f5f-1ed574ae5cf2",
+      "source": "b7a06ec9-6e8b-48f9-b1c4-909c48a3be3b",
+      "target": "9b923f31-5a34-4ce5-82d4-ff796e0935db",
+      "type": "ComponentRequiredInterface",
+      "sourceHandle": "top",
+      "targetHandle": "bottom",
+      "data": {
+        "points": []
+      }
+    },
+    {
+      "id": "cbef4ec5-41dc-482b-95c1-42abc86db7c3",
+      "source": "110e2715-cb22-4a1d-8113-a6acbed28c0a",
+      "target": "9b923f31-5a34-4ce5-82d4-ff796e0935db",
+      "type": "ComponentProvidedInterface",
+      "sourceHandle": "bottom",
+      "targetHandle": "top",
+      "data": {
+        "points": []
+      }
+    },
+    {
+      "id": "8ca11e86-bc7d-4519-bfef-c5ff2057d9d5",
+      "source": "b7a06ec9-6e8b-48f9-b1c4-909c48a3be3b",
+      "target": "87ebbc60-50c3-4be3-b3c5-936cd995758f",
+      "type": "ComponentProvidedInterface",
+      "sourceHandle": "left",
+      "targetHandle": "right",
+      "data": {
+        "points": [
+          {
+            "x": -86,
+            "y": -550
+          },
+          {
+            "x": -319,
+            "y": -550
+          }
+        ]
+      }
+    },
+    {
+      "id": "34a1c56c-636f-4373-9138-eeac79b11c76",
+      "source": "c878535e-78ce-48f3-9e61-ca4a7e195c5f",
+      "target": "87ebbc60-50c3-4be3-b3c5-936cd995758f",
+      "type": "ComponentRequiredInterface",
+      "sourceHandle": "right",
+      "targetHandle": "left",
+      "data": {
+        "points": [
+          {
+            "x": -644,
+            "y": -350
+          },
+          {
+            "x": -405,
+            "y": -350
+          },
+          {
+            "x": -405,
+            "y": -550
+          },
+          {
+            "x": -345,
+            "y": -550
+          }
+        ]
+      }
+    },
+    {
+      "id": "d6ba8341-c8a2-4695-80f5-13484aa0b5e2",
+      "source": "b7a06ec9-6e8b-48f9-b1c4-909c48a3be3b",
+      "target": "83975bca-67a3-44ee-bc5d-6dc63b356e2a",
+      "type": "ComponentDependency",
+      "sourceHandle": "right",
+      "targetHandle": "left-bottom",
+      "data": {
+        "points": []
+      }
+    },
+    {
+      "id": "113d6aeb-2885-476c-a2c8-ba9775370702",
+      "source": "n-appointment",
+      "target": "n-notification",
+      "type": "ComponentDependency",
+      "sourceHandle": "left",
+      "targetHandle": "right-between-mid-top-center",
+      "data": {
+        "points": []
+      }
+    },
+    {
+      "id": "226a80eb-9207-43c0-a856-b10fd179d1ee",
+      "source": "83975bca-67a3-44ee-bc5d-6dc63b356e2a",
+      "target": "n-notes",
+      "type": "ComponentDependency",
+      "sourceHandle": "right",
+      "targetHandle": "top",
+      "data": {
+        "points": []
+      }
+    },
+    {
+      "id": "bb71ba7a-494d-4536-9da9-67372c2f4b3b",
+      "source": "83975bca-67a3-44ee-bc5d-6dc63b356e2a",
+      "target": "n-appointment",
+      "type": "ComponentDependency",
+      "sourceHandle": "right",
+      "targetHandle": "top",
+      "data": {
+        "points": [
+          {
+            "x": 526,
+            "y": -550
+          },
+          {
+            "x": 900,
+            "y": -550
+          },
+          {
+            "x": 900,
+            "y": -390
+          },
+          {
+            "x": 600,
+            "y": -390
+          },
+          {
+            "x": 600,
+            "y": -41
+          }
+        ]
+      }
+    },
+    {
+      "id": "268c4aee-0b8a-44a1-9a30-e8892eeb616f",
+      "source": "83975bca-67a3-44ee-bc5d-6dc63b356e2a",
+      "target": "n-notification",
+      "type": "ComponentDependency",
+      "sourceHandle": "right",
+      "targetHandle": "top",
+      "data": {
+        "points": [
+          {
+            "x": 526,
+            "y": -550
+          },
+          {
+            "x": 900,
+            "y": -550
+          },
+          {
+            "x": 900,
+            "y": -390
+          },
+          {
+            "x": 260,
+            "y": -390
+          },
+          {
+            "x": 260,
+            "y": -41
+          }
+        ]
+      }
+    },
+    {
+      "id": "2aa4125c-bb01-4843-9dcf-8a36ba695a3b",
+      "source": "83975bca-67a3-44ee-bc5d-6dc63b356e2a",
+      "target": "n-auth",
+      "type": "ComponentDependency",
+      "sourceHandle": "right",
+      "targetHandle": "top",
+      "data": {
+        "points": [
+          {
+            "x": 526,
+            "y": -550
+          },
+          {
+            "x": 900,
+            "y": -550
+          },
+          {
+            "x": 900,
+            "y": -390
+          },
+          {
+            "x": -20,
+            "y": -390
+          },
+          {
+            "x": -20,
+            "y": -41
+          }
+        ]
       }
     }
   ],

@@ -65,11 +65,20 @@ jobs:
           GRAFANA_ADMIN_USER: ${{ vars.GRAFANA_ADMIN_USER }}
           GRAFANA_ADMIN_PASSWORD: ${{ secrets.GRAFANA_ADMIN_PASSWORD }}
           GRAFANA_ROOT_URL: "https://${{ vars.AZURE_PUBLIC_IP }}.nip.io/grafana"
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          ADMIN_NAME: ${{ vars.ADMIN_NAME }}
+          ADMIN_EMAIL: ${{ vars.ADMIN_EMAIL }}
+          ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
           # Caddy TLS: hostname to request the Let's Encrypt cert for, and the
           # ACME CA endpoint. ACME_CA defaults to staging (in compose) when
           # this var is empty; set it to the prod endpoint once verified.
           SITE_ADDRESS: "${{ vars.AZURE_PUBLIC_IP }}.nip.io"
           ACME_CA: ${{ vars.ACME_CA }}
+          # HTTP basic auth for the public /mailpit UI. Without these the compose
+          # defaults (dev creds mailpit/mailpit, hash committed in the repo) would
+          # apply, leaving the endpoint effectively public — so require them here.
+          MAILPIT_BASIC_AUTH_USER: ${{ vars.MAILPIT_BASIC_AUTH_USER }}
+          MAILPIT_BASIC_AUTH_HASH: ${{ secrets.MAILPIT_BASIC_AUTH_HASH }}
         run: |
           umask 077
           rm -f .env.prod
@@ -124,8 +133,14 @@ jobs:
           write_var GRAFANA_ADMIN_USER "$GRAFANA_ADMIN_USER"
           write_var GRAFANA_ADMIN_PASSWORD "$GRAFANA_ADMIN_PASSWORD" required
           write_var GRAFANA_ROOT_URL "$GRAFANA_ROOT_URL"
+          write_var DISCORD_WEBHOOK_URL "$DISCORD_WEBHOOK_URL"
+          write_var ADMIN_NAME "$ADMIN_NAME" required
+          write_var ADMIN_EMAIL "$ADMIN_EMAIL" required
+          write_var ADMIN_PASSWORD "$ADMIN_PASSWORD" required
           write_var SITE_ADDRESS "$SITE_ADDRESS" required
           write_var ACME_CA "$ACME_CA"
+          write_var MAILPIT_BASIC_AUTH_USER "$MAILPIT_BASIC_AUTH_USER" required
+          write_var MAILPIT_BASIC_AUTH_HASH "$MAILPIT_BASIC_AUTH_HASH" required
 
       - name: Copy compose file, infra configs and env file to VM
         uses: appleboy/scp-action@v1.0.0
@@ -133,6 +148,7 @@ jobs:
           host: ${{ vars.AZURE_PUBLIC_IP }}
           username: ${{ vars.AZURE_USER }}
           key: ${{ secrets.AZURE_PRIVATE_KEY }}
+          envs: ADMIN_NAME,ADMIN_EMAIL,ADMIN_PASSWORD
           source: "docker-compose.prod.yml,infra/caddy/,infra/prometheus/,infra/grafana/,.env.prod"
           target: /home/${{ vars.AZURE_USER }}
 

@@ -2,10 +2,8 @@ package com.caredesk.patient.config;
 
 import com.caredesk.patient.model.Appointment;
 import com.caredesk.patient.model.DoctorSlot;
-import com.caredesk.patient.model.Patient;
 import com.caredesk.patient.repository.AppointmentRepository;
 import com.caredesk.patient.repository.DoctorSlotRepository;
-import com.caredesk.patient.repository.PatientRepository;
 import org.openapitools.model.AppointmentStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,7 +14,6 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.UUID;
@@ -25,13 +22,20 @@ import java.util.UUID;
  * Seeds a coherent demo dataset for presentations so every dashboard is
  * populated straight after startup (see issue #168).
  *
+ * <p>This is the single source of demo data for patient-service — it owns only
+ * the scheduling slice (appointments and doctor slots). The patient and doctor
+ * <em>identities</em> live in auth-service and are seeded there
+ * ({@code DefaultUserSeeder} for the canonical accounts, the auth
+ * {@code DemoDataSeeder} for Anna Müller); this seeder just references their ids.
+ *
  * <p>Enabled only in the {@code dev} profile and when
  * {@code caredesk.seed.demo=true} (env {@code CAREDESK_SEED_DEMO}); it never
- * runs in production. Idempotent: every row is keyed on a fixed UUID and
- * upserted, so restarts don't duplicate or reset data.
+ * runs in production. Idempotent: appointments are keyed on a fixed UUID and
+ * upserted, and {@code now} is truncated to the top of the hour so slot times
+ * (keyed by doctor + start/end) match on restart rather than accumulating.
  *
  * <p><strong>Cross-service IDs.</strong> The {@code DEMO_*} UUIDs below are the
- * canonical demo identifiers and are replicated verbatim by the demo seeders in
+ * canonical demo identifiers and are shared with the demo seeders in
  * auth-service (patient/doctor identities), notes-service (clinical notes) and
  * notification-service (notification records). Keep them in sync — appointments,
  * notes and notifications all reference the same appointment/patient/doctor ids.
@@ -43,11 +47,11 @@ public class DemoDataSeeder implements ApplicationRunner {
 
     private static final Logger log = LoggerFactory.getLogger(DemoDataSeeder.class);
 
-    /** Canonical doctor (doctor@doctor.com), already seeded by DefaultUserSeeder / DefaultPatientDataSeeder. */
+    /** Canonical doctor (doctor@doctor.com), seeded by auth-service's DefaultUserSeeder. */
     static final UUID DOCTOR_ID = UUID.fromString("22222222-2222-2222-2222-222222222222");
-    /** Canonical patient (patient@patient.com). */
+    /** Canonical patient (patient@patient.com), seeded by auth-service's DefaultUserSeeder. */
     static final UUID PATIENT_ID = UUID.fromString("11111111-1111-1111-1111-111111111111");
-    /** Second demo patient — "Anna Müller", the pitch's AI-assistant example. */
+    /** Second demo patient — "Anna Müller", the pitch's AI-assistant example (seeded in auth-service). */
     static final UUID ANNA_ID = UUID.fromString("d0000000-0000-0000-0000-0000000000a1");
 
     // Fixed appointment ids so notes-service and notification-service can link to them.
@@ -60,40 +64,33 @@ public class DemoDataSeeder implements ApplicationRunner {
     static final UUID APPT_ANNA_DM_2 = UUID.fromString("d0000000-0000-0000-0000-000000000107");
     static final UUID APPT_ANNA_UPCOMING = UUID.fromString("d0000000-0000-0000-0000-000000000108");
 
-    private final PatientRepository patientRepository;
     private final AppointmentRepository appointmentRepository;
     private final DoctorSlotRepository doctorSlotRepository;
 
     /**
-     * @param patientRepository     patient rows
      * @param appointmentRepository appointment rows
      * @param doctorSlotRepository  bookable slot rows
      */
-    public DemoDataSeeder(PatientRepository patientRepository,
-                          AppointmentRepository appointmentRepository,
+    public DemoDataSeeder(AppointmentRepository appointmentRepository,
                           DoctorSlotRepository doctorSlotRepository) {
-        this.patientRepository = patientRepository;
         this.appointmentRepository = appointmentRepository;
         this.doctorSlotRepository = doctorSlotRepository;
     }
 
     /**
-     * Seeds the demo patient, a spread of appointments across every status
-     * (including one due within 24h) and a few open future slots.
+     * Seeds a spread of appointments across every status (including one due
+     * within 24h) for the canonical patient and Anna, plus a few open future
+     * slots so the booking flow has availability to show.
      *
      * @param args ignored
      */
     @Override
     @Transactional
     public void run(ApplicationArguments args) {
-        OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC);
-
-        // "Anna Müller" — clinical slice only; her identity/name live in auth-service.
-        Patient anna = patientRepository.findById(ANNA_ID).orElseGet(Patient::new);
-        anna.setId(ANNA_ID);
-        anna.setPhoneNumber("+49 89 445566");
-        anna.setDateOfBirth(LocalDate.parse("1975-06-30"));
-        patientRepository.save(anna);
+        // Truncated to the top of the hour so relative demo times are clean
+        // (e.g. 10:00, not 10:47) and stable across same-day restarts.
+        OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC)
+                .withMinute(0).withSecond(0).withNano(0);
 
         // Canonical patient — a full history plus one appointment inside the 24h reminder window.
         upsertAppointment(APPT_HTN_PAST, PATIENT_ID, now.minusDays(30), 30,
@@ -120,7 +117,7 @@ public class DemoDataSeeder implements ApplicationRunner {
         upsertSlot(now.plusDays(2).withHour(14), 30);
         upsertSlot(now.plusDays(4).withHour(9), 45);
 
-        log.info("Demo dataset seeded (patient-service): 2 patients, 8 appointments, 3 open slots");
+        log.info("Demo dataset seeded (patient-service): 8 appointments, 3 open slots");
     }
 
     private void upsertAppointment(UUID id, UUID patientId, OffsetDateTime when, int duration,

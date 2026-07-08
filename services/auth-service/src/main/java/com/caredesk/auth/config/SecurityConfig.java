@@ -48,6 +48,9 @@ public class SecurityConfig {
                         // GET /users/{id} is an internal service-to-service endpoint that
                         // patient-service and notes-service call without a JWT.
                         .requestMatchers(HttpMethod.GET, "/users/**").permitAll()
+                        // /internal/** is not routed by the gateway; reachable only pod-to-pod
+                        // for cross-service composition (e.g. patient-service doctor directory).
+                        .requestMatchers(HttpMethod.GET, "/internal/**").permitAll()
                         // Health and Prometheus endpoints must be reachable without auth.
                         // Both forms needed: Spring Security 6 `/**` doesn't match the exact path without trailing slash.
                         .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()

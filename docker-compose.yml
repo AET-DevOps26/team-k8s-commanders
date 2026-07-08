@@ -7,6 +7,10 @@ services:
       # ":80" makes Caddy serve plain HTTP (no TLS/ACME) — same shared
       # Caddyfile as prod, which instead sets SITE_ADDRESS to a public host.
       SITE_ADDRESS: ":80"
+      # HTTP basic auth for the /mailpit UI. Dev credentials: mailpit / mailpit
+      # (the hash is bcrypt of "mailpit"; $$ escapes $ for compose interpolation).
+      MAILPIT_BASIC_AUTH_USER: mailpit
+      MAILPIT_BASIC_AUTH_HASH: "$$2y$$05$$EKc8Qn8M119jQbj.A2W1JuOfZl3O7QJ7LYyrPikreFIG/BgfgQpPu"
     volumes:
       - ./infra/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
     restart: unless-stopped
@@ -60,6 +64,8 @@ services:
       dockerfile: Dockerfile
     restart: unless-stopped
     environment:
+      # Surfaces in the app_info metric; compose builds from source, so no image tag.
+      APP_VERSION: local
       LLM_PROVIDER: openwebui
       LLM_MODEL: llama3.2
       LLM_API_KEY: ollama
@@ -140,6 +146,8 @@ services:
         condition: service_healthy
     # No published port — only reachable inside the compose network via the gateway.
     environment:
+      # Surfaces as the `version` tag on all metrics; compose builds from source.
+      APP_VERSION: local
       DB_HOST: auth-db
       DB_PORT: 5432
       DB_NAME: auth_db
@@ -148,7 +156,6 @@ services:
       # Dev-only secret — override in production via env or secrets management.
       JWT_SECRET: caredesk-compose-dev-secret-must-be-at-least-32-chars
       SPRING_PROFILES_ACTIVE: dev
-      CAREDESK_SEED_TEST_PATIENTS: "true"
       # Seed the coherent cross-service demo dataset for presentations (#168).
       CAREDESK_SEED_DEMO: "true"
       # application.yml ships with ddl-auto: validate for production safety.
@@ -196,6 +203,8 @@ services:
         condition: service_healthy
     # No published port — only reachable inside the compose network via the gateway.
     environment:
+      # Surfaces as the `version` tag on all metrics; compose builds from source.
+      APP_VERSION: local
       DB_HOST: patient-db
       DB_PORT: 5432
       DB_NAME: patient_db
@@ -203,8 +212,9 @@ services:
       DB_PASSWORD: caredesk
       # Internal auth-service URL for the cross-service profile lookup.
       AUTH_SERVICE_URL: http://auth-service:8081
+      # Internal notification-service URL for booking-confirmation triggers.
+      NOTIFICATION_SERVICE_URL: http://notification-service:8084
       SPRING_PROFILES_ACTIVE: dev
-      CAREDESK_SEED_TEST_PATIENTS: "true"
       # Seed the coherent cross-service demo dataset for presentations (#168).
       CAREDESK_SEED_DEMO: "true"
       # application.yml ships with ddl-auto: validate. Compose dev profile
@@ -251,6 +261,8 @@ services:
         condition: service_healthy
     # No published port — only reachable inside the compose network via the gateway.
     environment:
+      # Surfaces as the `version` tag on all metrics; compose builds from source.
+      APP_VERSION: local
       DB_HOST: notes-db
       DB_PORT: 5432
       DB_NAME: notes_db
@@ -291,6 +303,21 @@ services:
     networks:
       - caredesk
 
+  # Catch-all SMTP server for dev. notification-service sends real SMTP to it;
+  # Mailpit stores nothing externally and exposes every caught message in a web
+  # UI reached through Caddy at http://localhost/mailpit (basic auth: mailpit /
+  # mailpit). No real mail ever leaves the machine.
+  mailpit:
+    image: axllent/mailpit:latest
+    restart: unless-stopped
+    environment:
+      # Serve the UI under /mailpit so its assets resolve behind the Caddy route.
+      MP_WEBROOT: mailpit
+    # SMTP (1025) is reachable in-cluster by service name; the web UI (8025) is
+    # fronted by Caddy at /mailpit, so no host ports are published.
+    networks:
+      - caredesk
+
   notification-service:
     build:
       # Build context is the repo root so the Dockerfile can reach both
@@ -303,6 +330,8 @@ services:
         condition: service_healthy
     # No published port — only reachable inside the compose network via the gateway.
     environment:
+      # Surfaces as the `version` tag on all metrics; compose builds from source.
+      APP_VERSION: local
       DB_HOST: notification-db
       DB_PORT: 5432
       DB_NAME: notification_db
@@ -314,6 +343,11 @@ services:
       # application.yml ships with ddl-auto: validate. Compose dev profile
       # overrides to update so the schema is auto-created against a fresh DB.
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      # SMTP target is the Mailpit container (no auth, no TLS).
+      SMTP_HOST: mailpit
+      SMTP_PORT: 1025
+      # Reminder scheduler reads upcoming appointments from patient-service.
+      PATIENT_SERVICE_URL: http://patient-service:8082
     healthcheck:
       test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8084/actuator/health || exit 1"]
       interval: 10s
@@ -342,6 +376,8 @@ services:
     ports:
       - "8080:8080"
     environment:
+      # Surfaces as the `version` tag on all metrics; compose builds from source.
+      APP_VERSION: local
       AUTH_SERVICE_URL: http://auth-service:8081
       AI_ASSISTANT_URL: http://ai-assistant:8000
       PATIENT_SERVICE_URL: http://patient-service:8082
@@ -389,6 +425,10 @@ services:
       GF_SERVER_ROOT_URL: http://localhost/grafana
       GF_SERVER_SERVE_FROM_SUB_PATH: "true"
       PROMETHEUS_URL: http://prometheus:9090
+      # Alert delivery (provisioning/alerting/contact-points.yaml). The
+      # placeholder keeps Grafana provisioning valid when no webhook is set —
+      # alerts then only show in the UI. Set a real URL in .env to deliver.
+      DISCORD_WEBHOOK_URL: ${DISCORD_WEBHOOK_URL:-https://alerts-disabled.invalid/discord}
     volumes:
       - ./infra/grafana/provisioning:/etc/grafana/provisioning:ro
       - ./infra/grafana/dashboards:/var/lib/grafana/dashboards:ro

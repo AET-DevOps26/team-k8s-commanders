@@ -1,0 +1,45 @@
+{{- if .Values.mailpit.enabled -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "caredesk.fullname" . }}-mailpit
+  labels:
+    {{- include "caredesk.labels" . | nindent 4 }}
+    app.kubernetes.io/component: mailpit
+spec:
+  replicas: {{ .Values.mailpit.replicaCount }}
+  strategy:
+    type: {{ .Values.deploymentStrategy.type }}
+  selector:
+    matchLabels:
+      {{- include "caredesk.selectorLabels" (dict "root" . "component" "mailpit") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "caredesk.selectorLabels" (dict "root" . "component" "mailpit") | nindent 8 }}
+    spec:
+      containers:
+        - name: mailpit
+          # Docker Hub image — not the project GHCR registry, so referenced directly.
+          image: {{ printf "%s:%s" .Values.mailpit.image.repository .Values.mailpit.image.tag | quote }}
+          imagePullPolicy: {{ .Values.images.pullPolicy }}
+          ports:
+            - name: smtp
+              containerPort: {{ .Values.mailpit.smtpPort }}
+            - name: http
+              containerPort: {{ .Values.mailpit.webPort }}
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: http
+            periodSeconds: 10
+            failureThreshold: 6
+          livenessProbe:
+            httpGet:
+              path: /livez
+              port: http
+            periodSeconds: 15
+            failureThreshold: 3
+          resources:
+            {{- toYaml .Values.mailpit.resources | nindent 12 }}
+{{- end }}

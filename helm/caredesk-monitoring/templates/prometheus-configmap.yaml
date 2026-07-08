@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "caredesk-monitoring.fullname" . }}-prometheus
+  labels:
+    {{- include "caredesk-monitoring.labels" . | nindent 4 }}
+    app.kubernetes.io/component: prometheus
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: 15s
+      evaluation_interval: 15s
+
+    # Targets live in the CareDesk app namespace, so they are addressed by
+    # fully-qualified Service DNS names (cross-namespace scraping needs no RBAC
+    # with static targets — only the app chart's NetworkPolicies must admit us).
+    scrape_configs:
+    {{- range .Values.prometheus.targets }}
+      - job_name: {{ .job }}
+        metrics_path: {{ .metricsPath }}
+        static_configs:
+          - targets: ['{{ $.Values.app.release }}-{{ .service }}.{{ $.Values.app.namespace }}.svc.cluster.local:{{ .port }}']
+    {{- end }}

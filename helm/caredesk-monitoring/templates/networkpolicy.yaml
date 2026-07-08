@@ -1,0 +1,31 @@
+{{- if .Values.networkPolicy.enabled -}}
+{{- /*
+The Prometheus HTTP API is unauthenticated and this namespace lives on a shared
+cluster, so lock its ingress down to the only legitimate caller: Grafana.
+Grafana itself stays unrestricted — the ingress controller must reach it, and
+it enforces its own login.
+Requires a CNI that enforces NetworkPolicy (AET = Calico ✓; kind/kindnet does
+NOT enforce — the policy is a harmless no-op locally).
+*/ -}}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "caredesk-monitoring.fullname" . }}-prometheus
+  labels:
+    {{- include "caredesk-monitoring.labels" . | nindent 4 }}
+    app.kubernetes.io/component: prometheus
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "caredesk-monitoring.selectorLabels" (dict "root" . "component" "prometheus") | nindent 6 }}
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              {{- include "caredesk-monitoring.selectorLabels" (dict "root" . "component" "grafana") | nindent 14 }}
+      ports:
+        - protocol: TCP
+          port: 9090
+{{- end }}

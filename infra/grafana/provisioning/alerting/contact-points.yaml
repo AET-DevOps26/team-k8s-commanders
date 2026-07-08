@@ -1,0 +1,35 @@
+# Grafana alert delivery: Discord contact point + default notification policy.
+#
+# Single source of truth shared by both deployment paths (same mechanism as
+# alerts.yaml): docker-compose mounts the whole provisioning/ directory into
+# the grafana container; the Helm chart bakes this file into the grafana
+# ConfigMap via the `alerting` symlink.
+#
+# The webhook URL is interpolated from the DISCORD_WEBHOOK_URL environment
+# variable at Grafana startup, so the real URL lives only in the GitHub secret
+# (k8s / Azure) or the local .env — never in git. Compose and the chart default
+# the variable to a syntactically valid placeholder (alerts-disabled.invalid)
+# because an empty URL would fail provisioning and abort Grafana startup; with
+# the placeholder Grafana boots normally, alerts stay visible in the UI, and
+# delivery attempts just log an error until a real webhook is configured.
+apiVersion: 1
+
+contactPoints:
+  - orgId: 1
+    name: caredesk-discord
+    receivers:
+      - uid: caredesk-discord
+        type: discord
+        settings:
+          url: ${DISCORD_WEBHOOK_URL}
+
+# Root notification policy: everything routes to Discord. First notification
+# after 30s of grouping, follow-ups in the same group batched 5m apart, and a
+# reminder every 4h while an alert keeps firing.
+policies:
+  - orgId: 1
+    receiver: caredesk-discord
+    group_by: ['grafana_folder', 'alertname']
+    group_wait: 30s
+    group_interval: 5m
+    repeat_interval: 4h

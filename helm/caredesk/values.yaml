@@ -1,14 +1,11 @@
-# ─── Identity ──────────────────────────────────────────────────────────────────
-# TUM ID determines the default ingress host. Namespace is passed via --namespace.
-# Override at install: --set tumId=<your-id>
-tumId: ge38yuc
-
 # ─── AET cluster constraints ───────────────────────────────────────────────────
-# Student namespaces on the AET Rancher cluster enforce limits.cpu=4 (4000m).
-# Steady-state CPU limits must stay below that cap. Recreate (not RollingUpdate)
-# terminates the old pod before starting the new one, so rollouts do not need
-# temporary spare quota for overlapping pods.
-# Budget: 6×400m backends + 5×250m Postgres + 1×200m web = 3850m (150m spare).
+# The team namespace on the AET Rancher cluster has a quota of limits.cpu=6000m /
+# limits.memory=8192Mi. Steady-state limits must stay below that cap. Recreate
+# (not RollingUpdate) terminates the old pod before starting the new one, so
+# rollouts do not need temporary spare quota for overlapping pods.
+# Budget: 6×400m backends + 5×250m Postgres + 1×200m web = 3850m CPU (2150m
+# spare), 5504Mi memory (2688Mi spare). Prometheus + Grafana live in their own
+# namespace (helm/caredesk-monitoring) and no longer count against this one.
 deploymentStrategy:
   type: Recreate
 
@@ -16,7 +13,12 @@ deploymentStrategy:
 images:
   registry: ghcr.io/aet-devops26/team-k8s-commanders
   tag: latest
-  pullPolicy: IfNotPresent
+  # Always, not IfNotPresent: `tag: latest` is a mutable tag, and this cluster
+  # has multiple worker nodes. IfNotPresent only pulls when a node has never
+  # seen this tag string before — once cached, that node keeps serving the
+  # same (possibly months-stale) image forever, even after CI publishes a new
+  # `:latest`. Always forces a registry digest check on every pull.
+  pullPolicy: Always
   # GHCR packages for this project are PUBLIC — no pull secret is needed, so the
   # chart installs with a single command and zero credentials. CI may flip
   # create=true and inject a PAT for rate-limit headroom; not required to deploy.
@@ -81,7 +83,7 @@ networkPolicy:
 ingress:
   enabled: true
   className: nginx
-  # If empty, _helpers renders: caredesk-<tumId>.student.k8s.aet.cit.tum.de
+  # If empty, _helpers renders: caredesk-team-k8s-commanders.student.k8s.aet.cit.tum.de
   host: ""
   # Extra DNS hosts render the same ingress rules. Useful for local aliases
   # such as localhost without changing the canonical cluster host.
@@ -96,7 +98,7 @@ ingress:
 # ─── web-client (React + nginx, port 3000) ────────────────────────────────────
 web:
   enabled: true
-  # Single replica keeps CPU quota headroom on the AET student cluster (4 CPU cap).
+  # Single replica keeps CPU quota headroom on the AET team cluster (6 CPU cap).
   replicaCount: 1
   image:
     repository: web-client
@@ -136,6 +138,13 @@ auth:
     port: 8081
   dbHost: caredesk-auth-db
   dbName: auth_db
+  # Disabled for local installs. Production CI enables this and injects values
+  # from GitHub Actions repository variables/secrets.
+  bootstrapAdmin:
+    enabled: false
+    name: ""
+    email: ""
+    password: ""
   resources:
     requests: { cpu: 100m, memory: 384Mi }
     limits:   { cpu: 400m, memory: 768Mi }
@@ -181,34 +190,50 @@ notification:
     port: 8084
   dbHost: caredesk-notification-db
   dbName: notification_db
+  # SMTP target. Empty host falls back to the in-cluster Mailpit service; set
+  # these to a real provider to send actual mail. username/password/auth/startTls
+  # stay empty/false for Mailpit; provide them (password ideally via --set) for an
+  # authenticated/TLS provider.
+  smtp:
+    host: ""
+    port: ""
+    username: ""
+    password: ""
+    auth: false
+    startTls: false
+  mailFrom: "CareDesk <no-reply@caredesk.local>"
   resources:
     requests: { cpu: 100m, memory: 384Mi }
     limits:   { cpu: 400m, memory: 768Mi }
 
-# ─── Prometheus (metrics collection, port 9090) ───────────────────────────────
-# Enabled by default so the core stack installs within the AET 4-CPU quota.
-# Enable with: --set monitoring.enabled=true
-# CPU budget: ~150m limit leaves the cluster at ~3100m total (900m spare).
-monitoring:
-  enabled: false
-  
-  image: prom/prometheus:v3.3.1
-  retention: 7d
-  storage: 2Gi
+
+# ─── Mailpit (catch-all SMTP server + web UI) ──────────────────────────────────
+# notification-service sends SMTP here; Mailpit catches every message and shows
+# it in a web UI. Image is from Docker Hub (not the project GHCR registry).
+# The web UI is ClusterIP-only — reach it with:
+#   kubectl port-forward svc/caredesk-mailpit 8025:8025 -n <namespace>
+# Point notification-service at a real SMTP provider (notification.smtp.*) to
+# send actual mail instead.
+mailpit:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: axllent/mailpit
+    tag: latest
+  smtpPort: 1025
+  webPort: 8025
   resources:
-    requests: { cpu: 50m,  memory: 128Mi }
-    limits:   { cpu: 150m, memory: 512Mi }
-  grafana:
-    image: grafana/grafana:11.2.0
-    # Root URL used only when ingress is disabled (subpath mode is off in that
-    # case). Leave empty to use Grafana's built-in default (http://localhost:3000).
-    rootUrl: ""
-    adminUser: admin
-    # Override in production: --set monitoring.grafana.adminPassword=<secret>
-    adminPassword: caredesk-grafana-admin
-    resources:
-      requests: { cpu: 50m,  memory: 64Mi }
-      limits:   { cpu: 200m, memory: 256Mi }
+    requests: { cpu: 25m,  memory: 32Mi }
+    limits:   { cpu: 100m, memory: 128Mi }
+
+# ─── Monitoring (deployed separately — helm/caredesk-monitoring) ──────────────
+# Prometheus + Grafana run in their own namespace via the caredesk-monitoring
+# chart (deployed by .github/workflows/deploy-k8s-monitoring.yml). This block
+# only controls the NetworkPolicy openings that let Prometheus scrape the
+# backends' metrics endpoints cross-namespace.
+monitoring:
+  enabled: true
+  namespace: team-k8s-commanders-monitoring
 
 # ─── ai-assistant (FastAPI, port 8000) ─────────────────────────────────────────
 ai:

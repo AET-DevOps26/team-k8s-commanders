@@ -2,10 +2,8 @@ package com.caredesk.patient.config;
 
 import com.caredesk.patient.model.Appointment;
 import com.caredesk.patient.model.DoctorSlot;
-import com.caredesk.patient.model.Patient;
 import com.caredesk.patient.repository.AppointmentRepository;
 import com.caredesk.patient.repository.DoctorSlotRepository;
-import com.caredesk.patient.repository.PatientRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -27,21 +25,18 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class DemoDataSeederTest {
 
-    private final PatientRepository patientRepository = mock(PatientRepository.class);
     private final AppointmentRepository appointmentRepository = mock(AppointmentRepository.class);
     private final DoctorSlotRepository doctorSlotRepository = mock(DoctorSlotRepository.class);
     private final DemoDataSeeder seeder =
-            new DemoDataSeeder(patientRepository, appointmentRepository, doctorSlotRepository);
+            new DemoDataSeeder(appointmentRepository, doctorSlotRepository);
 
     @Test
-    void seedsDemoPatientAppointmentsSpanningEveryStatusAndSlots() {
-        when(patientRepository.findById(any())).thenReturn(Optional.empty());
+    void seedsDemoAppointmentsSpanningEveryStatusAndSlots() {
         when(appointmentRepository.findById(any())).thenReturn(Optional.empty());
         when(doctorSlotRepository.findSlotByTime(any(), any(), any())).thenReturn(Optional.empty());
 
         seeder.run(null);
 
-        verify(patientRepository).save(any(Patient.class));
         ArgumentCaptor<Appointment> appointments = ArgumentCaptor.forClass(Appointment.class);
         verify(appointmentRepository, times(8)).save(appointments.capture());
         verify(doctorSlotRepository, times(3)).save(any(DoctorSlot.class));
@@ -63,7 +58,6 @@ class DemoDataSeederTest {
 
     @Test
     void isIdempotent_reusingExistingRowsRatherThanDuplicating() {
-        when(patientRepository.findById(any())).thenReturn(Optional.of(new Patient()));
         when(appointmentRepository.findById(any())).thenReturn(Optional.of(new Appointment()));
         when(doctorSlotRepository.findSlotByTime(any(), any(), any())).thenReturn(Optional.of(new DoctorSlot()));
 

@@ -57,7 +57,10 @@ public class DoctorsController implements DoctorsApi {
     @Override
     public ResponseEntity<ScheduleSlot> createDoctorScheduleSlot(UUID doctorId,
                                                                   ScheduleSlotCreate scheduleSlotCreate) {
-        requireOwnDoctorOrAdmin(doctorId);
+        boolean actingAsAdmin = requireOwnDoctorOrAdmin(doctorId);
+        if (actingAsAdmin) {
+            doctorService.verifyDoctorExists(doctorId);
+        }
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(doctorService.createScheduleSlot(doctorId, scheduleSlotCreate));
     }
@@ -72,11 +75,11 @@ public class DoctorsController implements DoctorsApi {
         return ResponseEntity.ok(doctorService.listDoctors(q, specialization, pageIndex, pageSize));
     }
 
-    private void requireOwnDoctorOrAdmin(UUID doctorId) {
+    private boolean requireOwnDoctorOrAdmin(UUID doctorId) {
         String role = normalise(request.getHeader(ROLE_HEADER));
 
         if (ROLE_ADMIN.equals(role)) {
-            return;
+            return true;
         }
 
         if (!ROLE_DOCTOR.equals(role)) {
@@ -98,6 +101,7 @@ public class DoctorsController implements DoctorsApi {
         if (!doctorId.equals(currentDoctorId)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Doctors can only manage their own schedule");
         }
+        return false;
     }
 
     private String normalise(String role) {

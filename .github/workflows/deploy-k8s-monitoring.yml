@@ -1,0 +1,106 @@
+name: Deploy Monitoring to AET Cluster
+
+# Deploys the Prometheus + Grafana stack (helm/caredesk-monitoring) into its
+# own namespace, separate from the app deploy (deploy-k8s.yml). No workflow_run
+# trigger: the stack uses public upstream images, so it never waits on our
+# image builds.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'helm/caredesk-monitoring/**'
+      # Dashboards and alert rules are baked into ConfigMaps from infra/grafana
+      # (via chart symlinks), so editing them must redeploy the chart.
+      - 'infra/grafana/**'
+      - '.github/workflows/deploy-k8s-monitoring.yml'
+  workflow_dispatch:
+
+# One deploy at a time per monitoring namespace — avoids overlapping helm upgrades.
+concurrency:
+  group: aet-deploy-monitoring-${{ github.repository }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: AET
+      url: "https://caredesk-monitoring-team-k8s-commanders.student.k8s.aet.cit.tum.de"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install helm
+        uses: azure/setup-helm@v4
+        with:
+          version: v3.16.0
+
+      - name: Install kubectl
+        uses: azure/setup-kubectl@v4
+
+      - name: Write kubeconfig
+        env:
+          KUBECONFIG_AET: ${{ secrets.KUBECONFIG_AET }}
+        run: |
+          mkdir -p "$HOME/.kube"
+          echo "${KUBECONFIG_AET}" | base64 -d > "$HOME/.kube/config"
+          chmod 600 "$HOME/.kube/config"
+          kubectl config current-context
+
+      - name: Check namespace quota
+        env:
+          # Set in the AET environment as <cluster-id>:<project-id> so a fresh
+          # namespace lands directly in the team's Rancher project (shared
+          # project quota). If unset, the namespace is created unassigned and
+          # must be moved into the project manually; until then it has no
+          # ResourceQuota and check-k8s-quota.sh skips gracefully.
+          RANCHER_PROJECT_ID: ${{ vars.RANCHER_PROJECT_ID }}
+        run: |
+          NS="team-k8s-commanders-monitoring"
+          # Reserve this namespace's share of the project quota (Prometheus
+          # 150m/512Mi + Grafana 200m/256Mi steady state, plus headroom). The
+          # app namespace reserves the remaining 5500m/7168Mi of the project's
+          # 6000m/8192Mi — keep the two splits summing to at most that total.
+          bash scripts/ensure-k8s-namespace.sh "${NS}" 500m 1024Mi
+          bash scripts/check-k8s-quota.sh "${NS}" 350 768
+
+      - name: Deploy with Helm
+        run: |
+          NS="team-k8s-commanders-monitoring"
+
+          SET_FLAGS=()
+          # Require an explicit admin password: never ship Grafana with the
+          # chart's dev default (that value stays only for local `helm install`).
+          if [ -z "${{ secrets.GRAFANA_ADMIN_PASSWORD }}" ]; then
+            echo "::error::GRAFANA_ADMIN_PASSWORD secret is not set — refusing to deploy Grafana with the built-in default password. Add it in the repository secrets."
+            exit 1
+          fi
+          SET_FLAGS+=(--set "grafana.adminPassword=${{ secrets.GRAFANA_ADMIN_PASSWORD }}")
+          # Discord alert delivery — without the secret, alerts only show in the UI.
+          if [ -n "${{ secrets.DISCORD_WEBHOOK_URL }}" ]; then
+            SET_FLAGS+=(--set "grafana.discordWebhookUrl=${{ secrets.DISCORD_WEBHOOK_URL }}")
+          fi
+          if [ -n "${{ vars.MONITORING_INGRESS_HOST }}" ]; then
+            SET_FLAGS+=(--set "ingress.host=${{ vars.MONITORING_INGRESS_HOST }}")
+          fi
+
+          if ! helm upgrade --install caredesk-monitoring helm/caredesk-monitoring \
+            --namespace "${NS}" \
+            "${SET_FLAGS[@]}" \
+            --wait --timeout 5m; then
+            echo "::error::Helm upgrade failed — collecting cluster diagnostics"
+            kubectl -n "${NS}" get pods,deploy,rs
+            kubectl -n "${NS}" get events --sort-by='.lastTimestamp' | tail -25
+            kubectl -n "${NS}" describe resourcequota || true
+            exit 1
+          fi
+
+      - name: Smoke test
+        run: |
+          NS="team-k8s-commanders-monitoring"
+          kubectl -n "${NS}" get pods,svc,ingress
+          helm get notes caredesk-monitoring -n "${NS}" || true

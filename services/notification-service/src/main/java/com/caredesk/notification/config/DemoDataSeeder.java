@@ -7,7 +7,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,9 +20,9 @@ import java.util.UUID;
  * notifications API and any patient/admin notification views return real data
  * out of the box.
  *
- * <p>Enabled only in the {@code dev} profile and when
- * {@code caredesk.seed.demo=true} (env {@code CAREDESK_SEED_DEMO}); never runs
- * in production. Idempotent — each record is keyed on a fixed UUID.
+ * <p>Enabled only in the {@code dev} profile — the single switch for all demo
+ * seeding; never runs in production. Idempotent — each record is keyed on a
+ * fixed UUID.
  *
  * <p>The patient and appointment ids mirror patient-service's demo seeder; keep
  * them in sync. Records are stamped as already sent (email delivery + the
@@ -31,7 +30,6 @@ import java.util.UUID;
  */
 @Component
 @Profile("dev")
-@ConditionalOnProperty(prefix = "caredesk.seed", name = "demo", havingValue = "true")
 public class DemoDataSeeder implements ApplicationRunner {
 
     private static final Logger log = LoggerFactory.getLogger(DemoDataSeeder.class);

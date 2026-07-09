@@ -155,9 +155,18 @@ services:
       DB_PASSWORD: caredesk
       # Dev-only secret — override in production via env or secrets management.
       JWT_SECRET: caredesk-compose-dev-secret-must-be-at-least-32-chars
+      # The `dev` profile is the single switch for all demo seeding: it enables
+      # every service's DemoDataSeeder (auth seeds the demo users; the others
+      # seed appointments, notes and notifications). Always on for local compose;
+      # on k8s it is off by default and toggled via the SEED_DEMO GitHub variable
+      # (helm seedDemoData).
       SPRING_PROFILES_ACTIVE: dev
-      # Seed the coherent cross-service demo dataset for presentations (#168).
-      CAREDESK_SEED_DEMO: "true"
+      # The administrator is always created from these env vars (never from the
+      # demo seeding), matching production. Local default creds:
+      CAREDESK_BOOTSTRAP_ADMIN_ENABLED: "true"
+      CAREDESK_ADMIN_NAME: Admin
+      CAREDESK_ADMIN_EMAIL: admin@admin.com
+      CAREDESK_ADMIN_PASSWORD: admin123
       # application.yml ships with ddl-auto: validate for production safety.
       # Compose dev profile overrides to `update` so schema is auto-created
       # against a fresh Postgres. Production should use proper migrations.
@@ -214,9 +223,9 @@ services:
       AUTH_SERVICE_URL: http://auth-service:8081
       # Internal notification-service URL for booking-confirmation triggers.
       NOTIFICATION_SERVICE_URL: http://notification-service:8084
+      # The `dev` profile is the single switch that enables this service's
+      # DemoDataSeeder (demo dataset for presentations, #168). Always on locally.
       SPRING_PROFILES_ACTIVE: dev
-      # Seed the coherent cross-service demo dataset for presentations (#168).
-      CAREDESK_SEED_DEMO: "true"
       # application.yml ships with ddl-auto: validate. Compose dev profile
       # overrides to update so the schema is auto-created against a fresh DB.
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
@@ -268,9 +277,9 @@ services:
       DB_NAME: notes_db
       DB_USER: caredesk
       DB_PASSWORD: caredesk
+      # The `dev` profile is the single switch that enables this service's
+      # DemoDataSeeder (demo dataset for presentations, #168). Always on locally.
       SPRING_PROFILES_ACTIVE: dev
-      # Seed the coherent cross-service demo dataset for presentations (#168).
-      CAREDESK_SEED_DEMO: "true"
       # application.yml ships with ddl-auto: validate. Compose dev profile
       # overrides to update so the schema is auto-created against a fresh DB.
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
@@ -337,9 +346,9 @@ services:
       DB_NAME: notification_db
       DB_USER: caredesk
       DB_PASSWORD: caredesk
+      # The `dev` profile is the single switch that enables this service's
+      # DemoDataSeeder (demo dataset for presentations, #168). Always on locally.
       SPRING_PROFILES_ACTIVE: dev
-      # Seed the coherent cross-service demo dataset for presentations (#168).
-      CAREDESK_SEED_DEMO: "true"
       # application.yml ships with ddl-auto: validate. Compose dev profile
       # overrides to update so the schema is auto-created against a fresh DB.
       SPRING_JPA_HIBERNATE_DDL_AUTO: update

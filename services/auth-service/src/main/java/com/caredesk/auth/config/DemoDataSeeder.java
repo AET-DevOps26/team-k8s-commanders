@@ -16,11 +16,21 @@ import com.caredesk.auth.model.User;
 import com.caredesk.auth.repository.UserRepository;
 
 /**
- * Seeds deterministic dev users so other services can reference stable ids.
+ * Seeds all demo user identities (patient, doctor and the second demo patient
+ * "Anna Müller") with deterministic ids so other services can reference them.
+ * This is the single seeder in auth-service and owns the demo <em>users</em>;
+ * the other services' {@code DemoDataSeeder}s seed cross-service <em>data</em>
+ * (appointments, notes, notifications) keyed on these ids.
+ *
+ * <p>Gated on the {@code dev} profile — the single switch for all demo seeding;
+ * never runs in production. The administrator is deliberately <em>not</em>
+ * seeded here: it is always created from deployment env vars by
+ * {@link ProductionAdminSeeder}, so there is exactly one source of admin
+ * accounts.
  */
 @Component
 @Profile("dev")
-public class DefaultUserSeeder implements ApplicationRunner {
+public class DemoDataSeeder implements ApplicationRunner {
 
     private static final List<DefaultUser> DEFAULT_USERS = List.of(
             new DefaultUser(UUID.fromString("11111111-1111-1111-1111-111111111111"),
@@ -31,16 +41,20 @@ public class DefaultUserSeeder implements ApplicationRunner {
                     "Doctor", "doctor@doctor.com", "doctor123", Role.DOCTOR,
                     "+49 89 987654", LocalDate.parse("1982-09-21"), "General Medicine", "DE-CARE-1001",
                     UUID.fromString("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")),
-            new DefaultUser(UUID.fromString("33333333-3333-3333-3333-333333333333"),
-                    "Admin", "admin@admin.com", "admin123", Role.ADMIN,
-                    "+49 89 555000", LocalDate.parse("1978-02-03"), null, null,
-                    UUID.fromString("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"))
+            // Second demo patient — "Anna Müller", the pitch's AI-assistant example.
+            // This fixed id must match ANNA_ID in patient-service's and
+            // notification-service's demo seeders so her appointments, notes and
+            // notifications line up across services.
+            new DefaultUser(UUID.fromString("d0000000-0000-0000-0000-0000000000a1"),
+                    "Anna Müller", "anna.mueller@caredesk.dev", "patient123", Role.PATIENT,
+                    "+49 89 445566", LocalDate.parse("1975-06-30"), null, null,
+                    null)
     );
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
 
-    public DefaultUserSeeder(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+    public DemoDataSeeder(UserRepository userRepository, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
     }

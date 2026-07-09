@@ -100,17 +100,27 @@ Authenticated patients can use the web client to open `/patient/profile`, update
 
 Patients can open `/patient/book`, search doctors via `/api/v1/doctors`, view available slots via `/api/v1/doctors/{doctorId}/schedule`, and book a selected slot via `/api/v1/appointments`. Booking consumes the selected `doctor_slots` row and marks it unavailable before creating the appointment.
 
-Dev compose seeds these local credentials:
+### Accounts and seeding
+
+**The administrator is always created from env vars** (`CAREDESK_ADMIN_*`, via the bootstrap admin seeder) — independent of demo seeding, in every environment. Dev compose sets these local defaults:
+
+| Role | Email | Password | Source |
+|------|-------|----------|--------|
+| Admin | admin@admin.com | admin123 | bootstrap env vars (`CAREDESK_ADMIN_*`) |
+
+**Demo users and data** are seeded only when the single demo switch is on — the `dev` Spring profile. It is **always on for local compose** (`SPRING_PROFILES_ACTIVE=dev`) and **off by default on Kubernetes**, where it is toggled by the `SEED_DEMO` GitHub Actions variable on the `AET` environment (set it to `true`, re-run the deploy; the workflow passes it through to the chart's `seedDemoData`). It never runs in production unless explicitly enabled. When on, these demo login accounts exist:
 
 | Role | Email | Password |
 |------|-------|----------|
 | Patient | patient@patient.com | patient123 |
 | Doctor | doctor@doctor.com | doctor123 |
-| Admin | admin@admin.com | admin123 |
+| Patient (demo) | anna.mueller@caredesk.dev | patient123 |
 
 ### Demo dataset
 
-For presentations, dev compose also seeds a coherent, cross-service demo dataset on startup (`CAREDESK_SEED_DEMO=true`, dev profile only — never in production). It populates every dashboard without any manual clicking: appointments across all statuses (including one due within 24h), clinical notes with diagnoses, notification records, and a second demo patient ("Anna Müller", `anna.mueller@caredesk.dev` / `patient123`) with a Type 2 diabetes history for the AI-assistant example. Seeding is idempotent (fixed UUIDs, upserted) so it survives restarts. Log in as the doctor to see full patient records, schedule and AI context.
+The same demo switch also seeds a coherent, cross-service dataset on startup so every dashboard is populated without any manual clicking: appointments across all statuses (including one due within 24h), clinical notes with diagnoses, notification records, and the second demo patient "Anna Müller" with a Type 2 diabetes history for the AI-assistant example. Seeding is idempotent (fixed UUIDs, upserted) so it survives restarts; disabling the switch stops re-seeding but does not delete already-seeded rows. Log in as the doctor to see full patient records, schedule and AI context.
+
+> **Warning:** enabling demo seeding creates weak, known-password accounts (above). Keep it off on any public deployment except for a time-boxed demo.
 
 The notes service is a scaffold for clinical notes — the structured visit notes and diagnoses a doctor records against an appointment (`/appointments/{appointmentId}/note`). It follows the same pattern as the patient service: it sits behind the API gateway, trusts the gateway-injected `X-User-Email` / `X-User-Role` headers, and uses its own Postgres container (`notes-db`). The gateway routes the clinical note sub-path to it while the rest of `/appointments/**` stays with the patient service.
 

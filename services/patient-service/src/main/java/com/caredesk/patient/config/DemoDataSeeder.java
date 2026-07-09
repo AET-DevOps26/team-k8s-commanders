@@ -9,7 +9,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,15 +23,15 @@ import java.util.UUID;
  *
  * <p>This is the single source of demo data for patient-service — it owns only
  * the scheduling slice (appointments and doctor slots). The patient and doctor
- * <em>identities</em> live in auth-service and are seeded there
- * ({@code DefaultUserSeeder} for the canonical accounts, the auth
- * {@code DemoDataSeeder} for Anna Müller); this seeder just references their ids.
+ * <em>identities</em> live in auth-service and are seeded there by its
+ * {@code DemoDataSeeder} (patient, doctor and Anna Müller); this seeder just
+ * references their ids.
  *
- * <p>Enabled only in the {@code dev} profile and when
- * {@code caredesk.seed.demo=true} (env {@code CAREDESK_SEED_DEMO}); it never
- * runs in production. Idempotent: appointments are keyed on a fixed UUID and
- * upserted, and {@code now} is truncated to the top of the hour so slot times
- * (keyed by doctor + start/end) match on restart rather than accumulating.
+ * <p>Enabled only in the {@code dev} profile — the single switch for all demo
+ * seeding; it never runs in production. Idempotent: appointments are keyed on a
+ * fixed UUID and upserted, and {@code now} is truncated to the top of the hour
+ * so slot times (keyed by doctor + start/end) match on restart rather than
+ * accumulating.
  *
  * <p><strong>Cross-service IDs.</strong> The {@code DEMO_*} UUIDs below are the
  * canonical demo identifiers and are shared with the demo seeders in
@@ -42,14 +41,13 @@ import java.util.UUID;
  */
 @Component
 @Profile("dev")
-@ConditionalOnProperty(prefix = "caredesk.seed", name = "demo", havingValue = "true")
 public class DemoDataSeeder implements ApplicationRunner {
 
     private static final Logger log = LoggerFactory.getLogger(DemoDataSeeder.class);
 
-    /** Canonical doctor (doctor@doctor.com), seeded by auth-service's DefaultUserSeeder. */
+    /** Canonical doctor (doctor@doctor.com), seeded by auth-service's DemoDataSeeder. */
     static final UUID DOCTOR_ID = UUID.fromString("22222222-2222-2222-2222-222222222222");
-    /** Canonical patient (patient@patient.com), seeded by auth-service's DefaultUserSeeder. */
+    /** Canonical patient (patient@patient.com), seeded by auth-service's DemoDataSeeder. */
     static final UUID PATIENT_ID = UUID.fromString("11111111-1111-1111-1111-111111111111");
     /** Second demo patient — "Anna Müller", the pitch's AI-assistant example (seeded in auth-service). */
     static final UUID ANNA_ID = UUID.fromString("d0000000-0000-0000-0000-0000000000a1");

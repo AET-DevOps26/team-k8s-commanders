@@ -23,11 +23,11 @@ import com.caredesk.auth.model.User;
 import com.caredesk.auth.repository.UserRepository;
 
 @ExtendWith(MockitoExtension.class)
-class DefaultUserSeederTest {
+class DemoDataSeederTest {
 
     private final UserRepository userRepository = mock(UserRepository.class);
     private final PasswordEncoder passwordEncoder = mock(PasswordEncoder.class);
-    private final DefaultUserSeeder seeder = new DefaultUserSeeder(userRepository, passwordEncoder);
+    private final DemoDataSeeder seeder = new DemoDataSeeder(userRepository, passwordEncoder);
 
     @Test
     void createsMissingDefaultUsers() {
@@ -46,7 +46,7 @@ class DefaultUserSeederTest {
                 .containsExactly(
                         tuple("Patient", "patient@patient.com", "encoded-patient123", Role.PATIENT),
                         tuple("Doctor", "doctor@doctor.com", "encoded-doctor123", Role.DOCTOR),
-                        tuple("Admin", "admin@admin.com", "encoded-admin123", Role.ADMIN)
+                        tuple("Anna Müller", "anna.mueller@caredesk.dev", "encoded-patient123", Role.PATIENT)
                 );
         assertThat(users)
                 .extracting(User::getPhoneNumber, User::getDateOfBirth)
@@ -66,7 +66,6 @@ class DefaultUserSeederTest {
         when(userRepository.findById(any(UUID.class))).thenReturn(Optional.empty());
         when(userRepository.findByEmail("patient@patient.com")).thenReturn(Optional.of(existingPatient));
         when(userRepository.findByEmail("doctor@doctor.com")).thenReturn(Optional.empty());
-        when(userRepository.findByEmail("admin@admin.com")).thenReturn(Optional.empty());
         when(passwordEncoder.encode(anyString())).thenAnswer(invocation -> "encoded-" + invocation.getArgument(0));
 
         seeder.run(null);

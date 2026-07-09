@@ -7,7 +7,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,9 +18,9 @@ import java.util.UUID;
  * patient records and the patient's visit history are populated, and the AI
  * assistant has grounded content to summarise.
  *
- * <p>Enabled only in the {@code dev} profile and when
- * {@code caredesk.seed.demo=true} (env {@code CAREDESK_SEED_DEMO}); never runs
- * in production. Idempotent — one note per appointment, keyed on appointmentId.
+ * <p>Enabled only in the {@code dev} profile — the single switch for all demo
+ * seeding; never runs in production. Idempotent — one note per appointment,
+ * keyed on appointmentId.
  *
  * <p>The appointment and doctor ids below mirror patient-service's demo seeder;
  * notes are written only for the appointments that are already {@code COMPLETED}
@@ -29,7 +28,6 @@ import java.util.UUID;
  */
 @Component
 @Profile("dev")
-@ConditionalOnProperty(prefix = "caredesk.seed", name = "demo", havingValue = "true")
 public class DemoDataSeeder implements ApplicationRunner {
 
     private static final Logger log = LoggerFactory.getLogger(DemoDataSeeder.class);

@@ -89,6 +89,10 @@ jobs:
           ADMIN_NAME: ${{ vars.ADMIN_NAME }}
           ADMIN_EMAIL: ${{ vars.ADMIN_EMAIL }}
           ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
+          # Single toggle for demo/test data seeding. Set the SEED_DEMO variable
+          # to "true" on the AET environment to seed for a demo; leave unset/false
+          # otherwise. Never affects the bootstrap admin (always seeded).
+          SEED_DEMO: ${{ vars.SEED_DEMO }}
         run: |
           NS="team-k8s-commanders"
 
@@ -115,6 +119,7 @@ jobs:
             --set-file "auth.bootstrapAdmin.name=${ADMIN_CONFIG_DIR}/name"
             --set-file "auth.bootstrapAdmin.email=${ADMIN_CONFIG_DIR}/email"
             --set-file "auth.bootstrapAdmin.password=${ADMIN_CONFIG_DIR}/password"
+            --set "seedDemoData=${SEED_DEMO:-false}"
           )
 
           if [ -n "${OPENWEBUI_BASE_URL}" ]; then

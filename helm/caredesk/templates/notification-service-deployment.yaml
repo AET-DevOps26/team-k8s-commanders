@@ -31,6 +31,7 @@ spec:
               value: {{ .Values.notification.service.port | quote }}
             {{- include "caredesk.appVersionEnv" (dict "root" $ "image" .Values.notification.image) | nindent 12 }}
             {{- include "caredesk.dbEnv" (dict "root" $ "host" .Values.notification.dbHost "name" .Values.notification.dbName) | nindent 12 }}
+            {{- include "caredesk.seedEnv" $ | nindent 12 }}
             # SMTP target — defaults to the in-cluster Mailpit service. Provide
             # username/password/auth/startTls for an authenticated/TLS provider.
             - name: SMTP_HOST

@@ -91,8 +91,9 @@ public class UserAdminService {
         if (request.getRole() != null) {
             user.setRole(Role.valueOf(request.getRole().getValue()));
         }
-        if (request.getEnabled() != null) {
-            user.setEnabled(request.getEnabled());
+        Boolean enabled = request.getEnabled();
+        if (enabled != null) {
+            user.setEnabled(enabled);
         }
         user.setPhoneNumber(request.getPhoneNumber());
         user.setDateOfBirth(request.getDateOfBirth());
@@ -101,8 +102,9 @@ public class UserAdminService {
         user.setClinicId(request.getClinicId());
 
         // Password is write-only and optional on update — only reset when provided.
-        if (request.getPassword() != null && !request.getPassword().isBlank()) {
-            user.setPassword(passwordEncoder.encode(request.getPassword()));
+        String password = request.getPassword();
+        if (password != null && !password.isBlank()) {
+            user.setPassword(passwordEncoder.encode(password));
         }
 
         return userProfileMapper.toProfile(userRepository.save(user));

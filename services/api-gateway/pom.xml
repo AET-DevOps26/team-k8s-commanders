@@ -103,6 +103,28 @@
                 <configuration>
                     <mainClass>com.caredesk.gateway.ApiGatewayApplication</mainClass>
                 </configuration>
+            </plugin><!-- SpotBugs static analysis. Runs at `mvn verify` and fails the
+                 build on any finding (effort=Max, high-confidence threshold).
+                 Shared exclude filter lives at the repo root. -->
+            <plugin>
+                <groupId>com.github.spotbugs</groupId>
+                <artifactId>spotbugs-maven-plugin</artifactId>
+                <version>4.8.6.6</version>
+                <configuration>
+                    <effort>Max</effort>
+                    <threshold>Medium</threshold>
+                    <includeTests>false</includeTests>
+                    <excludeFilterFile>../../config/spotbugs/spotbugs-exclude.xml</excludeFilterFile>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>spotbugs-check</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>

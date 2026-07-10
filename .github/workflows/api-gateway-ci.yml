@@ -24,8 +24,8 @@ jobs:
           distribution: temurin
           cache: maven
 
-      - name: Run tests
-        run: mvn -B test
+      - name: Run tests and SpotBugs static analysis
+        run: mvn -B verify
         working-directory: services/api-gateway
 
       - name: Upload test reports on failure

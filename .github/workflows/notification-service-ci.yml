@@ -51,8 +51,8 @@ jobs:
             -Dversion=1.0.0 \
             -Dpackaging=jar
 
-      - name: Run tests
-        run: mvn -B test
+      - name: Run tests and SpotBugs static analysis
+        run: mvn -B verify
         working-directory: services/notification-service
 
       - name: Upload test reports on failure

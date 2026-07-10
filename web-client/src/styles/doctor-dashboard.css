@@ -119,6 +119,11 @@
 .availability-slot-list {
   display: grid;
   gap: 0.42rem;
+  /* Cap the height like the other dashboard lists so a long published
+     schedule scrolls in place instead of stretching the whole page. */
+  max-height: 32rem;
+  overflow: auto;
+  padding-right: 0.15rem;
 }
 
 .doctor-appointment-list,

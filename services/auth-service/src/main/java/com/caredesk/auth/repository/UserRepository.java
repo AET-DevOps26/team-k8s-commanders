@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -31,4 +32,19 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     Page<User> searchDoctors(@Param("q") String q,
                              @Param("specialization") String specialization,
                              Pageable pageable);
+
+    /**
+     * Distinct, alphabetically-sorted specializations across all enabled
+     * doctors. Backs the booking flow's specialization filter — a new value
+     * appears here as soon as an admin creates a doctor with it.
+     */
+    @Query("""
+            select distinct u.specialization from User u
+            where u.role = com.caredesk.auth.model.Role.DOCTOR
+              and u.enabled = true
+              and u.specialization is not null
+              and u.specialization <> ''
+            order by u.specialization asc
+            """)
+    List<String> findDistinctSpecializations();
 }

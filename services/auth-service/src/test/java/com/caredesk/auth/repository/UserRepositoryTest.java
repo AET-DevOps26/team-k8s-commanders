@@ -50,6 +50,15 @@ class UserRepositoryTest {
                 .extracting(User::getName).containsExactly("Bob Jones");
     }
 
+    @Test
+    void findDistinctSpecializations_returnsSortedDistinctOfEnabledDoctorsOnly() {
+        // Cardiology (Alice, enabled) + Dermatology (Bob, enabled); Carol's
+        // Cardiology is disabled so it must not add a duplicate, and the patient
+        // has no specialization.
+        assertThat(userRepository.findDistinctSpecializations())
+                .containsExactly("Cardiology", "Dermatology");
+    }
+
     private static User doctor(String name, String email, String specialization, boolean enabled) {
         User user = base(name, email, Role.DOCTOR);
         user.setSpecialization(specialization);

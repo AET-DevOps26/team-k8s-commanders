@@ -68,6 +68,15 @@ public class UserService {
         return new PaginatedUserProfileResponse(content, meta);
     }
 
+    /**
+     * Distinct specializations across enabled doctors, for the booking flow's
+     * specialization filter. Sourced from auth-service because it owns doctor
+     * identity, so a specialization exists exactly when a doctor has it.
+     */
+    public List<String> listSpecializations() {
+        return userRepository.findDistinctSpecializations();
+    }
+
     private static int clampSize(int size) {
         if (size < 1) {
             return 1;

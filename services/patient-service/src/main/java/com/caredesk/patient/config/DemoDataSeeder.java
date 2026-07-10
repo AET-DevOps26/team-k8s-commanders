@@ -51,6 +51,8 @@ public class DemoDataSeeder implements ApplicationRunner {
      *  flow open slots under more than one specialization (Cardiology, Pediatrics). */
     static final UUID DOCTOR_CARDIOLOGY_ID = UUID.fromString("22222222-2222-2222-2222-000000000002");
     static final UUID DOCTOR_PEDIATRICS_ID = UUID.fromString("22222222-2222-2222-2222-000000000003");
+    /** Second General Medicine doctor — gives that specialization more than one doctor. */
+    static final UUID DOCTOR_GENERAL_2_ID = UUID.fromString("22222222-2222-2222-2222-000000000004");
     /** Canonical patient (patient@patient.com), seeded by auth-service's DemoDataSeeder. */
     static final UUID PATIENT_ID = UUID.fromString("11111111-1111-1111-1111-111111111111");
     /** Second demo patient — "Anna Müller", the pitch's AI-assistant example (seeded in auth-service). */
@@ -123,8 +125,10 @@ public class DemoDataSeeder implements ApplicationRunner {
         upsertSlot(DOCTOR_CARDIOLOGY_ID, now.plusDays(3).withHour(15), 30);
         upsertSlot(DOCTOR_PEDIATRICS_ID, now.plusDays(2).withHour(9), 30);
         upsertSlot(DOCTOR_PEDIATRICS_ID, now.plusDays(5).withHour(13), 30);
+        upsertSlot(DOCTOR_GENERAL_2_ID, now.plusDays(3).withHour(10), 30);
+        upsertSlot(DOCTOR_GENERAL_2_ID, now.plusDays(4).withHour(14), 30);
 
-        log.info("Demo dataset seeded (patient-service): 8 appointments, 7 open slots across 3 doctors");
+        log.info("Demo dataset seeded (patient-service): 8 appointments, 9 open slots across 4 doctors");
     }
 
     private void upsertAppointment(UUID id, UUID patientId, OffsetDateTime when, int duration,

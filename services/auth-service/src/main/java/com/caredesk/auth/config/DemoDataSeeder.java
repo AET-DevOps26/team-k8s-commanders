@@ -52,6 +52,12 @@ public class DemoDataSeeder implements ApplicationRunner {
                     "Dr. Tom Becker", "tom.becker@caredesk.dev", "doctor123", Role.DOCTOR,
                     "+49 89 222002", LocalDate.parse("1979-11-02"), "Pediatrics", "DE-CARE-1003",
                     UUID.fromString("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")),
+            // A second General Medicine doctor so the doctor dropdown has more
+            // than one option once a specialization is chosen.
+            new DefaultUser(UUID.fromString("22222222-2222-2222-2222-000000000004"),
+                    "Dr. Mark Lopez", "mark.lopez@caredesk.dev", "doctor123", Role.DOCTOR,
+                    "+49 89 222003", LocalDate.parse("1988-07-08"), "General Medicine", "DE-CARE-1004",
+                    UUID.fromString("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")),
             // Second demo patient — "Anna Müller", the pitch's AI-assistant example.
             // This fixed id must match ANNA_ID in patient-service's and
             // notification-service's demo seeders so her appointments, notes and

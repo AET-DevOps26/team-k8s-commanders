@@ -39,7 +39,7 @@ class DemoDataSeederTest {
 
         ArgumentCaptor<Appointment> appointments = ArgumentCaptor.forClass(Appointment.class);
         verify(appointmentRepository, times(8)).save(appointments.capture());
-        verify(doctorSlotRepository, times(7)).save(any(DoctorSlot.class));
+        verify(doctorSlotRepository, times(9)).save(any(DoctorSlot.class));
 
         List<Appointment> saved = appointments.getAllValues();
         // Every appointment status is represented so all dashboards have content.
@@ -65,6 +65,6 @@ class DemoDataSeederTest {
 
         // Same number of saves on a re-run — upserted onto the fixed ids, never duplicated.
         verify(appointmentRepository, times(8)).save(any(Appointment.class));
-        verify(doctorSlotRepository, times(7)).save(any(DoctorSlot.class));
+        verify(doctorSlotRepository, times(9)).save(any(DoctorSlot.class));
     }
 }

@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import ReactMarkdown, { type Components } from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 import type { AIMessage, AISession, AISessionSummary } from '../../clientApi'
 import {
   createAiSession,
@@ -42,6 +44,24 @@ const quickPrompts = [
   'What changed since the last appointment?',
   'Draft questions for the next consultation.',
 ]
+
+const markdownComponents: Components = {
+  a: (props) => {
+    const { node, ...anchorProps } = props
+    void node
+    return <a {...anchorProps} rel="noreferrer" target="_blank" />
+  },
+}
+
+function AiMessageBody({ content }: { content: string }) {
+  return (
+    <div className="ai-message-body">
+      <ReactMarkdown components={markdownComponents} remarkPlugins={[remarkGfm]}>
+        {content}
+      </ReactMarkdown>
+    </div>
+  )
+}
 
 type DoctorAiState = {
   activeSession: AISession | null
@@ -517,7 +537,9 @@ export function DoctorAiAssistant({
                   }`}
                   key={message.id}
                 >
-                  <p>{message.content || (isStreaming ? 'Thinking...' : '')}</p>
+                  <AiMessageBody
+                    content={message.content || (isStreaming ? 'Thinking...' : '')}
+                  />
                   {message.failed ? (
                     <button
                       className="secondary-button compact-button ai-retry-button"

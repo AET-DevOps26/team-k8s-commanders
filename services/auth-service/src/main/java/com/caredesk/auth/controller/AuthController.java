@@ -8,6 +8,7 @@ import org.openapitools.model.RegisterRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.PostMapping;
 
 // Implements AuthApi — the interface generated from the OpenAPI spec.
 // All endpoint paths, HTTP methods, and response types come from AuthApi.
@@ -34,6 +35,7 @@ public class AuthController implements AuthApi {
     }
 
     @Override
+    @PostMapping(AuthApi.PATH_LOGOUT_USER)
     public ResponseEntity<Void> logoutUser() {
         authService.logout();
         return ResponseEntity.noContent().build();

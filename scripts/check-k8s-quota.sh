@@ -5,16 +5,17 @@
 #
 # Usage: check-k8s-quota.sh <namespace> [expected-cpu-m] [expected-mem-mi]
 #
-# Defaults match helm/caredesk/values.yaml with monitoring enabled:
-#   CPU:  6×400m backends + 5×250m Postgres + 1×200m web + 350m monitoring = 4200m
-#   Mem:  4096Mi backends + 1280Mi Postgres + 128Mi web + 768Mi monitoring = 6272Mi
+# Defaults match helm/caredesk/values.yaml (monitoring lives in its own
+# namespace now — the monitoring workflow passes its budget explicitly):
+#   CPU:  6×400m backends + 5×250m Postgres + 1×200m web = 3850m
+#   Mem:  4096Mi backends + 1280Mi Postgres + 128Mi web = 5504Mi
 # against the team namespace quota of 6000m CPU / 8192Mi memory.
 
 set -euo pipefail
 
 NS="${1:?namespace required}"
-EXPECTED_CPU_M="${2:-4200}"
-EXPECTED_MEM_MI="${3:-6272}"
+EXPECTED_CPU_M="${2:-3850}"
+EXPECTED_MEM_MI="${3:-5504}"
 
 cpu_to_m() {
   local value="$1"

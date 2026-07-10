@@ -1,11 +1,14 @@
 package com.caredesk.patient.service;
 
+import org.openapitools.model.PaginatedUserProfileResponse;
 import org.openapitools.model.UserProfile;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClient;
 
+import java.time.Duration;
 import java.util.UUID;
 
 /**
@@ -31,7 +34,12 @@ public class AuthServiceClient {
      *                {@code http://auth-service:8081}
      */
     public AuthServiceClient(@Value("${auth-service.url:http://localhost:8081}") String baseUrl) {
-        this.restClient = RestClient.builder().baseUrl(baseUrl).build();
+        // Explicit timeouts so a hung auth-service can't block write transactions
+        // (e.g. DoctorService.requireDoctor() during schedule-slot creation).
+        SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
+        requestFactory.setConnectTimeout(Duration.ofSeconds(2));
+        requestFactory.setReadTimeout(Duration.ofSeconds(3));
+        this.restClient = RestClient.builder().baseUrl(baseUrl).requestFactory(requestFactory).build();
     }
 
     /**
@@ -53,5 +61,18 @@ public class AuthServiceClient {
             // Network errors, timeouts, etc. Caller falls back to id-only profile.
             return null;
         }
+    }
+
+    /**
+     * Searches enabled doctors owned by auth-service. Unlike {@link #getUserById},
+     * failures are not swallowed: an empty list is indistinguishable from "no
+     * doctors", so the error propagates and the listing surfaces as 5xx.
+     */
+    public PaginatedUserProfileResponse searchDoctors(String q, String specialization, int page, int size) {
+        return restClient.get()
+                .uri("/internal/doctors?q={q}&specialization={specialization}&page={page}&size={size}",
+                        q, specialization, page, size)
+                .retrieve()
+                .body(PaginatedUserProfileResponse.class);
     }
 }

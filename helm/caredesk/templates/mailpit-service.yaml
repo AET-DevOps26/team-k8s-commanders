@@ -1,0 +1,22 @@
+{{- if .Values.mailpit.enabled -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "caredesk.fullname" . }}-mailpit
+  labels:
+    {{- include "caredesk.labels" . | nindent 4 }}
+    app.kubernetes.io/component: mailpit
+spec:
+  type: ClusterIP
+  ports:
+    - name: smtp
+      port: {{ .Values.mailpit.smtpPort }}
+      targetPort: smtp
+      protocol: TCP
+    - name: http
+      port: {{ .Values.mailpit.webPort }}
+      targetPort: http
+      protocol: TCP
+  selector:
+    {{- include "caredesk.selectorLabels" (dict "root" . "component" "mailpit") | nindent 4 }}
+{{- end }}

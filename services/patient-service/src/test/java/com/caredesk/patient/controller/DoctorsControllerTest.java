@@ -19,6 +19,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class DoctorsControllerTest {
@@ -52,6 +53,21 @@ class DoctorsControllerTest {
 
         assertThat(result.getStatusCode()).isEqualTo(HttpStatus.CREATED);
         assertThat(result.getBody()).isSameAs(created);
+    }
+
+    @Test
+    void createDoctorScheduleSlot_verifiesTargetDoctor_whenAdmin() {
+        UUID doctorId = UUID.randomUUID();
+        OffsetDateTime startAt = OffsetDateTime.parse("2035-06-08T09:00:00Z");
+        ScheduleSlotCreate input = new ScheduleSlotCreate(startAt, startAt.plusMinutes(30));
+        ScheduleSlot created = new ScheduleSlot(input.getStartAt(), input.getEndAt(), true);
+        when(request.getHeader("X-User-Role")).thenReturn("ADMIN");
+        when(doctorService.createScheduleSlot(doctorId, input)).thenReturn(created);
+
+        ResponseEntity<ScheduleSlot> result = controller.createDoctorScheduleSlot(doctorId, input);
+
+        verify(doctorService).verifyDoctorExists(doctorId);
+        assertThat(result.getStatusCode()).isEqualTo(HttpStatus.CREATED);
     }
 
     @Test

@@ -12,7 +12,7 @@ export function ShellNav({ session, onNavigate, onLogout }: ShellNavProps) {
   return (
     <nav className="site-nav" aria-label="Primary navigation">
       <AppLink className="brand" to="/" onNavigate={onNavigate}>
-        <span className="brand-mark">+</span>
+        <img className="brand-mark" src="/favicon.svg" alt="" aria-hidden="true" />
         <span>CareDesk</span>
       </AppLink>
       <div className="nav-links">

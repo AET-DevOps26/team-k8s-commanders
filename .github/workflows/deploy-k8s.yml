@@ -8,9 +8,9 @@ on:
   push:
     branches: [main]
     paths:
-      - 'helm/**'
-      - "infra/prometheus/**"
-      - "infra/grafana/**"
+      # Monitoring (helm/caredesk-monitoring + infra/grafana) deploys via
+      # .github/workflows/deploy-k8s-monitoring.yml instead.
+      - 'helm/caredesk/**'
       - '.github/workflows/deploy-k8s.yml'
   workflow_dispatch:
 
@@ -66,9 +66,18 @@ jobs:
           fi
 
       - name: Check namespace quota
+        env:
+          # Set in the AET environment as <cluster-id>:<project-id> so a fresh
+          # namespace lands directly in the team's Rancher project (shared
+          # project quota). See scripts/ensure-k8s-namespace.sh.
+          RANCHER_PROJECT_ID: ${{ vars.RANCHER_PROJECT_ID }}
         run: |
           NS="team-k8s-commanders"
-          kubectl get ns "${NS}" >/dev/null 2>&1 || kubectl create namespace "${NS}"
+          # Reserve this namespace's share of the project quota (chart steady
+          # state 3850m/5504Mi plus headroom). The monitoring namespace reserves
+          # the remaining 500m/1024Mi of the project's 6000m/8192Mi — keep the
+          # two splits summing to at most that total.
+          bash scripts/ensure-k8s-namespace.sh "${NS}" 5500m 7168Mi
           bash scripts/check-k8s-quota.sh "${NS}"
 
       - name: Deploy with Helm
@@ -80,17 +89,8 @@ jobs:
           ADMIN_NAME: ${{ vars.ADMIN_NAME }}
           ADMIN_EMAIL: ${{ vars.ADMIN_EMAIL }}
           ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
-          MONITORING: ${{ vars.MONITORING }}
         run: |
           NS="team-k8s-commanders"
-
-          # Monitoring (Prometheus + Grafana) is enabled by default — the team
-          # namespace quota (6000m CPU / 8192Mi mem) has headroom for it. Set the
-          # MONITORING repo variable to "false" to opt back out.
-          MONITORING_ENABLED=true
-          if [ "${MONITORING,,}" = "false" ]; then
-            MONITORING_ENABLED=false
-          fi
 
           if [[ -z "${ADMIN_NAME//[[:space:]]/}" ]] || [[ -z "${ADMIN_EMAIL//[[:space:]]/}" ]] || [[ -z "${ADMIN_PASSWORD//[[:space:]]/}" ]]; then
             echo "::error::ADMIN_NAME, ADMIN_EMAIL, and ADMIN_PASSWORD must be configured for production"
@@ -115,7 +115,6 @@ jobs:
             --set-file "auth.bootstrapAdmin.name=${ADMIN_CONFIG_DIR}/name"
             --set-file "auth.bootstrapAdmin.email=${ADMIN_CONFIG_DIR}/email"
             --set-file "auth.bootstrapAdmin.password=${ADMIN_CONFIG_DIR}/password"
-            --set "monitoring.enabled=${MONITORING_ENABLED}"
           )
 
           if [ -n "${OPENWEBUI_BASE_URL}" ]; then
@@ -132,10 +131,6 @@ jobs:
           if [ -n "${{ secrets.POSTGRES_PASSWORD }}" ]; then
             SET_FLAGS+=(--set "postgres.password=${{ secrets.POSTGRES_PASSWORD }}")
           fi
-          if [ -n "${{ secrets.GRAFANA_ADMIN_PASSWORD }}" ]; then
-            SET_FLAGS+=(--set "monitoring.grafana.adminPassword=${{ secrets.GRAFANA_ADMIN_PASSWORD }}")
-          fi
-
           if ! helm upgrade --install caredesk helm/caredesk \
             --namespace "${NS}" \
             "${SET_FLAGS[@]}" \

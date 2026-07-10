@@ -3,12 +3,14 @@ package com.caredesk.patient.service;
 import org.openapitools.model.PaginatedUserProfileResponse;
 import org.openapitools.model.UserProfile;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClient;
 
 import java.time.Duration;
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -74,5 +76,17 @@ public class AuthServiceClient {
                         q, specialization, page, size)
                 .retrieve()
                 .body(PaginatedUserProfileResponse.class);
+    }
+
+    /**
+     * Fetches the distinct doctor specializations from auth-service. As with
+     * {@link #searchDoctors}, failures are not swallowed — an empty list would
+     * be indistinguishable from a real error, so it propagates as a 5xx.
+     */
+    public List<String> getSpecializations() {
+        return restClient.get()
+                .uri("/internal/doctors/specializations")
+                .retrieve()
+                .body(new ParameterizedTypeReference<List<String>>() {});
     }
 }

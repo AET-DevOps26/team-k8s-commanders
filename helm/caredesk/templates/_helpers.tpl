@@ -115,3 +115,20 @@ imagePullSecrets:
       name: {{ include "caredesk.fullname" . }}-app
       key: JWT_SECRET
 {{- end -}}
+
+{{/* Demo-seeding switch (shared by every backend Spring service). When
+     .Values.seedDemoData is true, activates the `dev` Spring profile — the
+     single switch that turns on auth-service's DemoDataSeeder (4 demo patients +
+     4 doctors) and every other service's DemoDataSeeder. Emits nothing when off, so production runs
+     the default profile and never seeds demo data. The administrator is always
+     created from bootstrap env vars regardless of this switch.
+     WARNING: enabling this seeds weak, known-password demo accounts on a
+     public ingress — turn it on only for a time-boxed demo, then off again
+     (already-seeded rows are not removed by disabling it).
+     Call with: include "caredesk.seedEnv" $ */}}
+{{- define "caredesk.seedEnv" -}}
+{{- if .Values.seedDemoData }}
+- name: SPRING_PROFILES_ACTIVE
+  value: "dev"
+{{- end }}
+{{- end -}}

@@ -31,6 +31,7 @@ spec:
               value: {{ .Values.notes.service.port | quote }}
             {{- include "caredesk.appVersionEnv" (dict "root" $ "image" .Values.notes.image) | nindent 12 }}
             {{- include "caredesk.dbEnv" (dict "root" $ "host" .Values.notes.dbHost "name" .Values.notes.dbName) | nindent 12 }}
+            {{- include "caredesk.seedEnv" $ | nindent 12 }}
           startupProbe:
             httpGet:
               path: /actuator/health

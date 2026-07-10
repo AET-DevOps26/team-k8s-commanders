@@ -21,8 +21,18 @@ import org.springframework.stereotype.Service;
 @Service
 public class AuthServiceImpl implements AuthService {
 
-    private static final String USER_DOES_NOT_EXIST = "User does not exist";
-    private static final String WRONG_PASSWORD = "Wrong password";
+    /**
+     * The one failure message for unknown email AND wrong password. Keeping the
+     * two cases byte-identical prevents account enumeration — a caller must not
+     * be able to learn whether an email has an account here (see the
+     * authenticationProvider javadoc in {@code SecurityConfig}).
+     */
+    private static final String INVALID_CREDENTIALS = "Invalid email or password";
+
+    /**
+     * Only ever reported after the password has been verified (the disabled
+     * check runs post-authentication), so it does not leak account existence.
+     */
     private static final String ACCOUNT_DEACTIVATED = "Account deactivated";
 
     private final UserRepository userRepository;
@@ -70,15 +80,19 @@ public class AuthServiceImpl implements AuthService {
                     new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
             );
             User user = userRepository.findByEmail(authentication.getName())
-                    .orElseThrow(() -> new LoginFailedException(USER_DOES_NOT_EXIST));
+                    .orElseThrow(() -> new LoginFailedException(INVALID_CREDENTIALS));
             String token = jwtUtil.generateToken(user.getId().toString(), user.getEmail(), user.getRole().name());
             return new AuthSession(token, userProfileMapper.toProfile(user));
         } catch (DisabledException ex) {
+            // Reached only with a correct password — the disabled check runs
+            // post-authentication (see SecurityConfig), so this does not leak
+            // account existence to password-guessing callers.
             throw new LoginFailedException(ACCOUNT_DEACTIVATED);
-        } catch (UsernameNotFoundException ex) {
-            throw new LoginFailedException(USER_DOES_NOT_EXIST);
-        } catch (BadCredentialsException ex) {
-            throw new LoginFailedException(WRONG_PASSWORD);
+        } catch (UsernameNotFoundException | BadCredentialsException ex) {
+            // Unknown email and wrong password are deliberately indistinguishable.
+            // The provider hides UsernameNotFoundException as BadCredentials; the
+            // extra catch is defence-in-depth should the wiring ever change.
+            throw new LoginFailedException(INVALID_CREDENTIALS);
         }
     }
 

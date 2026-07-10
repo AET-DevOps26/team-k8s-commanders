@@ -16,6 +16,7 @@ import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
 
@@ -95,6 +96,11 @@ public class DoctorsController implements DoctorsApi {
         int pageIndex = page != null ? page : DEFAULT_PAGE;
         int pageSize = size != null ? size : DEFAULT_SIZE;
         return ResponseEntity.ok(doctorService.listDoctors(q, specialization, pageIndex, pageSize));
+    }
+
+    @Override
+    public ResponseEntity<List<String>> listDoctorSpecializations() {
+        return ResponseEntity.ok(doctorService.listSpecializations());
     }
 
     private boolean requireOwnDoctorOrAdmin(UUID doctorId) {

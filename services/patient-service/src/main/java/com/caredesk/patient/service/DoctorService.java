@@ -65,6 +65,14 @@ public class DoctorService {
         return authServiceClient.searchDoctors(blankToEmpty(q), blankToEmpty(specialization), page, size);
     }
 
+    /**
+     * Distinct doctor specializations, delegated to auth-service (the owner of
+     * doctor identity). Backs the booking flow's specialization dropdown.
+     */
+    public List<String> listSpecializations() {
+        return authServiceClient.getSpecializations();
+    }
+
     public UserProfile getProfile(UUID doctorId) {
         UserProfile profile = authServiceClient.getUserById(doctorId);
         if (profile == null) {

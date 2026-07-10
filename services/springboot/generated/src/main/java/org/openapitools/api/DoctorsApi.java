@@ -513,6 +513,80 @@ public interface DoctorsApi {
     }
 
 
+    String PATH_LIST_DOCTOR_SPECIALIZATIONS = "/doctors/specializations";
+    /**
+     * GET /doctors/specializations : List doctor specializations
+     * Distinct, sorted list of specializations across all enabled doctors. Backs the booking flow&#39;s specialization filter, which then narrows the doctor list via GET /doctors?specialization&#x3D;. A new specialization appears automatically once an admin creates a doctor with it.
+     *
+     * @return Specialization names (status code 200)
+     *         or Authentication is required or has failed. (status code 401)
+     *         or The caller is authenticated but not allowed to access the resource. (status code 403)
+     *         or An unexpected error occurred while processing the request. (status code 500)
+     */
+    @Operation(
+        operationId = "listDoctorSpecializations",
+        summary = "List doctor specializations",
+        description = "Distinct, sorted list of specializations across all enabled doctors. Backs the booking flow's specialization filter, which then narrows the doctor list via GET /doctors?specialization=. A new specialization appears automatically once an admin creates a doctor with it.",
+        tags = { "Doctors" },
+        responses = {
+            @ApiResponse(responseCode = "200", description = "Specialization names", content = {
+                @Content(mediaType = "application/json", array = @ArraySchema(schema = @Schema(implementation = String.class))),
+                @Content(mediaType = "application/problem+json", array = @ArraySchema(schema = @Schema(implementation = String.class)))
+            }),
+            @ApiResponse(responseCode = "401", description = "Authentication is required or has failed.", content = {
+                @Content(mediaType = "application/json", schema = @Schema(implementation = ProblemDetail.class)),
+                @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class))
+            }),
+            @ApiResponse(responseCode = "403", description = "The caller is authenticated but not allowed to access the resource.", content = {
+                @Content(mediaType = "application/json", schema = @Schema(implementation = ProblemDetail.class)),
+                @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class))
+            }),
+            @ApiResponse(responseCode = "500", description = "An unexpected error occurred while processing the request.", content = {
+                @Content(mediaType = "application/json", schema = @Schema(implementation = ProblemDetail.class)),
+                @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class))
+            })
+        },
+        security = {
+            @SecurityRequirement(name = "bearerAuth")
+        }
+    )
+    @RequestMapping(
+        method = RequestMethod.GET,
+        value = DoctorsApi.PATH_LIST_DOCTOR_SPECIALIZATIONS,
+        produces = { "application/json", "application/problem+json" }
+    )
+    default ResponseEntity<List<String>> listDoctorSpecializations(
+        
+    ) {
+        getRequest().ifPresent(request -> {
+            for (MediaType mediaType: MediaType.parseMediaTypes(request.getHeader("Accept"))) {
+                if (mediaType.isCompatibleWith(MediaType.valueOf("application/json"))) {
+                    String exampleString = "[ \"\", \"\" ]";
+                    ApiUtil.setExampleResponse(request, "application/json", exampleString);
+                    break;
+                }
+                if (mediaType.isCompatibleWith(MediaType.valueOf("application/problem+json"))) {
+                    String exampleString = "Custom MIME type example not yet supported: application/problem+json";
+                    ApiUtil.setExampleResponse(request, "application/problem+json", exampleString);
+                    break;
+                }
+                if (mediaType.isCompatibleWith(MediaType.valueOf("application/problem+json"))) {
+                    String exampleString = "Custom MIME type example not yet supported: application/problem+json";
+                    ApiUtil.setExampleResponse(request, "application/problem+json", exampleString);
+                    break;
+                }
+                if (mediaType.isCompatibleWith(MediaType.valueOf("application/problem+json"))) {
+                    String exampleString = "Custom MIME type example not yet supported: application/problem+json";
+                    ApiUtil.setExampleResponse(request, "application/problem+json", exampleString);
+                    break;
+                }
+            }
+        });
+        return new ResponseEntity<>(HttpStatus.NOT_IMPLEMENTED);
+
+    }
+
+
     String PATH_LIST_DOCTORS = "/doctors";
     /**
      * GET /doctors : Search doctors

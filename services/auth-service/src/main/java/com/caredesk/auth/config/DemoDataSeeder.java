@@ -65,6 +65,19 @@ public class DemoDataSeeder implements ApplicationRunner {
             new DefaultUser(UUID.fromString("d0000000-0000-0000-0000-0000000000a1"),
                     "Anna Müller", "anna.mueller@caredesk.dev", "patient123", Role.PATIENT,
                     "+49 89 445566", LocalDate.parse("1975-06-30"), null, null,
+                    null),
+            // Additional demo patients so the patient roster has more than one
+            // or two entries to browse. Their ids match MAX_ID / LENA_ID in
+            // patient-service's and notes-service's demo seeders, which give
+            // each of them a spread of appointments (completed, rescheduled,
+            // cancelled) plus clinical notes on the completed visits.
+            new DefaultUser(UUID.fromString("d0000000-0000-0000-0000-0000000000a2"),
+                    "Max Schmidt", "max.schmidt@caredesk.dev", "patient123", Role.PATIENT,
+                    "+49 89 445577", LocalDate.parse("1993-02-17"), null, null,
+                    null),
+            new DefaultUser(UUID.fromString("d0000000-0000-0000-0000-0000000000a3"),
+                    "Lena Fischer", "lena.fischer@caredesk.dev", "patient123", Role.PATIENT,
+                    "+49 89 445588", LocalDate.parse("1968-11-05"), null, null,
                     null)
     );
 

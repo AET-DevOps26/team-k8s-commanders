@@ -38,7 +38,7 @@ class DemoDataSeederTest {
         seeder.run(null);
 
         ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
-        verify(userRepository, times(6)).save(userCaptor.capture());
+        verify(userRepository, times(8)).save(userCaptor.capture());
 
         List<User> users = userCaptor.getAllValues();
         assertThat(users)
@@ -49,7 +49,9 @@ class DemoDataSeederTest {
                         tuple("Dr. Sarah Chen", "sarah.chen@caredesk.dev", "encoded-doctor123", Role.DOCTOR),
                         tuple("Dr. Tom Becker", "tom.becker@caredesk.dev", "encoded-doctor123", Role.DOCTOR),
                         tuple("Dr. Mark Lopez", "mark.lopez@caredesk.dev", "encoded-doctor123", Role.DOCTOR),
-                        tuple("Anna Müller", "anna.mueller@caredesk.dev", "encoded-patient123", Role.PATIENT)
+                        tuple("Anna Müller", "anna.mueller@caredesk.dev", "encoded-patient123", Role.PATIENT),
+                        tuple("Max Schmidt", "max.schmidt@caredesk.dev", "encoded-patient123", Role.PATIENT),
+                        tuple("Lena Fischer", "lena.fischer@caredesk.dev", "encoded-patient123", Role.PATIENT)
                 );
         assertThat(users)
                 .extracting(User::getSpecialization)
@@ -76,8 +78,8 @@ class DemoDataSeederTest {
 
         seeder.run(null);
 
-        verify(userRepository, times(6)).save(any(User.class));
-        verify(passwordEncoder, times(5)).encode(anyString());
+        verify(userRepository, times(8)).save(any(User.class));
+        verify(passwordEncoder, times(7)).encode(anyString());
         assertThat(existingPatient.getName()).isEqualTo("Patient");
         assertThat(existingPatient.getPhoneNumber()).isEqualTo("+49 89 123456");
         assertThat(existingPatient.getPassword()).isEqualTo("existing-password");

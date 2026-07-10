@@ -15,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -57,6 +58,10 @@ public class DemoDataSeeder implements ApplicationRunner {
     static final UUID PATIENT_ID = UUID.fromString("11111111-1111-1111-1111-111111111111");
     /** Second demo patient — "Anna Müller", the pitch's AI-assistant example (seeded in auth-service). */
     static final UUID ANNA_ID = UUID.fromString("d0000000-0000-0000-0000-0000000000a1");
+    /** Additional demo patients (ids match auth-service's DemoDataSeeder) — give the
+     *  roster more entries, each with a small appointment history and notes. */
+    static final UUID MAX_ID = UUID.fromString("d0000000-0000-0000-0000-0000000000a2");
+    static final UUID LENA_ID = UUID.fromString("d0000000-0000-0000-0000-0000000000a3");
 
     // Fixed appointment ids so notes-service and notification-service can link to them.
     static final UUID APPT_HTN_PAST = UUID.fromString("d0000000-0000-0000-0000-000000000101");
@@ -67,6 +72,29 @@ public class DemoDataSeeder implements ApplicationRunner {
     static final UUID APPT_ANNA_DM_1 = UUID.fromString("d0000000-0000-0000-0000-000000000106");
     static final UUID APPT_ANNA_DM_2 = UUID.fromString("d0000000-0000-0000-0000-000000000107");
     static final UUID APPT_ANNA_UPCOMING = UUID.fromString("d0000000-0000-0000-0000-000000000108");
+    // Max Schmidt — two completed visits (with notes) plus a rescheduled and a cancelled.
+    static final UUID APPT_MAX_CHECKUP = UUID.fromString("d0000000-0000-0000-0000-000000000109");
+    static final UUID APPT_MAX_BACK_PAIN = UUID.fromString("d0000000-0000-0000-0000-00000000010a");
+    static final UUID APPT_MAX_RESCHEDULED = UUID.fromString("d0000000-0000-0000-0000-00000000010b");
+    static final UUID APPT_MAX_CANCELLED = UUID.fromString("d0000000-0000-0000-0000-00000000010c");
+    // Lena Fischer — two completed visits (with notes) plus a rescheduled and a cancelled.
+    static final UUID APPT_LENA_ASTHMA = UUID.fromString("d0000000-0000-0000-0000-00000000010d");
+    static final UUID APPT_LENA_ASTHMA_FOLLOWUP = UUID.fromString("d0000000-0000-0000-0000-00000000010e");
+    static final UUID APPT_LENA_RESCHEDULED = UUID.fromString("d0000000-0000-0000-0000-00000000010f");
+    static final UUID APPT_LENA_CANCELLED = UUID.fromString("d0000000-0000-0000-0000-000000000110");
+
+    /**
+     * Demo patient contact emails, mirroring auth-service's DemoDataSeeder. The
+     * notification service delivers reminders and reschedule/cancel mails to the
+     * address stored on the appointment; the reminder feed even skips rows with
+     * no email. Normal booking resolves this from auth-service, but the seeder
+     * uses the known constants rather than a cross-service call at startup.
+     */
+    private static final Map<UUID, String> PATIENT_EMAILS = Map.of(
+            PATIENT_ID, "patient@patient.com",
+            ANNA_ID, "anna.mueller@caredesk.dev",
+            MAX_ID, "max.schmidt@caredesk.dev",
+            LENA_ID, "lena.fischer@caredesk.dev");
 
     private final AppointmentRepository appointmentRepository;
     private final DoctorSlotRepository doctorSlotRepository;
@@ -116,6 +144,28 @@ public class DemoDataSeeder implements ApplicationRunner {
         upsertAppointment(APPT_ANNA_UPCOMING, ANNA_ID, now.plusDays(7), 30,
                 AppointmentStatus.SCHEDULED, "Diabetes review");
 
+        // Max Schmidt — two completed visits (each gets a clinical note) plus a
+        // rescheduled and a cancelled appointment for status variety.
+        upsertAppointment(APPT_MAX_CHECKUP, MAX_ID, now.minusDays(45), 30,
+                AppointmentStatus.COMPLETED, "General check-up");
+        upsertAppointment(APPT_MAX_BACK_PAIN, MAX_ID, now.minusDays(10), 30,
+                AppointmentStatus.COMPLETED, "Back pain assessment");
+        upsertAppointment(APPT_MAX_RESCHEDULED, MAX_ID, now.plusDays(6), 30,
+                AppointmentStatus.RESCHEDULED, "Physiotherapy review");
+        upsertAppointment(APPT_MAX_CANCELLED, MAX_ID, now.plusDays(4), 30,
+                AppointmentStatus.CANCELLED, "Consultation");
+
+        // Lena Fischer — two completed visits (each gets a clinical note) plus a
+        // rescheduled and a cancelled appointment for status variety.
+        upsertAppointment(APPT_LENA_ASTHMA, LENA_ID, now.minusDays(50), 30,
+                AppointmentStatus.COMPLETED, "Asthma review");
+        upsertAppointment(APPT_LENA_ASTHMA_FOLLOWUP, LENA_ID, now.minusDays(15), 30,
+                AppointmentStatus.COMPLETED, "Asthma follow-up");
+        upsertAppointment(APPT_LENA_RESCHEDULED, LENA_ID, now.plusDays(8), 30,
+                AppointmentStatus.RESCHEDULED, "Spirometry review");
+        upsertAppointment(APPT_LENA_CANCELLED, LENA_ID, now.minusDays(5), 30,
+                AppointmentStatus.CANCELLED, "Consultation");
+
         // Open future slots so the booking flow has availability to show — a few
         // per doctor so every seeded specialization is bookable.
         upsertSlot(DOCTOR_ID, now.plusDays(2).withHour(10), 30);
@@ -128,7 +178,7 @@ public class DemoDataSeeder implements ApplicationRunner {
         upsertSlot(DOCTOR_GENERAL_2_ID, now.plusDays(3).withHour(10), 30);
         upsertSlot(DOCTOR_GENERAL_2_ID, now.plusDays(4).withHour(14), 30);
 
-        log.info("Demo dataset seeded (patient-service): 8 appointments, 9 open slots across 4 doctors");
+        log.info("Demo dataset seeded (patient-service): 16 appointments, 9 open slots across 4 doctors");
     }
 
     private void upsertAppointment(UUID id, UUID patientId, OffsetDateTime when, int duration,
@@ -141,6 +191,7 @@ public class DemoDataSeeder implements ApplicationRunner {
         appointment.setDuration(duration);
         appointment.setStatus(status);
         appointment.setReason(reason);
+        appointment.setPatientEmail(PATIENT_EMAILS.get(patientId));
         appointmentRepository.save(appointment);
     }
 

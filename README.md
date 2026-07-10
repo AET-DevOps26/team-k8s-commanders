@@ -110,15 +110,20 @@ Patients can open `/patient/book`, search doctors via `/api/v1/doctors`, view av
 
 **Demo users and data** are seeded only when the single demo switch is on — the `dev` Spring profile. It is **always on for local compose** (`SPRING_PROFILES_ACTIVE=dev`) and **off by default on Kubernetes**, where it is toggled by the `SEED_DEMO` GitHub Actions variable on the `AET` environment (set it to `true`, re-run the deploy; the workflow passes it through to the chart's `seedDemoData`). It never runs in production unless explicitly enabled. When on, these demo login accounts exist:
 
-| Role | Email | Password |
-|------|-------|----------|
-| Patient | patient@patient.com | patient123 |
-| Doctor | doctor@doctor.com | doctor123 |
-| Patient (demo) | anna.mueller@caredesk.dev | patient123 |
+| Role | Email | Password | Notes |
+|------|-------|----------|-------|
+| Patient | patient@patient.com | patient123 | Hypertension history (appointments + notes) |
+| Patient | anna.mueller@caredesk.dev | patient123 | "Anna Müller" — Type 2 diabetes history, the AI-assistant example |
+| Patient | max.schmidt@caredesk.dev | patient123 | General check-up + back-pain history |
+| Patient | lena.fischer@caredesk.dev | patient123 | Asthma history |
+| Doctor | doctor@doctor.com | doctor123 | General Medicine — the treating doctor for **all** seeded appointments |
+| Doctor | sarah.chen@caredesk.dev | doctor123 | Cardiology — open booking slots only |
+| Doctor | tom.becker@caredesk.dev | doctor123 | Pediatrics — open booking slots only |
+| Doctor | mark.lopez@caredesk.dev | doctor123 | General Medicine — open booking slots only |
 
 ### Demo dataset
 
-The same demo switch also seeds a coherent, cross-service dataset on startup so every dashboard is populated without any manual clicking: appointments across all statuses (including one due within 24h), clinical notes with diagnoses, notification records, and the second demo patient "Anna Müller" with a Type 2 diabetes history for the AI-assistant example. Seeding is idempotent (fixed UUIDs, upserted) so it survives restarts; disabling the switch stops re-seeding but does not delete already-seeded rows. Log in as the doctor to see full patient records, schedule and AI context.
+The same demo switch also seeds a coherent, cross-service dataset on startup so every dashboard is populated without any manual clicking: appointments across all statuses (including one due within 24h), clinical notes with diagnoses, and notification records. Each of the four demo patients has its own appointment history and notes (hypertension, Type 2 diabetes, a general/back-pain pair, and asthma). All of these appointments are with the General Medicine doctor `doctor@doctor.com`; the three extra doctors (Cardiology, Pediatrics, second General Medicine) currently only provide open slots so the booking dropdown has several specializations to choose from. Seeding is idempotent (fixed UUIDs, upserted) so it survives restarts; disabling the switch stops re-seeding but does not delete already-seeded rows. Log in as `doctor@doctor.com` to see full patient records, schedule and AI context.
 
 > **Warning:** enabling demo seeding creates weak, known-password accounts (above). Keep it off on any public deployment except for a time-boxed demo.
 

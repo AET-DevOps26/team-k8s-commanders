@@ -38,7 +38,7 @@ class DemoDataSeederTest {
         seeder.run(null);
 
         ArgumentCaptor<Appointment> appointments = ArgumentCaptor.forClass(Appointment.class);
-        verify(appointmentRepository, times(8)).save(appointments.capture());
+        verify(appointmentRepository, times(16)).save(appointments.capture());
         verify(doctorSlotRepository, times(9)).save(any(DoctorSlot.class));
 
         List<Appointment> saved = appointments.getAllValues();
@@ -48,6 +48,9 @@ class DemoDataSeederTest {
                 AppointmentStatus.CANCELLED, AppointmentStatus.COMPLETED);
         // All appointments belong to the canonical demo doctor.
         assertThat(saved).allSatisfy(a -> assertThat(a.getDoctorId()).isEqualTo(DemoDataSeeder.DOCTOR_ID));
+        // Every appointment carries a deliverable email, otherwise the reminder
+        // feed skips it and reschedule/cancel mails have a null recipient.
+        assertThat(saved).allSatisfy(a -> assertThat(a.getPatientEmail()).isNotBlank());
         // Exactly one upcoming appointment falls inside the 24h reminder window.
         OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC);
         assertThat(saved)
@@ -64,7 +67,7 @@ class DemoDataSeederTest {
         seeder.run(null);
 
         // Same number of saves on a re-run — upserted onto the fixed ids, never duplicated.
-        verify(appointmentRepository, times(8)).save(any(Appointment.class));
+        verify(appointmentRepository, times(16)).save(any(Appointment.class));
         verify(doctorSlotRepository, times(9)).save(any(DoctorSlot.class));
     }
 }

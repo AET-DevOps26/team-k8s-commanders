@@ -118,8 +118,8 @@ imagePullSecrets:
 
 {{/* Demo-seeding switch (shared by every backend Spring service). When
      .Values.seedDemoData is true, activates the `dev` Spring profile — the
-     single switch that turns on DefaultUserSeeder (demo patient + doctor) and
-     every service's DemoDataSeeder. Emits nothing when off, so production runs
+     single switch that turns on auth-service's DemoDataSeeder (4 demo patients +
+     4 doctors) and every other service's DemoDataSeeder. Emits nothing when off, so production runs
      the default profile and never seeds demo data. The administrator is always
      created from bootstrap env vars regardless of this switch.
      WARNING: enabling this seeds weak, known-password demo accounts on a

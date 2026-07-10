@@ -30,7 +30,7 @@ class DemoDataSeederTest {
         seeder.run(null);
 
         ArgumentCaptor<ClinicalNote> notes = ArgumentCaptor.forClass(ClinicalNote.class);
-        verify(noteRepository, times(4)).save(notes.capture());
+        verify(noteRepository, times(8)).save(notes.capture());
 
         List<ClinicalNote> saved = notes.getAllValues();
         assertThat(saved).allSatisfy(note -> {
@@ -49,6 +49,6 @@ class DemoDataSeederTest {
 
         seeder.run(null);
 
-        verify(noteRepository, times(4)).save(any(ClinicalNote.class));
+        verify(noteRepository, times(8)).save(any(ClinicalNote.class));
     }
 }

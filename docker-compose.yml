@@ -54,7 +54,11 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
-      start_period: 30s
+      # Generous window: on a fresh volume Postgres has to initdb, run init
+      # scripts and restart, which can exceed 30s under a heavy first-build on
+      # WSL2. A long start_period keeps it "starting" (never "unhealthy") until
+      # it accepts connections.
+      start_period: 120s
     networks:
       - caredesk
 
@@ -130,7 +134,8 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
-      start_period: 30s
+      # See ai-db: long window so a fresh-volume first init never flips to unhealthy.
+      start_period: 120s
     networks:
       - caredesk
 
@@ -196,7 +201,8 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
-      start_period: 30s
+      # See ai-db: long window so a fresh-volume first init never flips to unhealthy.
+      start_period: 120s
     networks:
       - caredesk
 
@@ -254,7 +260,8 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
-      start_period: 30s
+      # See ai-db: long window so a fresh-volume first init never flips to unhealthy.
+      start_period: 120s
     networks:
       - caredesk
 
@@ -308,7 +315,8 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
-      start_period: 30s
+      # See ai-db: long window so a fresh-volume first init never flips to unhealthy.
+      start_period: 120s
     networks:
       - caredesk
 

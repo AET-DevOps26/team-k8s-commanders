@@ -108,18 +108,18 @@ Patients can open `/patient/book`, search doctors via `/api/v1/doctors`, view av
 |------|-------|----------|--------|
 | Admin | admin@admin.com | admin123 | bootstrap env vars (`CAREDESK_ADMIN_*`) |
 
-**Demo users and data** are seeded only when the single demo switch is on — the `dev` Spring profile. It is **always on for local compose** (`SPRING_PROFILES_ACTIVE=dev`) and **off by default on Kubernetes**, where it is toggled by the `SEED_DEMO` GitHub Actions variable on the `AET` environment (set it to `true`, re-run the deploy; the workflow passes it through to the chart's `seedDemoData`). It never runs in production unless explicitly enabled. When on, these demo login accounts exist:
+**Demo users and data** are seeded only when the single demo switch is on — the `dev` Spring profile. It is **always on for local compose** (`SPRING_PROFILES_ACTIVE=dev`) and **off by default on Kubernetes**, where it is toggled by the `SEED_DEMO` GitHub Actions variable on the `AET` environment (set it to `true`, re-run the deploy; the workflow passes it through to the chart's `seedDemoData`). It never runs in production unless explicitly enabled. When on, these demo login accounts exist. **Every patient account uses the password `patient123` and every doctor account uses `doctor123`.**
 
-| Role | Email | Password | Notes |
-|------|-------|----------|-------|
-| Patient | patient@patient.com | patient123 | Hypertension history (appointments + notes) |
-| Patient | anna.mueller@caredesk.dev | patient123 | "Anna Müller" — Type 2 diabetes history, the AI-assistant example |
-| Patient | max.schmidt@caredesk.dev | patient123 | General check-up + back-pain history |
-| Patient | lena.fischer@caredesk.dev | patient123 | Asthma history |
-| Doctor | doctor@doctor.com | doctor123 | General Medicine — the treating doctor for **all** seeded appointments |
-| Doctor | sarah.chen@caredesk.dev | doctor123 | Cardiology — open booking slots only |
-| Doctor | tom.becker@caredesk.dev | doctor123 | Pediatrics — open booking slots only |
-| Doctor | mark.lopez@caredesk.dev | doctor123 | General Medicine — open booking slots only |
+| Role | Email | Notes |
+|------|-------|-------|
+| Patient | patient@patient.com | Hypertension history (appointments + notes) |
+| Patient | anna.mueller@caredesk.dev | "Anna Müller" — Type 2 diabetes history, the AI-assistant example |
+| Patient | max.schmidt@caredesk.dev | General check-up + back-pain history |
+| Patient | lena.fischer@caredesk.dev | Asthma history |
+| Doctor | doctor@doctor.com | General Medicine — the treating doctor for **all** seeded appointments |
+| Doctor | sarah.chen@caredesk.dev | Cardiology — open booking slots only |
+| Doctor | tom.becker@caredesk.dev | Pediatrics — open booking slots only |
+| Doctor | mark.lopez@caredesk.dev | General Medicine — open booking slots only |
 
 ### Demo dataset
 

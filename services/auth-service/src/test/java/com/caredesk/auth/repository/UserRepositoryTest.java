@@ -59,6 +59,20 @@ class UserRepositoryTest {
                 .containsExactly("Cardiology", "Dermatology");
     }
 
+    @Test
+    void findDistinctSpecializations_dedupesCaseVariantsAndSkipsBlankOrWhitespace() {
+        // A differently-cased "cardiology" must collapse into the existing
+        // Cardiology group rather than appearing twice, and a whitespace-only
+        // specialization must be excluded entirely.
+        userRepository.save(doctor("Dan Lower", "dan@x.com", "cardiology", true));
+        userRepository.save(doctor("Eve Blank", "eve@x.com", "   ", true));
+
+        assertThat(userRepository.findDistinctSpecializations())
+                .hasSize(2)
+                .map(String::toLowerCase)
+                .containsExactly("cardiology", "dermatology");
+    }
+
     private static User doctor(String name, String email, String specialization, boolean enabled) {
         User user = base(name, email, Role.DOCTOR);
         user.setSpecialization(specialization);

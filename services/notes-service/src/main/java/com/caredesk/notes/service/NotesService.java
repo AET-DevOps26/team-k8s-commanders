@@ -3,10 +3,10 @@ package com.caredesk.notes.service;
 import com.caredesk.notes.model.ClinicalNote;
 import com.caredesk.notes.model.Diagnosis;
 import com.caredesk.notes.repository.ClinicalNoteRepository;
-import org.springframework.http.HttpStatus;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.time.OffsetDateTime;
 import java.util.Optional;
@@ -21,6 +21,14 @@ import java.util.UUID;
  */
 @Service
 public class NotesService {
+
+    /**
+     * Audit log for clinical-note writes. Clinical notes are medico-legal
+     * records, so every create/amend is recorded (who, when, which note) —
+     * identifiers only, never note content/PHI. There is intentionally no
+     * delete: notes are amended, never destroyed.
+     */
+    private static final Logger auditLog = LoggerFactory.getLogger("clinical-note-audit");
 
     private final ClinicalNoteRepository repository;
 
@@ -70,22 +78,10 @@ public class NotesService {
         note.setContent(content);
         note.setDiagnosis(diagnosis);
 
-        return new UpsertResult(repository.save(note), created);
-    }
-
-    /**
-     * Deletes the note for an appointment. Any doctor may delete it, matching the
-     * shared clinical-record model used for reads and writes.
-     *
-     * @param appointmentId the appointment whose note should be deleted
-     * @throws ResponseStatusException 404 if no note exists
-     */
-    @Transactional
-    public void delete(UUID appointmentId) {
-        ClinicalNote note = repository.findByAppointmentId(appointmentId)
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND, "No clinical note exists for appointment " + appointmentId));
-        repository.delete(note);
+        ClinicalNote saved = repository.save(note);
+        auditLog.info("clinical note {} appointment={} note={} doctor={}",
+                created ? "created" : "amended", appointmentId, saved.getId(), doctorId);
+        return new UpsertResult(saved, created);
     }
 
     /**

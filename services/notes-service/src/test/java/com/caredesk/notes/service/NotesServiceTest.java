@@ -14,10 +14,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
@@ -83,47 +80,6 @@ class NotesServiceTest {
         assertThat(saved.getContent()).isEqualTo("Updated content");
         assertThat(saved.getDoctorId()).isEqualTo(doctorId);
         assertThat(saved.getDiagnosis()).isNull();
-    }
-
-    @Test
-    void deleteRemovesNote() {
-        ClinicalNote existing = new ClinicalNote();
-        existing.setAppointmentId(appointmentId);
-        existing.setDoctorId(doctorId);
-        existing.setContent("Note content");
-        existing.setCreatedAt(OffsetDateTime.now().minusDays(1));
-
-        when(repository.findByAppointmentId(appointmentId)).thenReturn(Optional.of(existing));
-
-        notesService.delete(appointmentId);
-
-        verify(repository).delete(existing);
-    }
-
-    @Test
-    void deleteRemovesNoteAuthoredByAnotherDoctor() {
-        UUID otherDoctorId = UUID.randomUUID();
-
-        ClinicalNote existing = new ClinicalNote();
-        existing.setAppointmentId(appointmentId);
-        existing.setDoctorId(otherDoctorId);
-        existing.setContent("Note content");
-        existing.setCreatedAt(OffsetDateTime.now().minusDays(1));
-
-        when(repository.findByAppointmentId(appointmentId)).thenReturn(Optional.of(existing));
-
-        notesService.delete(appointmentId);
-
-        verify(repository).delete(existing);
-    }
-
-    @Test
-    void deleteThrowsNotFoundWhenNoNoteExists() {
-        when(repository.findByAppointmentId(appointmentId)).thenReturn(Optional.empty());
-
-        assertThatThrownBy(() -> notesService.delete(appointmentId))
-                .isInstanceOf(org.springframework.web.server.ResponseStatusException.class);
-        verify(repository, never()).delete(any());
     }
 
     @Test

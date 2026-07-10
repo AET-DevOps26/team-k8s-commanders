@@ -59,11 +59,11 @@ public class SecurityConfig {
                         // without authentication or the real status code is swallowed by 401.
                         .requestMatchers("/error").permitAll()
                         // Note endpoints are restricted to doctors. Any doctor may
-                        // read, write or delete any note (shared clinical-record
-                        // model); no per-author ownership is enforced.
+                        // read or write any note (shared clinical-record model); no
+                        // per-author ownership is enforced. Notes are amended, never
+                        // deleted — there is deliberately no DELETE endpoint.
                         .requestMatchers(HttpMethod.GET, "/appointments/*/note").hasRole("DOCTOR")
                         .requestMatchers(HttpMethod.PUT, "/appointments/*/note").hasRole("DOCTOR")
-                        .requestMatchers(HttpMethod.DELETE, "/appointments/*/note").hasRole("DOCTOR")
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(headerAuthFilter, UsernamePasswordAuthenticationFilter.class)

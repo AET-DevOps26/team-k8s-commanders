@@ -240,9 +240,13 @@
 .availability-creator input:focus,
 .availability-creator select:focus,
 .note-form textarea:focus,
-.note-form input:focus,
-.ai-compose textarea:focus {
+.note-form input:focus {
   outline: 3px solid rgba(20, 97, 91, 0.18);
+  border-color: #14615b;
+}
+
+.ai-compose textarea:focus {
+  outline: none;
   border-color: #14615b;
 }
 
@@ -281,7 +285,6 @@
 .patient-directory-card.active,
 .patient-timeline-item.active {
   border-color: #14615b;
-  outline: 3px solid rgba(20, 97, 91, 0.18);
   background: rgba(255, 255, 255, 0.94);
 }
 
@@ -706,6 +709,8 @@
   display: grid;
   gap: 0.28rem;
   width: 100%;
+  -webkit-appearance: none;
+  appearance: none;
   border: 1px solid rgba(19, 35, 34, 0.1);
   border-radius: 0.55rem;
   padding: 0.75rem;
@@ -728,7 +733,6 @@
 
 .ai-session-card.active {
   border-color: #14615b;
-  outline: 3px solid rgba(20, 97, 91, 0.18);
   background: rgba(226, 241, 235, 0.9);
 }
 
@@ -792,18 +796,89 @@
   margin-bottom: 0.75rem;
 }
 
-.ai-message p {
-  margin: 0;
+.ai-message-body {
+  overflow-x: auto;
+  overflow-wrap: break-word;
   border-radius: 0.65rem;
   padding: 0.75rem 0.85rem;
   line-height: 1.6;
+}
+
+.ai-message-body > :first-child {
+  margin-top: 0;
+}
+
+.ai-message-body > :last-child {
+  margin-bottom: 0;
+}
+
+.ai-message-body p {
+  margin: 0 0 0.65rem;
+}
+
+.ai-message-body ul,
+.ai-message-body ol {
+  margin: 0 0 0.65rem;
+  padding-left: 1.35rem;
+}
+
+.ai-message-body li + li {
+  margin-top: 0.25rem;
+}
+
+.ai-message-body code {
+  border-radius: 0.3rem;
+  padding: 0.08rem 0.28rem;
+  font-size: 0.9em;
+  background: rgba(19, 35, 34, 0.1);
+}
+
+.ai-message-body pre {
+  overflow-x: auto;
+  margin: 0 0 0.65rem;
+  border-radius: 0.45rem;
+  padding: 0.75rem;
+  background: rgba(19, 35, 34, 0.08);
+}
+
+.ai-message-body pre code {
+  padding: 0;
+  background: transparent;
+}
+
+.ai-message-body blockquote {
+  margin: 0 0 0.65rem;
+  border-left: 3px solid rgba(20, 97, 91, 0.35);
+  padding-left: 0.75rem;
+  color: inherit;
+}
+
+.ai-message-body table {
+  width: 100%;
+  margin: 0 0 0.65rem;
+  border-collapse: collapse;
+  font-size: 0.92rem;
+}
+
+.ai-message-body th,
+.ai-message-body td {
+  border: 1px solid rgba(19, 35, 34, 0.14);
+  padding: 0.4rem 0.5rem;
+  text-align: left;
+}
+
+.ai-message-body a {
+  color: inherit;
+  font-weight: 800;
+  text-decoration: underline;
+  text-underline-offset: 0.14em;
 }
 
 .ai-message-user {
   justify-self: end;
 }
 
-.ai-message-user p {
+.ai-message-user .ai-message-body {
   color: #f8fbf8;
   background: #14615b;
 }
@@ -812,12 +887,12 @@
   justify-self: start;
 }
 
-.ai-message-assistant p {
+.ai-message-assistant .ai-message-body {
   color: #132322;
   background: rgba(226, 241, 235, 0.86);
 }
 
-.ai-message-failed p {
+.ai-message-failed .ai-message-body {
   border: 1px solid rgba(124, 31, 31, 0.2);
   color: #4f2424;
   background: rgba(250, 238, 232, 0.92);

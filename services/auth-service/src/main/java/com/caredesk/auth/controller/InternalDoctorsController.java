@@ -7,6 +7,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
+
 /**
  * Service-to-service doctor directory, outside the public OpenAPI contract.
  *
@@ -32,5 +34,15 @@ public class InternalDoctorsController {
             @RequestParam(name = "page", defaultValue = "0") int page,
             @RequestParam(name = "size", defaultValue = "20") int size) {
         return userService.searchDoctors(q, specialization, page, size);
+    }
+
+    /**
+     * Distinct specializations of enabled doctors, for the booking flow's
+     * specialization filter. patient-service exposes this publicly as
+     * {@code GET /doctors/specializations}.
+     */
+    @GetMapping("/specializations")
+    public List<String> listSpecializations() {
+        return userService.listSpecializations();
     }
 }

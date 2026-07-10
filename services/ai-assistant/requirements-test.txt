@@ -1,5 +1,5 @@
 # == Testing requirements ==
 pytest==9.0.3
-ruff==0.15.16
+ruff==0.15.20
 aiosqlite==0.20.0
 

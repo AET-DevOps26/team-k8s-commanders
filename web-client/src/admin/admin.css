@@ -114,8 +114,9 @@
   justify-content: center;
   padding: 4vh 1rem;
   overflow-y: auto;
-  background: rgba(16, 32, 31, 0.45);
-  backdrop-filter: blur(2px);
+  background: rgba(19, 35, 34, 0.36);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
 }
 
 .modal-card {
@@ -123,6 +124,7 @@
   max-height: 92vh;
   gap: 0.85rem;
   overflow-y: auto;
+  background: rgba(248, 251, 248, 0.97);
 }
 
 .modal-card h2 {

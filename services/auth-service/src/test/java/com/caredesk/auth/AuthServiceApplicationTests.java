@@ -1,6 +1,6 @@
 package com.caredesk.auth;
 
-import com.caredesk.auth.config.DefaultUserSeeder;
+import com.caredesk.auth.config.DemoDataSeeder;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.NoSuchBeanDefinitionException;
@@ -30,8 +30,8 @@ class AuthServiceApplicationTests {
     }
 
     @Test
-    void defaultUserSeederIsDisabledWithoutDevProfile() {
-        assertThatThrownBy(() -> applicationContext.getBean(DefaultUserSeeder.class))
+    void demoDataSeederIsDisabledWithoutDevProfile() {
+        assertThatThrownBy(() -> applicationContext.getBean(DemoDataSeeder.class))
                 .isInstanceOf(NoSuchBeanDefinitionException.class);
     }
 }

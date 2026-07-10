@@ -15,6 +15,16 @@ on:
       - ".github/workflows/deploy-azure.yml"
   workflow_dispatch:
 
+# One deploy at a time on the VM. Both the push and workflow_run triggers can
+# fire for a single merge, and two concurrent `docker compose up --force-recreate`
+# runs race on the temporary backup container name Compose uses while recreating
+# ("container name ... is already in use"). Queue instead of overlapping;
+# cancel-in-progress must stay false — killing a deploy mid-recreate is exactly
+# what strands a renamed backup container.
+concurrency:
+  group: azure-deploy-${{ github.repository }}
+  cancel-in-progress: false
+
 permissions:
   contents: read
   packages: read
@@ -162,4 +172,13 @@ jobs:
             # Caddy provisions and auto-renews the Let's Encrypt certificate
             # for $SITE_ADDRESS on startup — no manual cert generation needed.
             echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-            docker compose -f docker-compose.prod.yml --env-file .env.prod up --pull=always -d --force-recreate --remove-orphans
+            compose="docker compose -f docker-compose.prod.yml --env-file .env.prod"
+            # Fast path keeps recreate downtime minimal. If it fails — e.g. a
+            # container name is stuck from a previously interrupted recreate —
+            # fall back to a full down/up, which clears any stranded backup
+            # containers (volumes persist, so DB data survives), then retry.
+            $compose up --pull=always -d --force-recreate --remove-orphans || {
+              echo "::warning::compose up failed — clearing stale containers and retrying"
+              $compose down --remove-orphans
+              $compose up --pull=always -d --remove-orphans
+            }

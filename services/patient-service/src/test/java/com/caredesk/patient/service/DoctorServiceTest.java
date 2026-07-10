@@ -54,6 +54,13 @@ class DoctorServiceTest {
     }
 
     @Test
+    void listSpecializations_readsThroughToAuthService() {
+        when(authServiceClient.getSpecializations()).thenReturn(List.of("Cardiology", "General Medicine"));
+
+        assertThat(service.listSpecializations()).containsExactly("Cardiology", "General Medicine");
+    }
+
+    @Test
     void getProfile_returnsAuthServiceProfile_whenFound() {
         UUID doctorId = UUID.randomUUID();
         UserProfile authProfile = doctor(doctorId, "Dr Who");

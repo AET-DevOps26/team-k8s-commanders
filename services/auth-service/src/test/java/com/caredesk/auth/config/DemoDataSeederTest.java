@@ -38,7 +38,7 @@ class DemoDataSeederTest {
         seeder.run(null);
 
         ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
-        verify(userRepository, times(3)).save(userCaptor.capture());
+        verify(userRepository, times(5)).save(userCaptor.capture());
 
         List<User> users = userCaptor.getAllValues();
         assertThat(users)
@@ -46,8 +46,13 @@ class DemoDataSeederTest {
                 .containsExactly(
                         tuple("Patient", "patient@patient.com", "encoded-patient123", Role.PATIENT),
                         tuple("Doctor", "doctor@doctor.com", "encoded-doctor123", Role.DOCTOR),
+                        tuple("Dr. Sarah Chen", "sarah.chen@caredesk.dev", "encoded-doctor123", Role.DOCTOR),
+                        tuple("Dr. Tom Becker", "tom.becker@caredesk.dev", "encoded-doctor123", Role.DOCTOR),
                         tuple("Anna Müller", "anna.mueller@caredesk.dev", "encoded-patient123", Role.PATIENT)
                 );
+        assertThat(users)
+                .extracting(User::getSpecialization)
+                .contains("General Medicine", "Cardiology", "Pediatrics");
         assertThat(users)
                 .extracting(User::getPhoneNumber, User::getDateOfBirth)
                 .doesNotContain(tuple(null, null));
@@ -70,8 +75,8 @@ class DemoDataSeederTest {
 
         seeder.run(null);
 
-        verify(userRepository, times(3)).save(any(User.class));
-        verify(passwordEncoder, times(2)).encode(anyString());
+        verify(userRepository, times(5)).save(any(User.class));
+        verify(passwordEncoder, times(4)).encode(anyString());
         assertThat(existingPatient.getName()).isEqualTo("Patient");
         assertThat(existingPatient.getPhoneNumber()).isEqualTo("+49 89 123456");
         assertThat(existingPatient.getPassword()).isEqualTo("existing-password");

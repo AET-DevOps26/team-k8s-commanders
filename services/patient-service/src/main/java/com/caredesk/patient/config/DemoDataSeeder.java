@@ -47,6 +47,10 @@ public class DemoDataSeeder implements ApplicationRunner {
 
     /** Canonical doctor (doctor@doctor.com), seeded by auth-service's DemoDataSeeder. */
     static final UUID DOCTOR_ID = UUID.fromString("22222222-2222-2222-2222-222222222222");
+    /** Extra demo doctors (ids match auth-service's DemoDataSeeder) — give the booking
+     *  flow open slots under more than one specialization (Cardiology, Pediatrics). */
+    static final UUID DOCTOR_CARDIOLOGY_ID = UUID.fromString("22222222-2222-2222-2222-000000000002");
+    static final UUID DOCTOR_PEDIATRICS_ID = UUID.fromString("22222222-2222-2222-2222-000000000003");
     /** Canonical patient (patient@patient.com), seeded by auth-service's DemoDataSeeder. */
     static final UUID PATIENT_ID = UUID.fromString("11111111-1111-1111-1111-111111111111");
     /** Second demo patient — "Anna Müller", the pitch's AI-assistant example (seeded in auth-service). */
@@ -110,12 +114,17 @@ public class DemoDataSeeder implements ApplicationRunner {
         upsertAppointment(APPT_ANNA_UPCOMING, ANNA_ID, now.plusDays(7), 30,
                 AppointmentStatus.SCHEDULED, "Diabetes review");
 
-        // A few open future slots so the booking flow has availability to show.
-        upsertSlot(now.plusDays(2).withHour(10), 30);
-        upsertSlot(now.plusDays(2).withHour(14), 30);
-        upsertSlot(now.plusDays(4).withHour(9), 45);
+        // Open future slots so the booking flow has availability to show — a few
+        // per doctor so every seeded specialization is bookable.
+        upsertSlot(DOCTOR_ID, now.plusDays(2).withHour(10), 30);
+        upsertSlot(DOCTOR_ID, now.plusDays(2).withHour(14), 30);
+        upsertSlot(DOCTOR_ID, now.plusDays(4).withHour(9), 45);
+        upsertSlot(DOCTOR_CARDIOLOGY_ID, now.plusDays(2).withHour(11), 30);
+        upsertSlot(DOCTOR_CARDIOLOGY_ID, now.plusDays(3).withHour(15), 30);
+        upsertSlot(DOCTOR_PEDIATRICS_ID, now.plusDays(2).withHour(9), 30);
+        upsertSlot(DOCTOR_PEDIATRICS_ID, now.plusDays(5).withHour(13), 30);
 
-        log.info("Demo dataset seeded (patient-service): 8 appointments, 3 open slots");
+        log.info("Demo dataset seeded (patient-service): 8 appointments, 7 open slots across 3 doctors");
     }
 
     private void upsertAppointment(UUID id, UUID patientId, OffsetDateTime when, int duration,
@@ -131,10 +140,10 @@ public class DemoDataSeeder implements ApplicationRunner {
         appointmentRepository.save(appointment);
     }
 
-    private void upsertSlot(OffsetDateTime startAt, int durationMinutes) {
+    private void upsertSlot(UUID doctorId, OffsetDateTime startAt, int durationMinutes) {
         OffsetDateTime endAt = startAt.plusMinutes(durationMinutes);
-        DoctorSlot slot = doctorSlotRepository.findSlotByTime(DOCTOR_ID, startAt, endAt).orElseGet(DoctorSlot::new);
-        slot.setDoctorId(DOCTOR_ID);
+        DoctorSlot slot = doctorSlotRepository.findSlotByTime(doctorId, startAt, endAt).orElseGet(DoctorSlot::new);
+        slot.setDoctorId(doctorId);
         slot.setStartAt(startAt);
         slot.setEndAt(endAt);
         slot.setAvailable(true);

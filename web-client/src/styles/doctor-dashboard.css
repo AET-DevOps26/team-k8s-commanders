@@ -240,9 +240,13 @@
 .availability-creator input:focus,
 .availability-creator select:focus,
 .note-form textarea:focus,
-.note-form input:focus,
-.ai-compose textarea:focus {
+.note-form input:focus {
   outline: 3px solid rgba(20, 97, 91, 0.18);
+  border-color: #14615b;
+}
+
+.ai-compose textarea:focus {
+  outline: none;
   border-color: #14615b;
 }
 
@@ -281,7 +285,6 @@
 .patient-directory-card.active,
 .patient-timeline-item.active {
   border-color: #14615b;
-  outline: 3px solid rgba(20, 97, 91, 0.18);
   background: rgba(255, 255, 255, 0.94);
 }
 
@@ -706,6 +709,8 @@
   display: grid;
   gap: 0.28rem;
   width: 100%;
+  -webkit-appearance: none;
+  appearance: none;
   border: 1px solid rgba(19, 35, 34, 0.1);
   border-radius: 0.55rem;
   padding: 0.75rem;
@@ -728,7 +733,6 @@
 
 .ai-session-card.active {
   border-color: #14615b;
-  outline: 3px solid rgba(20, 97, 91, 0.18);
   background: rgba(226, 241, 235, 0.9);
 }
 

@@ -31,13 +31,14 @@ images:
     email: caredesk@example.com
 
 # ─── Shared backend settings ──────────────────────────────────────────────────
-# A development default is baked in so the whole stack deploys with one command
-# and no pre-created env files / secrets. Override in any real environment:
+# No secret is baked into the chart — provide it at install time (CI injects the
+# JWT_SECRET GitHub secret; locally pass it yourself):
 #   --set backend.jwtSecret=<your-secret>
 backend:
   # Shared HMAC secret. auth-service signs JWTs with it; api-gateway verifies
-  # them with the same value. Must be >= 32 chars for HS256/384.
-  jwtSecret: "caredesk-cluster-dev-jwt-secret-change-me-32+"
+  # them with the same value. Must be >= 32 chars for HS256/384. Required —
+  # rendering the -app Secret fails if this is empty.
+  jwtSecret: ""
   jwtExpirationMs: "86400000"   # 24h (string to avoid YAML int→float)
   # Fresh databases have no schema; `update` lets Hibernate create tables on
   # first boot. Switch to `validate` once real migrations exist.
@@ -49,8 +50,10 @@ backend:
 postgres:
   image: postgres:16-alpine
   username: caredesk
-  # Development default — override with --set postgres.password=<secret>.
-  password: caredesk
+  # No secret is baked into the chart — provide it at install time (CI injects
+  # the POSTGRES_PASSWORD GitHub secret). Required: rendering the -db Secret
+  # fails if this is empty.
+  password: ""
   storage: 1Gi
   resources:
     requests: { cpu: 50m,  memory: 64Mi }

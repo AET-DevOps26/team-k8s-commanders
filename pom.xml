@@ -20,7 +20,7 @@
 
     <properties>
         <java.version>21</java.version>
-        <spotbugs-maven-plugin.version>4.9.3.1</spotbugs-maven-plugin.version>
+        <spotbugs-maven-plugin.version>4.8.6.6</spotbugs-maven-plugin.version>
         <findsecbugs-plugin.version>1.14.0</findsecbugs-plugin.version>
     </properties>
 

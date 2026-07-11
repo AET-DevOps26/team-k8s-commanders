@@ -347,7 +347,7 @@ services:
       - caredesk
 
   grafana:
-    image: grafana/grafana:11.2.0
+    image: grafana/grafana:11.6.16
     # No host port published — reachable only inside the compose network
     # (and externally via the Caddy/TLS proxy).
     expose:

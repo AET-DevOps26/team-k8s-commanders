@@ -19,7 +19,7 @@
 # Instead we compile classes, strip the stub project's own application.properties
 # (which would otherwise override the auth-service's application.yml and set
 # server.port=8080), and install a plain classes JAR.
-FROM maven:3.9-eclipse-temurin-21 AS stubs-builder
+FROM maven:3.9-eclipse-temurin-25 AS stubs-builder
 WORKDIR /stubs
 COPY services/springboot/generated/pom.xml .
 COPY services/springboot/generated/src ./src
@@ -37,7 +37,7 @@ RUN cd target/classes && jar cf /tmp/openapi-spring-1.0.0.jar . \
 # ---------------------------------------------------------------------------
 # Stage 2 — build the auth-service JAR
 # ---------------------------------------------------------------------------
-FROM maven:3.9-eclipse-temurin-21 AS app-builder
+FROM maven:3.9-eclipse-temurin-25 AS app-builder
 WORKDIR /app
 COPY --from=stubs-builder /root/.m2 /root/.m2
 COPY services/auth-service/pom.xml .
@@ -48,7 +48,7 @@ RUN mvn package -DskipTests -q
 # ---------------------------------------------------------------------------
 # Stage 3 — slim runtime image (no JDK, no Maven)
 # ---------------------------------------------------------------------------
-FROM eclipse-temurin:21-jre-alpine
+FROM eclipse-temurin:25-jre-alpine
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 WORKDIR /app
 COPY --from=app-builder /app/target/*.jar app.jar

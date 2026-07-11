@@ -8,7 +8,6 @@ import com.fasterxml.jackson.annotation.JsonValue;
 import java.util.UUID;
 import org.openapitools.model.NotificationChannel;
 import org.springframework.lang.Nullable;
-import org.openapitools.jackson.nullable.JsonNullable;
 import java.time.OffsetDateTime;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;

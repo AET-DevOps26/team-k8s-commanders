@@ -20,7 +20,8 @@
 
     <properties>
         <java.version>25</java.version>
-        <spotbugs-maven-plugin.version>4.8.6.6</spotbugs-maven-plugin.version>
+        <spotbugs-maven-plugin.version>4.10.2.0</spotbugs-maven-plugin.version>
+        <spotbugs.version>4.10.2</spotbugs.version>
         <findsecbugs-plugin.version>1.14.0</findsecbugs-plugin.version>
     </properties>
 
@@ -33,6 +34,14 @@
                     <groupId>com.github.spotbugs</groupId>
                     <artifactId>spotbugs-maven-plugin</artifactId>
                     <version>${spotbugs-maven-plugin.version}</version>
+                    <dependencies>
+                        <!-- 4.8.x cannot parse Java 25 bytecode (class file version 69). -->
+                        <dependency>
+                            <groupId>com.github.spotbugs</groupId>
+                            <artifactId>spotbugs</artifactId>
+                            <version>${spotbugs.version}</version>
+                        </dependency>
+                    </dependencies>
                     <configuration>
                         <effort>Max</effort>
                         <threshold>Medium</threshold>

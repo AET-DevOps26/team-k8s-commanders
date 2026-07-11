@@ -33,10 +33,10 @@ jobs:
       url: "https://caredesk-team-k8s-commanders.student.k8s.aet.cit.tum.de"
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Install helm
-        uses: azure/setup-helm@v4
+        uses: azure/setup-helm@v5
         with:
           version: v3.21.3
 

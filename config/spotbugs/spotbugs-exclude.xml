@@ -3,7 +3,7 @@
   Shared SpotBugs exclude filter for all CareDesk Spring Boot services.
   Referenced from each service pom's spotbugs-maven-plugin configuration.
 
-  The gate runs at effort=Max, threshold=Medium (high-confidence findings).
+  The gate runs at effort=Max, threshold=Medium (Medium-and-above confidence findings).
   Threshold=Medium already drops low-confidence (priority 3) patterns such as
   SIC_INNER_SHOULD_BE_STATIC_ANON on ParameterizedTypeReference subclasses and
   UPM_UNCALLED_PRIVATE_METHOD on JPA @PrePersist/@PreUpdate callbacks (which are

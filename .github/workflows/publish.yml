@@ -41,14 +41,22 @@ jobs:
         with:
           node-version: lts/*
 
+      # gen-all.sh also generates the AI assistant's HTTP client with
+      # openapi-python-client (pinned in api/scripts/gen-requirements.txt).
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
       - run: npm ci
 
       - run: ./api/scripts/gen-all.sh
 
-      - name: Fail if generated stubs are out of sync with the spec
+      - name: Fail if generated code is out of sync with the spec
         run: |
-          if ! git diff --exit-code services/springboot/generated/src/; then
-            echo "services/springboot/generated/src/ is out of sync with api/openapi.yaml."
+          if ! git diff --exit-code \
+            services/springboot/generated/src/ \
+            services/ai-assistant/caredesk_client/; then
+            echo "Generated code is out of sync with api/openapi.yaml."
             echo "Run ./api/scripts/gen-all.sh locally and commit the result."
             exit 1
           fi

@@ -35,6 +35,28 @@ class NotesControllerTest {
     }
 
     @Test
+    void getAppointmentNoteReturnsNoteAuthoredByAnotherDoctor() {
+        UUID appointmentId = UUID.randomUUID();
+        UUID authoringDoctorId = UUID.randomUUID();
+        UUID callingDoctorId = UUID.randomUUID();
+        com.caredesk.notes.model.ClinicalNote note = new com.caredesk.notes.model.ClinicalNote();
+        note.setId(UUID.randomUUID());
+        note.setAppointmentId(appointmentId);
+        note.setDoctorId(authoringDoctorId);
+        note.setContent("Authored by another doctor");
+        note.setCreatedAt(OffsetDateTime.now());
+
+        when(request.getHeader(NotesController.USER_ID_HEADER)).thenReturn(callingDoctorId.toString());
+        when(notesService.getByAppointment(appointmentId)).thenReturn(Optional.of(note));
+
+        ResponseEntity<ClinicalNote> response = controller.getAppointmentNote(appointmentId);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().getContent()).isEqualTo("Authored by another doctor");
+    }
+
+    @Test
     void getAppointmentNoteReturnsExistingNote() {
         UUID appointmentId = UUID.randomUUID();
         UUID doctorId = UUID.randomUUID();

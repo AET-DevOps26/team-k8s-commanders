@@ -76,6 +76,7 @@ export function DoctorSchedulePage({
     <main className="landing-page app-page">
       <ShellNav session={session} onNavigate={onNavigate} onLogout={onLogout} />
       <section className="dashboard-shell doctor-dashboard-shell">
+        <DoctorSubNav active="schedule" onNavigate={onNavigate} />
         <header className="patient-hero doctor-hero">
           <div>
             <p className="eyebrow">Doctor schedule</p>
@@ -83,8 +84,6 @@ export function DoctorSchedulePage({
             <p>Publish bookable time slots. Patients are assigned only when they book.</p>
           </div>
         </header>
-
-        <DoctorSubNav active="schedule" onNavigate={onNavigate} />
 
         {isLoading && <StatusPanel title="Loading availability" />}
         {error && <StatusPanel title="Schedule API unavailable" text={error} />}

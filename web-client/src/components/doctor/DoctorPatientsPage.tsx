@@ -140,6 +140,7 @@ export function DoctorPatientsPage({
     <main className="landing-page app-page">
       <ShellNav session={session} onNavigate={onNavigate} onLogout={onLogout} />
       <section className="dashboard-shell doctor-dashboard-shell">
+        <DoctorSubNav active="patients" onNavigate={onNavigate} />
         <header className="patient-hero doctor-hero">
           <div>
             <p className="eyebrow">Doctor patients</p>
@@ -147,8 +148,6 @@ export function DoctorPatientsPage({
             <p>Individual clinical views with notes, timeline, and persistent AI chat.</p>
           </div>
         </header>
-
-        <DoctorSubNav active="patients" onNavigate={onNavigate} />
 
         {isLoading && <StatusPanel title="Loading patient records" />}
         {error && <StatusPanel title="Patient API unavailable" text={error} />}

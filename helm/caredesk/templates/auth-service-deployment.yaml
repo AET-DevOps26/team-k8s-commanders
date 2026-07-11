@@ -48,6 +48,7 @@ spec:
                   key: CAREDESK_ADMIN_PASSWORD
             {{- end }}
             {{- include "caredesk.dbEnv" (dict "root" $ "host" .Values.auth.dbHost "name" .Values.auth.dbName) | nindent 12 }}
+            {{- include "caredesk.seedEnv" $ | nindent 12 }}
             {{- include "caredesk.jwtEnv" . | nindent 12 }}
           # Generous startup window for Spring Boot + JPA schema generation.
           startupProbe:

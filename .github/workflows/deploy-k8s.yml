@@ -89,6 +89,10 @@ jobs:
           ADMIN_NAME: ${{ vars.ADMIN_NAME }}
           ADMIN_EMAIL: ${{ vars.ADMIN_EMAIL }}
           ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
+          # Single toggle for demo/test data seeding. Set the SEED_DEMO variable
+          # to "true" on the AET environment to seed for a demo; leave unset/false
+          # otherwise. Never affects the bootstrap admin (always seeded).
+          SEED_DEMO: ${{ vars.SEED_DEMO }}
           # The chart ships no default JWT secret / DB password — they must be
           # supplied here (see helm/caredesk secret templates, which `required` them).
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
@@ -131,6 +135,7 @@ jobs:
             --set-file "auth.bootstrapAdmin.name=${ADMIN_CONFIG_DIR}/name"
             --set-file "auth.bootstrapAdmin.email=${ADMIN_CONFIG_DIR}/email"
             --set-file "auth.bootstrapAdmin.password=${ADMIN_CONFIG_DIR}/password"
+            --set "seedDemoData=${SEED_DEMO:-false}"
             --set-file "backend.jwtSecret=${ADMIN_CONFIG_DIR}/jwt-secret"
             --set-file "postgres.password=${ADMIN_CONFIG_DIR}/postgres-password"
           )

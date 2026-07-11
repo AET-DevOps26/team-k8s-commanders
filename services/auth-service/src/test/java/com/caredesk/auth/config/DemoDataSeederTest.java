@@ -23,11 +23,11 @@ import com.caredesk.auth.model.User;
 import com.caredesk.auth.repository.UserRepository;
 
 @ExtendWith(MockitoExtension.class)
-class DefaultUserSeederTest {
+class DemoDataSeederTest {
 
     private final UserRepository userRepository = mock(UserRepository.class);
     private final PasswordEncoder passwordEncoder = mock(PasswordEncoder.class);
-    private final DefaultUserSeeder seeder = new DefaultUserSeeder(userRepository, passwordEncoder);
+    private final DemoDataSeeder seeder = new DemoDataSeeder(userRepository, passwordEncoder);
 
     @Test
     void createsMissingDefaultUsers() {
@@ -38,7 +38,7 @@ class DefaultUserSeederTest {
         seeder.run(null);
 
         ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
-        verify(userRepository, times(3)).save(userCaptor.capture());
+        verify(userRepository, times(8)).save(userCaptor.capture());
 
         List<User> users = userCaptor.getAllValues();
         assertThat(users)
@@ -46,8 +46,16 @@ class DefaultUserSeederTest {
                 .containsExactly(
                         tuple("Patient", "patient@patient.com", "encoded-patient123", Role.PATIENT),
                         tuple("Doctor", "doctor@doctor.com", "encoded-doctor123", Role.DOCTOR),
-                        tuple("Admin", "admin@admin.com", "encoded-admin123", Role.ADMIN)
+                        tuple("Dr. Sarah Chen", "sarah.chen@caredesk.dev", "encoded-doctor123", Role.DOCTOR),
+                        tuple("Dr. Tom Becker", "tom.becker@caredesk.dev", "encoded-doctor123", Role.DOCTOR),
+                        tuple("Dr. Mark Lopez", "mark.lopez@caredesk.dev", "encoded-doctor123", Role.DOCTOR),
+                        tuple("Anna Müller", "anna.mueller@caredesk.dev", "encoded-patient123", Role.PATIENT),
+                        tuple("Max Schmidt", "max.schmidt@caredesk.dev", "encoded-patient123", Role.PATIENT),
+                        tuple("Lena Fischer", "lena.fischer@caredesk.dev", "encoded-patient123", Role.PATIENT)
                 );
+        assertThat(users)
+                .extracting(User::getSpecialization)
+                .contains("General Medicine", "Cardiology", "Pediatrics");
         assertThat(users)
                 .extracting(User::getPhoneNumber, User::getDateOfBirth)
                 .doesNotContain(tuple(null, null));
@@ -66,13 +74,12 @@ class DefaultUserSeederTest {
         when(userRepository.findById(any(UUID.class))).thenReturn(Optional.empty());
         when(userRepository.findByEmail("patient@patient.com")).thenReturn(Optional.of(existingPatient));
         when(userRepository.findByEmail("doctor@doctor.com")).thenReturn(Optional.empty());
-        when(userRepository.findByEmail("admin@admin.com")).thenReturn(Optional.empty());
         when(passwordEncoder.encode(anyString())).thenAnswer(invocation -> "encoded-" + invocation.getArgument(0));
 
         seeder.run(null);
 
-        verify(userRepository, times(3)).save(any(User.class));
-        verify(passwordEncoder, times(2)).encode(anyString());
+        verify(userRepository, times(8)).save(any(User.class));
+        verify(passwordEncoder, times(7)).encode(anyString());
         assertThat(existingPatient.getName()).isEqualTo("Patient");
         assertThat(existingPatient.getPhoneNumber()).isEqualTo("+49 89 123456");
         assertThat(existingPatient.getPassword()).isEqualTo("existing-password");

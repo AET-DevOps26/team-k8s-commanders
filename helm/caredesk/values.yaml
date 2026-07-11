@@ -9,6 +9,20 @@
 deploymentStrategy:
   type: Recreate
 
+# ─── Demo/test data seeding ───────────────────────────────────────────────────
+# Single switch for demo seeding. When true, the backends run under the `dev`
+# Spring profile, which enables auth-service's DemoDataSeeder (4 demo patients +
+# 4 doctors) and every other service's DemoDataSeeder (appointments across all
+# statuses, clinical notes, notifications, "Anna Müller"). Off by default — production never seeds.
+# The administrator is always created from auth.bootstrapAdmin (env vars),
+# independent of this switch.
+# In CI this is driven by the SEED_DEMO GitHub Actions variable.
+# WARNING: enabling this exposes weak, known-password demo accounts
+# (patient123 / doctor123) on the public ingress. Enable only for a time-boxed
+# demo and turn it off again afterwards. Disabling does NOT delete rows already
+# seeded — remove those manually if required.
+seedDemoData: false
+
 # ─── CareDesk image settings ──────────────────────────────────────────────────
 images:
   registry: ghcr.io/aet-devops26/team-k8s-commanders

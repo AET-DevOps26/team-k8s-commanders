@@ -427,6 +427,31 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '500':
           $ref: '#/components/responses/InternalServerError'
+  /doctors/specializations:
+    get:
+      tags: [Doctors]
+      summary: List doctor specializations
+      description: >-
+        Distinct, sorted list of specializations across all enabled doctors.
+        Backs the booking flow's specialization filter, which then narrows the
+        doctor list via GET /doctors?specialization=. A new specialization
+        appears automatically once an admin creates a doctor with it.
+      operationId: listDoctorSpecializations
+      responses:
+        '200':
+          description: Specialization names
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
   /doctors/{doctorId}:
     get:
       tags: [Doctors]
@@ -686,25 +711,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ClinicalNote'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-    delete:
-      tags: [Appointments]
-      summary: Delete the clinical note for an appointment
-      operationId: deleteAppointmentNote
-      parameters:
-        - $ref: '#/components/parameters/AppointmentId'
-      responses:
-        '204':
-          description: Clinical note deleted
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':

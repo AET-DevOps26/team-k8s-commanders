@@ -13,8 +13,8 @@ on:
       - '.github/workflows/client-ci.yml'
 
 jobs:
-  lint-and-build:
-    name: Lint and build client
+  lint-test-build:
+    name: Lint, test, and build client
     runs-on: ubuntu-latest
 
     defaults:
@@ -37,6 +37,9 @@ jobs:
 
       - name: Lint client
         run: npm run lint
+
+      - name: Test client
+        run: npm run test:run
 
       - name: Build client
         run: npm run build

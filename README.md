@@ -9,8 +9,25 @@ profile and book appointments with doctors; doctors record clinical notes agains
 appointments; and an AI assistant answers questions using live patient context.
 
 It is built as a set of microservices — a web client, an API gateway, and auth,
-patient, notes and AI-assistant services, each with its own PostgreSQL database.
-It runs locally via Docker Compose and on Kubernetes via Helm.
+patient, notes, notification and AI-assistant services, each with its own
+PostgreSQL database. It runs locally via Docker Compose and on Kubernetes via Helm.
+
+### Services
+
+Each backend service has its own README with its endpoints, configuration and how
+to build and run it:
+
+| Service | Port | Responsibility |
+|---------|------|----------------|
+| [api-gateway](services/api-gateway/README.md) | 8080 | Public entry point; verifies JWTs and injects trusted `X-User-*` headers |
+| [auth-service](services/auth-service/README.md) | 8081 | User identity, login/JWT issuance, doctor directory |
+| [patient-service](services/patient-service/README.md) | 8082 | Appointments, doctor availability, clinics |
+| [notes-service](services/notes-service/README.md) | 8083 | Clinical notes per appointment |
+| [notification-service](services/notification-service/README.md) | 8084 | Notification records + SMTP delivery and reminders |
+| [ai-assistant](services/ai-assistant/README.md) | 8000 | Conversational assistant grounded in live patient context |
+
+The web client lives in [`web-client/`](web-client/); the HTTP contract shared by
+all services is [`api/openapi.yaml`](api/openapi.yaml).
 
 ## Local development setup
 
@@ -100,13 +117,32 @@ Authenticated patients can use the web client to open `/patient/profile`, update
 
 Patients can open `/patient/book`, search doctors via `/api/v1/doctors`, view available slots via `/api/v1/doctors/{doctorId}/schedule`, and book a selected slot via `/api/v1/appointments`. Booking consumes the selected `doctor_slots` row and marks it unavailable before creating the appointment.
 
-Dev compose seeds these local credentials:
+### Accounts and seeding
 
-| Role | Email | Password |
-|------|-------|----------|
-| Patient | patient@patient.com | patient123 |
-| Doctor | doctor@doctor.com | doctor123 |
-| Admin | admin@admin.com | admin123 |
+**The administrator is always created from env vars** (`CAREDESK_ADMIN_*`, via the bootstrap admin seeder) — independent of demo seeding, in every environment. Dev compose sets these local defaults:
+
+| Role | Email | Password | Source |
+|------|-------|----------|--------|
+| Admin | admin@admin.com | admin123 | bootstrap env vars (`CAREDESK_ADMIN_*`) |
+
+**Demo users and data** are seeded only when the single demo switch is on — the `dev` Spring profile. It is **always on for local compose** (`SPRING_PROFILES_ACTIVE=dev`) and **off by default on Kubernetes**, where it is toggled by the `SEED_DEMO` GitHub Actions variable on the `AET` environment (set it to `true`, re-run the deploy; the workflow passes it through to the chart's `seedDemoData`). It never runs in production unless explicitly enabled. When on, these demo login accounts exist. **Every patient account uses the password `patient123` and every doctor account uses `doctor123`.**
+
+| Role | Email | Notes |
+|------|-------|-------|
+| Patient | patient@patient.com | Hypertension history (appointments + notes) |
+| Patient | anna.mueller@caredesk.dev | "Anna Müller" — Type 2 diabetes history, the AI-assistant example |
+| Patient | max.schmidt@caredesk.dev | General check-up + back-pain history |
+| Patient | lena.fischer@caredesk.dev | Asthma history |
+| Doctor | doctor@doctor.com | General Medicine — the treating doctor for **all** seeded appointments |
+| Doctor | sarah.chen@caredesk.dev | Cardiology — open booking slots only |
+| Doctor | tom.becker@caredesk.dev | Pediatrics — open booking slots only |
+| Doctor | mark.lopez@caredesk.dev | General Medicine — open booking slots only |
+
+### Demo dataset
+
+The same demo switch also seeds a coherent, cross-service dataset on startup so every dashboard is populated without any manual clicking: appointments across all statuses (including one due within 24h), clinical notes with diagnoses, and notification records. Each of the four demo patients has its own appointment history and notes (hypertension, Type 2 diabetes, a general/back-pain pair, and asthma). All of these appointments are with the General Medicine doctor `doctor@doctor.com`; the three extra doctors (Cardiology, Pediatrics, second General Medicine) currently only provide open slots so the booking dropdown has several specializations to choose from. Seeding is idempotent (fixed UUIDs, upserted) so it survives restarts; disabling the switch stops re-seeding but does not delete already-seeded rows. Log in as `doctor@doctor.com` to see full patient records, schedule and AI context.
+
+> **Warning:** enabling demo seeding creates weak, known-password accounts (above). Keep it off on any public deployment except for a time-boxed demo.
 
 The notes service is a scaffold for clinical notes — the structured visit notes and diagnoses a doctor records against an appointment (`/appointments/{appointmentId}/note`). It follows the same pattern as the patient service: it sits behind the API gateway, trusts the gateway-injected `X-User-Email` / `X-User-Role` headers, and uses its own Postgres container (`notes-db`). The gateway routes the clinical note sub-path to it while the rest of `/appointments/**` stays with the patient service.
 

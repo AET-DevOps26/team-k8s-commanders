@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import org.openapitools.model.AppointmentStatus;
+import org.springframework.data.domain.Persistable;
 
 import java.time.OffsetDateTime;
 import java.util.UUID;
@@ -17,11 +18,17 @@ import java.util.UUID;
  */
 @Entity
 @Table(name = "appointments")
-public class Appointment {
+public class Appointment implements Persistable<UUID> {
 
+    // Ids are application-assigned (not @GeneratedValue) so demo seeding can
+    // create rows with fixed, cross-service-linked ids. Persistable + the
+    // @PrePersist below keep normal booking working: a new entity with no id
+    // gets a random UUID at persist time, and isNew() drives insert-vs-merge.
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
+
+    @Transient
+    private boolean newEntry = true;
 
     @NotNull
     @Column(nullable = false)
@@ -57,11 +64,29 @@ public class Appointment {
     @Column(name = "patient_email")
     private String patientEmail;
 
-    /** @return the generated appointment id */
+    /** @return the appointment id */
+    @Override
     public UUID getId() { return id; }
 
-    /** @param id the appointment id, typically set by JPA on persist */
+    /** @param id the appointment id (application-assigned) */
     public void setId(UUID id) { this.id = id; }
+
+    @Override
+    public boolean isNew() { return newEntry; }
+
+    /** Assigns a random id for normally-created appointments; seeded rows keep theirs. */
+    @PrePersist
+    void assignIdIfMissing() {
+        if (id == null) {
+            id = UUID.randomUUID();
+        }
+    }
+
+    @PostPersist
+    @PostLoad
+    void markPersisted() {
+        newEntry = false;
+    }
 
     /** @return the patient's user id from auth-service */
     public UUID getPatientId() { return patientId; }

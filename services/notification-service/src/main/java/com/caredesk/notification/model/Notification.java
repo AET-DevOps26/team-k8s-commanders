@@ -4,13 +4,15 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.PostLoad;
+import jakarta.persistence.PostPersist;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
+import jakarta.persistence.Transient;
 import jakarta.validation.constraints.NotNull;
 import org.openapitools.model.NotificationChannel;
+import org.springframework.data.domain.Persistable;
 
 import java.time.OffsetDateTime;
 import java.util.UUID;
@@ -26,11 +28,17 @@ import java.util.UUID;
  */
 @Entity
 @Table(name = "notifications")
-public class Notification {
+public class Notification implements Persistable<UUID> {
 
+    // Ids are application-assigned (not @GeneratedValue) so demo seeding can
+    // create rows with fixed ids for idempotency. Persistable + the @PrePersist
+    // below keep normal creation working: a new entity with no id gets a random
+    // UUID at persist time, and isNew() drives insert-vs-merge.
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
+
+    @Transient
+    private boolean newEntry = true;
 
     /** The appointment this notification refers to, if any. */
     @Column(name = "appointment_id")
@@ -88,11 +96,15 @@ public class Notification {
     @Column(name = "sent_at", nullable = false)
     private OffsetDateTime sentAt;
 
-    /** @return the generated notification id */
+    /** @return the notification id */
+    @Override
     public UUID getId() { return id; }
 
-    /** @param id the notification id, typically set by JPA on persist */
+    /** @param id the notification id (application-assigned) */
     public void setId(UUID id) { this.id = id; }
+
+    @Override
+    public boolean isNew() { return newEntry; }
 
     /** @return the id of the appointment this notification refers to, or {@code null} */
     public UUID getAppointmentId() { return appointmentId; }
@@ -149,14 +161,24 @@ public class Notification {
     public void setSentAt(OffsetDateTime sentAt) { this.sentAt = sentAt; }
 
     /**
-     * Stamps the sent time on first persist if it has not been set
-     * explicitly, satisfying the {@code @NotNull} / non-null column constraint.
+     * Assigns a random id for normally-created notifications (seeded rows keep
+     * their fixed id) and stamps the sent time on first persist if it has not
+     * been set explicitly, satisfying the {@code @NotNull} column constraint.
      */
     @PrePersist
     void prePersist() {
+        if (id == null) {
+            id = UUID.randomUUID();
+        }
         if (sentAt == null) {
             sentAt = OffsetDateTime.now();
         }
+    }
+
+    @PostPersist
+    @PostLoad
+    void markPersisted() {
+        newEntry = false;
     }
 
     /**

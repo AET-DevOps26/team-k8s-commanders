@@ -16,4 +16,4 @@ sqlalchemy[asyncio]==2.0.51
 asyncpg==0.31.0
 
 # == Metrics ==
-prometheus-fastapi-instrumentator==7.1.0
+prometheus-fastapi-instrumentator==8.0.2

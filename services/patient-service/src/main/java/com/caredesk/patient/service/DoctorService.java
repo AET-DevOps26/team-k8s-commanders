@@ -16,6 +16,7 @@ import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -166,7 +167,8 @@ public class DoctorService {
             throw new IllegalArgumentException("slotDurationMinutes is required");
         }
         int duration = request.getSlotDurationMinutes().getValue();
-        if (windowStart.plusMinutes(duration).isAfter(windowEnd)) {
+        long windowMinutes = Duration.between(windowStart, windowEnd).toMinutes();
+        if (windowMinutes < duration) {
             throw new IllegalArgumentException("Time window is shorter than one slot");
         }
 

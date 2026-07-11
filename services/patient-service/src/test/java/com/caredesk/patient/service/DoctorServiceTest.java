@@ -322,6 +322,10 @@ class DoctorServiceTest {
                 recurring(Set.of(Weekday.MONDAY), "09:00", "09:15", thirty, start, start)))
                 .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("shorter than one slot");
         assertThatThrownBy(() -> service.createRecurringScheduleSlots(doctorId,
+                recurring(Set.of(Weekday.MONDAY), "23:00", "23:59",
+                        RecurringScheduleCreate.SlotDurationMinutesEnum.NUMBER_60, start, start)))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("shorter than one slot");
+        assertThatThrownBy(() -> service.createRecurringScheduleSlots(doctorId,
                 recurring(Set.of(Weekday.MONDAY), "09:00", "12:00", thirty, start, start.plusDays(85))))
                 .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("12 weeks");
         assertThatThrownBy(() -> service.createRecurringScheduleSlots(doctorId,

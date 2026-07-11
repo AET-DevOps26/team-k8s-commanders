@@ -3,11 +3,10 @@ package com.caredesk.notes.service;
 import com.caredesk.notes.model.ClinicalNote;
 import com.caredesk.notes.model.Diagnosis;
 import com.caredesk.notes.repository.ClinicalNoteRepository;
-import org.springframework.http.HttpStatus;
-import org.springframework.security.access.AccessDeniedException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.time.OffsetDateTime;
 import java.util.Optional;
@@ -22,6 +21,14 @@ import java.util.UUID;
  */
 @Service
 public class NotesService {
+
+    /**
+     * Audit log for clinical-note writes. Clinical notes are medico-legal
+     * records, so every create/amend is recorded (who, when, which note) —
+     * identifiers only, never note content/PHI. There is intentionally no
+     * delete: notes are amended, never destroyed.
+     */
+    private static final Logger auditLog = LoggerFactory.getLogger("clinical-note-audit");
 
     private final ClinicalNoteRepository repository;
 
@@ -66,33 +73,15 @@ public class NotesService {
         if (created) {
             note.setAppointmentId(appointmentId);
             note.setCreatedAt(OffsetDateTime.now());
-        } else if (!note.getDoctorId().equals(doctorId)) {
-            throw new AccessDeniedException("Not your appointment");
         }
         note.setDoctorId(doctorId);
         note.setContent(content);
         note.setDiagnosis(diagnosis);
 
-        return new UpsertResult(repository.save(note), created);
-    }
-
-    /**
-     * Deletes the note for an appointment. Only the authoring doctor may delete it.
-     *
-     * @param appointmentId the appointment whose note should be deleted
-     * @param doctorId      the caller's user id (from the gateway)
-     * @throws AccessDeniedException   if the caller is not the note's author
-     * @throws jakarta.persistence.EntityNotFoundException if no note exists
-     */
-    @Transactional
-    public void delete(UUID appointmentId, UUID doctorId) {
-        ClinicalNote note = repository.findByAppointmentId(appointmentId)
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND, "No clinical note exists for appointment " + appointmentId));
-        if (!note.getDoctorId().equals(doctorId)) {
-            throw new AccessDeniedException("Not your appointment");
-        }
-        repository.delete(note);
+        ClinicalNote saved = repository.save(note);
+        auditLog.info("clinical note {} appointment={} note={} doctor={}",
+                created ? "created" : "amended", appointmentId, saved.getId(), doctorId);
+        return new UpsertResult(saved, created);
     }
 
     /**

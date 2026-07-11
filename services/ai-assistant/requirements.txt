@@ -6,7 +6,7 @@ pydantic==2.13.4
 
 # == LLM Client ==
 langchain-core==1.4.9
-langchain-openai==1.2.2
+langchain-openai==1.3.5
 
 # == Backend service calls (live patient/notes context) ==
 httpx==0.28.1

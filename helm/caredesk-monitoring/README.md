@@ -15,13 +15,17 @@ Why a dedicated namespace:
 
 ## Deploy
 
+The chart ships **no default Grafana admin password** — supply one at install
+time (rendering fails otherwise):
+
 ```bash
 helm upgrade --install caredesk-monitoring helm/caredesk-monitoring \
-  --namespace team-k8s-commanders-monitoring --create-namespace
+  --namespace team-k8s-commanders-monitoring --create-namespace \
+  --set grafana.adminPassword="$(openssl rand -hex 16)"
 ```
 
-For production, override the Grafana admin password:
-`--set grafana.adminPassword=<secret>`.
+CI injects it from the `GRAFANA_ADMIN_PASSWORD` GitHub secret (see
+`.github/workflows/deploy-k8s-monitoring.yml`).
 
 > **Rancher note:** CI (`.github/workflows/deploy-k8s-monitoring.yml`) creates
 > the namespace via `scripts/ensure-k8s-namespace.sh`. With the

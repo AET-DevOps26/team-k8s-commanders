@@ -223,7 +223,7 @@ export function PatientWorkspace({
               </div>
               <PatientAppointmentTimeline
                 appointments={sortedAppointments}
-                selectedAppointmentId={selectedAppointmentId}
+                selectedAppointmentId={activeSelectedAppointmentId}
                 onSelectAppointment={setSelectedAppointmentId}
               />
             </aside>

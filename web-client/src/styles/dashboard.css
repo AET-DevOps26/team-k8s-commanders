@@ -214,10 +214,117 @@
   margin-top: 1rem;
 }
 
+.slot-picker {
+  display: grid;
+  gap: 1rem;
+}
+
+.slot-week-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  border: 1px solid rgba(19, 35, 34, 0.08);
+  border-radius: 0.65rem;
+  padding: 0.45rem;
+  color: #5a6f6b;
+  background: rgba(226, 241, 235, 0.42);
+  font-size: 0.86rem;
+  font-weight: 900;
+}
+
+.slot-week-controls span {
+  text-align: center;
+}
+
+.slot-week-button {
+  display: grid;
+  width: 2.25rem;
+  height: 2.25rem;
+  place-items: center;
+  border: 1px solid rgba(19, 35, 34, 0.12);
+  border-radius: 0.5rem;
+  color: #14615b;
+  background: rgba(255, 255, 255, 0.78);
+  font: inherit;
+  font-size: 1.35rem;
+  font-weight: 900;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.slot-week-button:disabled {
+  color: #8aa09c;
+  background: rgba(255, 255, 255, 0.45);
+  cursor: not-allowed;
+}
+
+.slot-day-list {
+  display: flex;
+  gap: 0.65rem;
+  overflow-x: auto;
+  padding-bottom: 0.2rem;
+}
+
+.slot-day-button {
+  display: grid;
+  flex: 0 0 9.5rem;
+  gap: 0.25rem;
+  border: 1px solid rgba(19, 35, 34, 0.12);
+  border-radius: 0.6rem;
+  padding: 0.75rem 0.85rem;
+  color: #173331;
+  background: rgba(255, 255, 255, 0.72);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.slot-day-button span {
+  color: #19726c;
+  font-size: 0.8rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.slot-day-button strong {
+  font-size: 0.9rem;
+}
+
+.slot-day-button.active {
+  color: #f8fbf8;
+  border-color: #14615b;
+  background: #14615b;
+}
+
+.slot-day-button.active span {
+  color: #dff0ea;
+}
+
+.slot-picker-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  border-top: 1px solid rgba(19, 35, 34, 0.08);
+  padding-top: 0.85rem;
+  color: #173331;
+  font-weight: 900;
+}
+
+.slot-picker-header small {
+  color: #5a6f6b;
+  font-size: 0.85rem;
+  font-weight: 800;
+}
+
 .slot-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
   gap: 0.75rem;
+}
+
+.slot-time-grid {
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
 }
 
 .slot-button {

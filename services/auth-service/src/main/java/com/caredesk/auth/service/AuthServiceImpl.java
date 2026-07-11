@@ -18,6 +18,8 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.Objects;
+
 @Service
 public class AuthServiceImpl implements AuthService {
 
@@ -69,7 +71,9 @@ public class AuthServiceImpl implements AuthService {
         user.setRole(Role.PATIENT);
         userRepository.save(user);
 
-        String token = jwtUtil.generateToken(user.getId().toString(), user.getEmail(), user.getRole().name());
+        String token = jwtUtil.generateToken(
+                Objects.requireNonNull(user.getId(), "persisted user must have an id").toString(),
+                user.getEmail(), user.getRole().name());
         return new AuthSession(token, userProfileMapper.toProfile(user));
     }
 
@@ -81,7 +85,9 @@ public class AuthServiceImpl implements AuthService {
             );
             User user = userRepository.findByEmail(authentication.getName())
                     .orElseThrow(() -> new LoginFailedException(INVALID_CREDENTIALS));
-            String token = jwtUtil.generateToken(user.getId().toString(), user.getEmail(), user.getRole().name());
+            String token = jwtUtil.generateToken(
+                Objects.requireNonNull(user.getId(), "persisted user must have an id").toString(),
+                user.getEmail(), user.getRole().name());
             return new AuthSession(token, userProfileMapper.toProfile(user));
         } catch (DisabledException ex) {
             // Reached only with a correct password — the disabled check runs

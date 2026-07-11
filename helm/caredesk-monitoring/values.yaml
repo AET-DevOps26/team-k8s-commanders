@@ -19,7 +19,7 @@ app:
 # and on the shared AET cluster that would leak metrics. Reach it with:
 #   kubectl -n team-k8s-commanders-monitoring port-forward svc/caredesk-monitoring-prometheus 9090
 prometheus:
-  image: prom/prometheus:v3.3.1
+  image: prom/prometheus:v3.13.1
   retention: 7d
   storage: 2Gi
   resources:
@@ -59,12 +59,13 @@ prometheus:
 # docker-compose stack mounts), so Grafana itself is stateless: no PVC needed,
 # config-as-code survives restarts by construction.
 grafana:
-  image: grafana/grafana:11.2.0
+  image: grafana/grafana:11.6.16
   adminUser: admin
-  # Dev default keeps `helm install` deployable with one command for local use.
-  # The k8s deploy workflow refuses to run with this value — it requires the
-  # GRAFANA_ADMIN_PASSWORD secret so Grafana never ships with a known password.
-  adminPassword: caredesk-grafana-admin
+  # No default password is baked into the chart — provide it at install time so
+  # Grafana never ships with a known password. CI injects the
+  # GRAFANA_ADMIN_PASSWORD secret; rendering the grafana Secret fails if empty.
+  #   --set grafana.adminPassword=<secret>
+  adminPassword: ""
   # Discord webhook that alert notifications are delivered to (see
   # infra/grafana/provisioning/alerting/contact-points.yaml). Set in production
   # via --set grafana.discordWebhookUrl=<url> (CI: DISCORD_WEBHOOK_URL secret).

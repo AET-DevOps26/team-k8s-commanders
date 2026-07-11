@@ -412,7 +412,7 @@ services:
       - caredesk
 
   prometheus:
-    image: prom/prometheus:v3.3.1
+    image: prom/prometheus:v3.13.1
     volumes:
       - ./infra/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - prometheus-data:/prometheus
@@ -430,7 +430,7 @@ services:
       - caredesk
 
   grafana:
-    image: grafana/grafana:11.2.0
+    image: grafana/grafana:11.6.16
     # No host port published — reached through Caddy at http://localhost/grafana
     # (matches the prod sub-path setup so dev and prod behave the same).
     expose:

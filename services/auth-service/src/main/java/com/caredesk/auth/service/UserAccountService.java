@@ -4,6 +4,7 @@ import com.caredesk.auth.model.Role;
 import com.caredesk.auth.model.User;
 import com.caredesk.auth.repository.UserRepository;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 import org.openapitools.model.PageMeta;
 import org.openapitools.model.PaginatedUserProfileResponse;
@@ -55,7 +56,7 @@ public class UserAccountService {
         requireOwnerOrAdmin(user);
         if (request.getEmail() != null && !request.getEmail().equalsIgnoreCase(user.getEmail())) {
             userRepository.findByEmail(request.getEmail())
-                    .filter(existing -> !existing.getId().equals(userId))
+                    .filter(existing -> !Objects.equals(existing.getId(), userId))
                     .ifPresent(existing -> {
                         throw new DuplicateEmailException("Email already registered");
                     });
@@ -97,14 +98,8 @@ public class UserAccountService {
             return;
         }
         User current = currentUser();
-        if (!current.getId().equals(target.getId())) {
+        if (!Objects.equals(current.getId(), target.getId())) {
             throw new AccessDeniedException("Cannot access another user's account");
-        }
-    }
-
-    private void requireAdmin() {
-        if (!isAdmin()) {
-            throw new AccessDeniedException("Admin role required");
         }
     }
 

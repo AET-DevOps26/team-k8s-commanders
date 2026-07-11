@@ -5,11 +5,15 @@ on:
     paths:
       - "api/openapi.yaml"
       - "services/notes-service/**"
+      - "config/spotbugs/**"
+      - "pom.xml"
       - ".github/workflows/notes-service-ci.yml"
   pull_request:
     paths:
       - "api/openapi.yaml"
       - "services/notes-service/**"
+      - "config/spotbugs/**"
+      - "pom.xml"
       - ".github/workflows/notes-service-ci.yml"
 
 jobs:
@@ -22,7 +26,7 @@ jobs:
       - name: Set up Java
         uses: actions/setup-java@v5
         with:
-          java-version: "21"
+          java-version: "25"
           distribution: temurin
           cache: maven
 
@@ -51,14 +55,16 @@ jobs:
             -Dversion=1.0.0 \
             -Dpackaging=jar
 
-      - name: Run tests
-        run: mvn -B test
+      - name: Run tests and SpotBugs static analysis
+        run: mvn -B verify
         working-directory: services/notes-service
 
-      - name: Upload test reports on failure
+      - name: Upload verification reports on failure
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: notes-service-surefire-reports
-          path: services/notes-service/target/surefire-reports/
+          name: notes-service-verification-reports
+          path: |
+            services/notes-service/target/surefire-reports/
+            services/notes-service/target/spotbugsXml.xml
           retention-days: 7

@@ -14,7 +14,7 @@
 # ---------------------------------------------------------------------------
 # Stage 1 — build & install the OpenAPI stubs into a shared local Maven repo
 # ---------------------------------------------------------------------------
-FROM maven:3.9-eclipse-temurin-21 AS stubs-builder
+FROM maven:3.9-eclipse-temurin-25 AS stubs-builder
 WORKDIR /stubs
 COPY services/springboot/generated/pom.xml .
 COPY services/springboot/generated/src ./src
@@ -32,9 +32,11 @@ RUN cd target/classes && jar cf /tmp/openapi-spring-1.0.0.jar . \
 # ---------------------------------------------------------------------------
 # Stage 2 — build the notification-service JAR
 # ---------------------------------------------------------------------------
-FROM maven:3.9-eclipse-temurin-21 AS app-builder
+FROM maven:3.9-eclipse-temurin-25 AS app-builder
 WORKDIR /app
 COPY --from=stubs-builder /root/.m2 /root/.m2
+COPY pom.xml /pom.xml
+COPY config/spotbugs/spotbugs-exclude.xml /config/spotbugs/spotbugs-exclude.xml
 COPY services/notification-service/pom.xml .
 RUN mvn dependency:go-offline -q
 COPY services/notification-service/src ./src
@@ -43,7 +45,7 @@ RUN mvn package -DskipTests -q
 # ---------------------------------------------------------------------------
 # Stage 3 — slim runtime image
 # ---------------------------------------------------------------------------
-FROM eclipse-temurin:21-jre-alpine
+FROM eclipse-temurin:25-jre-alpine
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 WORKDIR /app
 COPY --from=app-builder /app/target/*.jar app.jar

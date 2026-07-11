@@ -11,26 +11,28 @@ Deploys the **full CareDesk stack** to a Kubernetes cluster (local **kind** or t
 
 ---
 
-## 1 · Deploy with one command — no env files
+## 1 · Deploy
 
-The chart ships working development defaults (JWT secret, DB password) and the
-GHCR images are **public**, so it installs with a **single command and zero
-pre-created files or secrets** — exactly what a grader needs.
+The GHCR images are **public** (no pull secret needed), but the chart ships **no
+hardcoded secrets**: you must supply the shared JWT secret and the Postgres
+password at install time. Rendering fails with a clear message if either is
+missing.
 
 ```bash
 helm upgrade --install caredesk helm/caredesk \
-  --namespace team-k8s-commanders --create-namespace
+  --namespace team-k8s-commanders --create-namespace \
+  --set backend.jwtSecret="$(openssl rand -hex 32)" \
+  --set postgres.password="$(openssl rand -hex 16)"
 ```
 
-That is the whole deploy.
+That is the whole deploy. (CI injects both from the `JWT_SECRET` and
+`POSTGRES_PASSWORD` GitHub secrets — see `.github/workflows/deploy-k8s.yml`.)
 
 - The default ingress host is
   `caredesk-team-k8s-commanders.student.k8s.aet.cit.tum.de`. Override it with
   `--set ingress.host=<host>` if it differs (look it up in Rancher → Ingresses).
 - The AI assistant **deploys and stays healthy without a key**; it just cannot
   answer until you add one: `--set ai.secrets.llmApiKey=sk-...`.
-- For a real environment, override the dev defaults:
-  `--set backend.jwtSecret=<secret> --set postgres.password=<pw>`.
 
 Open the printed URL
 (`https://caredesk-team-k8s-commanders.student.k8s.aet.cit.tum.de/`).
@@ -167,9 +169,10 @@ triggered overlapping rollouts at full CPU quota.
 - GitHub Actions variables: `ADMIN_NAME` and `ADMIN_EMAIL`
 - GitHub Actions secret: `ADMIN_PASSWORD`
 
-The AET deployment additionally requires the `TUM_ID` variable and
-`KUBECONFIG_AET` secret. Optional AET values include `LLM_API_KEY`,
-`JWT_SECRET`, and `POSTGRES_PASSWORD`.
+The AET deployment additionally **requires** the `TUM_ID` variable, the
+`KUBECONFIG_AET` secret, and the `JWT_SECRET` and `POSTGRES_PASSWORD` secrets
+(the chart ships no defaults for the latter two — the deploy fails fast if
+they are unset). `LLM_API_KEY` is optional.
 
 `ADMIN_PASSWORD` must remain a secret; never store it as a GitHub Actions
 variable. The deployment creates the configured admin only when no admin account

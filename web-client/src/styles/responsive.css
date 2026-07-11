@@ -18,6 +18,10 @@
     grid-template-columns: 1fr;
   }
 
+  .booking-grid-inline .booking-search-fields {
+    grid-template-columns: 1fr;
+  }
+
   .feature-grid,
   .patient-summary {
     grid-template-columns: 1fr;

@@ -434,6 +434,10 @@ export function listDoctors(
   })
 }
 
+export function listDoctorSpecializations(token: string) {
+  return request<string[]>('/doctors/specializations', { token })
+}
+
 export function getDoctorSchedule(doctorId: string, token: string) {
   return request<Schedule>(`/doctors/${doctorId}/schedule`, { token })
 }

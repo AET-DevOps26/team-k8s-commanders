@@ -16,7 +16,24 @@ function renderAppAt(path: string) {
   return render(<App />)
 }
 
+function dayKey(value: string) {
+  const date = new Date(value)
+  return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`
+}
+
 describe('appointment booking workflow', () => {
+  async function chooseDoctor(user: ReturnType<typeof userEvent.setup>) {
+    await screen.findByText('Choose a specialization to load doctors.')
+    await user.selectOptions(
+      screen.getByLabelText('Specialization'),
+      doctorUser.specialization ?? '',
+    )
+    await user.selectOptions(
+      await screen.findByLabelText('Doctor'),
+      doctorUser.id,
+    )
+  }
+
   it('books an appointment: search doctor → pick slot → confirm → success on dashboard', async () => {
     let bookingRequest: AppointmentCreate | null = null
     server.use(
@@ -45,21 +62,24 @@ describe('appointment booking workflow', () => {
       await screen.findByRole('heading', { name: 'Find a doctor' }),
     ).toBeInTheDocument()
 
-    // Initial doctor search loads automatically; select the doctor
-    const doctorCard = await screen.findByRole('button', {
-      name: new RegExp(doctorUser.name),
-    })
-    expect(within(doctorCard).getByText('General Medicine')).toBeInTheDocument()
-    await user.click(doctorCard)
+    // Select specialization first, then choose a doctor from the dependent list
+    await chooseDoctor(user)
 
-    // Calendar shows the doctor's available slots; pick the first one
+    // Calendar groups slots by day; pick the first visible slot for the active day
     expect(
       await screen.findByRole('heading', { name: doctorUser.name }),
     ).toBeInTheDocument()
+    expect(await screen.findByLabelText('Available day range')).toHaveTextContent(
+      `Days 1-2 of ${availableSlots.length}`,
+    )
     const slotButtons = await screen.findAllByRole('button', {
       name: /\d{2}:\d{2} - \d{2}:\d{2}/,
     })
-    expect(slotButtons).toHaveLength(availableSlots.length)
+    const firstDay = dayKey(availableSlots[0].startAt)
+    const firstDaySlots = availableSlots.filter(
+      (slot) => dayKey(slot.startAt) === firstDay,
+    )
+    expect(slotButtons).toHaveLength(firstDaySlots.length)
     await user.click(slotButtons[0])
 
     // Add a reason and book
@@ -88,10 +108,7 @@ describe('appointment booking workflow', () => {
     seedStoredSession()
     renderAppAt('/patient/book')
 
-    const doctorCard = await screen.findByRole('button', {
-      name: new RegExp(doctorUser.name),
-    })
-    await user.click(doctorCard)
+    await chooseDoctor(user)
     await screen.findAllByRole('button', { name: /\d{2}:\d{2} - \d{2}:\d{2}/ })
 
     await user.click(screen.getByRole('button', { name: 'Book selected slot' }))
@@ -112,10 +129,7 @@ describe('appointment booking workflow', () => {
     seedStoredSession()
     renderAppAt('/patient/book')
 
-    const doctorCard = await screen.findByRole('button', {
-      name: new RegExp(doctorUser.name),
-    })
-    await user.click(doctorCard)
+    await chooseDoctor(user)
     const slotButtons = await screen.findAllByRole('button', {
       name: /\d{2}:\d{2} - \d{2}:\d{2}/,
     })
@@ -131,13 +145,16 @@ describe('appointment booking workflow', () => {
     expect(window.location.pathname).toBe('/patient/book')
   })
 
-  it('shows an empty state when no doctors match the search', async () => {
+  it('shows an empty state when no doctors match the specialization', async () => {
     server.use(
+      http.get('*/api/v1/doctors/specializations', () =>
+        HttpResponse.json(['General Medicine', 'Cardiology']),
+      ),
       http.get('*/api/v1/doctors', ({ request }) => {
         const url = new URL(request.url)
 
         return HttpResponse.json({
-          content: url.searchParams.get('q') ? [] : [doctorUser],
+          content: url.searchParams.get('specialization') === 'Cardiology' ? [] : [doctorUser],
           page: { page: 0, size: 0, totalElements: 0, totalPages: 0 },
         })
       }),
@@ -147,16 +164,13 @@ describe('appointment booking workflow', () => {
     seedStoredSession()
     renderAppAt('/patient/book')
 
-    await screen.findByRole('button', { name: new RegExp(doctorUser.name) })
-
-    await user.type(
-      screen.getByPlaceholderText('Name or specialization'),
-      'Unknown Doctor',
+    await user.selectOptions(
+      await screen.findByLabelText('Specialization'),
+      'Cardiology',
     )
-    await user.click(screen.getByRole('button', { name: 'Search doctors' }))
 
     expect(
-      await screen.findByText('No doctors found. Try another search.'),
+      await screen.findByText('No doctors found for this specialization.'),
     ).toBeInTheDocument()
   })
 })

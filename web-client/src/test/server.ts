@@ -66,6 +66,10 @@ export const handlers = [
 
   http.get('*/api/v1/doctors', () => HttpResponse.json(paginated([doctorUser]))),
 
+  http.get('*/api/v1/doctors/specializations', () =>
+    HttpResponse.json([doctorUser.specialization ?? 'General Medicine']),
+  ),
+
   http.get(`*/api/v1/doctors/${doctorUser.id}/schedule`, () =>
     HttpResponse.json(doctorSchedule),
   ),

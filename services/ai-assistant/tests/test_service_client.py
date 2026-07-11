@@ -13,11 +13,15 @@ import pytest
 
 from utils import service_client
 
+_NO_JSON = object()
 
-def _run_with_status(status_code: int, json_body: dict | None = None):
+
+def _run_with_status(status_code: int, json_body: dict | None | object = _NO_JSON):
     """Drive ``get_appointment_note`` against a transport returning ``status_code``."""
 
     def handler(_request: httpx.Request) -> httpx.Response:
+        if json_body is _NO_JSON:
+            return httpx.Response(status_code, content=b"")
         return httpx.Response(status_code, json=json_body)
 
     transport = httpx.MockTransport(handler)
@@ -36,6 +40,10 @@ def test_get_json_returns_none_on_forbidden():
     # A note authored by a different doctor comes back 403; it must be skipped,
     # not raised, so a multi-doctor visit history doesn't fail the whole query.
     assert _run_with_status(httpx.codes.FORBIDDEN) is None
+
+
+def test_get_json_returns_none_on_no_content():
+    assert _run_with_status(httpx.codes.NO_CONTENT) is None
 
 
 def test_get_json_returns_body_on_success():

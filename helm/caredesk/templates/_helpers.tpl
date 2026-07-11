@@ -42,7 +42,7 @@ app.kubernetes.io/component: {{ .component }}
 
 {{/* Namespace name — informational only; Helm uses --namespace */}}
 {{- define "caredesk.namespace" -}}
-{{- printf "%s-devops26-team-k8s-commanders" .Values.tumId -}}
+{{- print "team-k8s-commanders" -}}
 {{- end -}}
 
 {{/* Ingress host — user value if set, else default suffix */}}
@@ -50,7 +50,7 @@ app.kubernetes.io/component: {{ .component }}
 {{- if .Values.ingress.host -}}
 {{- .Values.ingress.host -}}
 {{- else -}}
-{{- printf "caredesk-%s.student.k8s.aet.cit.tum.de" .Values.tumId -}}
+{{- print "caredesk-team-k8s-commanders.student.k8s.aet.cit.tum.de" -}}
 {{- end -}}
 {{- end -}}
 
@@ -98,6 +98,15 @@ imagePullSecrets:
   value: {{ .root.Values.backend.ddlAuto | quote }}
 {{- end -}}
 
+{{/* APP_VERSION env entry — the resolved image tag of the service. The services
+     surface it in their metrics (Micrometer common tag / app_info) so Grafana
+     can show which version is deployed.
+     Call with: include "caredesk.appVersionEnv" (dict "root" $ "image" .Values.auth.image) */}}
+{{- define "caredesk.appVersionEnv" -}}
+- name: APP_VERSION
+  value: {{ default .root.Values.images.tag .image.tag | quote }}
+{{- end -}}
+
 {{/* JWT secret env entry (shared by auth-service and api-gateway) */}}
 {{- define "caredesk.jwtEnv" -}}
 - name: JWT_SECRET
@@ -105,4 +114,21 @@ imagePullSecrets:
     secretKeyRef:
       name: {{ include "caredesk.fullname" . }}-app
       key: JWT_SECRET
+{{- end -}}
+
+{{/* Demo-seeding switch (shared by every backend Spring service). When
+     .Values.seedDemoData is true, activates the `dev` Spring profile — the
+     single switch that turns on auth-service's DemoDataSeeder (4 demo patients +
+     4 doctors) and every other service's DemoDataSeeder. Emits nothing when off, so production runs
+     the default profile and never seeds demo data. The administrator is always
+     created from bootstrap env vars regardless of this switch.
+     WARNING: enabling this seeds weak, known-password demo accounts on a
+     public ingress — turn it on only for a time-boxed demo, then off again
+     (already-seeded rows are not removed by disabling it).
+     Call with: include "caredesk.seedEnv" $ */}}
+{{- define "caredesk.seedEnv" -}}
+{{- if .Values.seedDemoData }}
+- name: SPRING_PROFILES_ACTIVE
+  value: "dev"
+{{- end }}
 {{- end -}}

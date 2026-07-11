@@ -1,0 +1,9 @@
+apiVersion: v2
+name: caredesk-monitoring
+description: CareDesk observability stack — Prometheus and Grafana, deployed in a dedicated namespace, scraping the CareDesk services cross-namespace.
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+home: https://github.com/AET-DevOps26/team-k8s-commanders
+maintainers:
+  - name: team-k8s-commanders

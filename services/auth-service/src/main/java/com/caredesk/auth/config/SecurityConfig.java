@@ -3,6 +3,7 @@ package com.caredesk.auth.config;
 import com.caredesk.auth.filter.JwtAuthFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.authentication.AccountStatusUserDetailsChecker;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
@@ -35,10 +36,11 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // Gateway owns the /api/v1 prefix — service only sees /auth/**
                         .requestMatchers("/auth/**").permitAll()
-                        // Admin user management. Role comes from the JWT (set by JwtAuthFilter).
+                        // User directory is readable by doctors; write/stats operations stay admin-only.
+                        // Role comes from the JWT (set by JwtAuthFilter).
                         // More specific matchers first — Spring Security uses first match.
                         .requestMatchers(HttpMethod.GET, "/users/stats").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.GET, "/users").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/users").hasAnyRole("ADMIN", "DOCTOR")
                         .requestMatchers(HttpMethod.POST, "/users").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/users/**").hasRole("ADMIN")
                         // Patient self-service — owner-or-admin enforced in UserAccountService.
@@ -47,9 +49,13 @@ public class SecurityConfig {
                         // GET /users/{id} is an internal service-to-service endpoint that
                         // patient-service and notes-service call without a JWT.
                         .requestMatchers(HttpMethod.GET, "/users/**").permitAll()
-                        // Health endpoint must be reachable for the Docker healthcheck.
+                        // /internal/** is not routed by the gateway; reachable only pod-to-pod
+                        // for cross-service composition (e.g. patient-service doctor directory).
+                        .requestMatchers(HttpMethod.GET, "/internal/**").permitAll()
+                        // Health and Prometheus endpoints must be reachable without auth.
                         // Both forms needed: Spring Security 6 `/**` doesn't match the exact path without trailing slash.
                         .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
+                        .requestMatchers("/actuator/prometheus").permitAll()
                         // Spring forwards unhandled exceptions to /error. Without permitting
                         // it, error pages come back as 403 instead of the intended status.
                         .requestMatchers("/error").permitAll()
@@ -69,7 +75,24 @@ public class SecurityConfig {
                                                             PasswordEncoder passwordEncoder) {
         DaoAuthenticationProvider provider = new DaoAuthenticationProvider(userDetailsService);
         provider.setPasswordEncoder(passwordEncoder);
-        provider.setHideUserNotFoundExceptions(false);
+        // Account-enumeration hardening (issue tracked as "login responses enable
+        // account enumeration"):
+        //
+        // 1. Keep Spring's default hideUserNotFoundExceptions=true, so an unknown
+        //    email surfaces as BadCredentialsException — indistinguishable from a
+        //    wrong password — and the provider runs a dummy BCrypt hash for
+        //    unknown users, closing the timing side-channel.
+        //
+        // 2. Move the account-status (disabled) check from before password
+        //    verification to after it. By default a deactivated account is
+        //    reported without checking the password, which leaks account
+        //    existence to anyone probing emails. With the check moved, only a
+        //    caller who knows the correct password learns the account is
+        //    deactivated; everyone else gets the generic failure.
+        provider.setPreAuthenticationChecks(user -> {
+            // deliberately empty — status checks run post-authentication
+        });
+        provider.setPostAuthenticationChecks(new AccountStatusUserDetailsChecker());
         return provider;
     }
 

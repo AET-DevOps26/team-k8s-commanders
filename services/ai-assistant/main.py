@@ -1,8 +1,11 @@
+import os
 from contextlib import asynccontextmanager
 
 from dotenv import load_dotenv
 import uvicorn
 from fastapi import FastAPI
+from prometheus_client import Info
+from prometheus_fastapi_instrumentator import Instrumentator
 
 from db.engine import init_models
 from routes import sessions, health
@@ -24,6 +27,15 @@ app = FastAPI(
     redoc_url=None,
     openapi_url=None,
     lifespan=lifespan,
+)
+
+Instrumentator().instrument(app).expose(app, endpoint="/metrics")
+
+# Version visibility: app_info{version=...} 1 — the deployed image tag, injected
+# as APP_VERSION by Helm/compose. Counterpart of the Micrometer common `version`
+# tag on the Spring services.
+Info("app", "Deployed application version").info(
+    {"version": os.getenv("APP_VERSION", "unknown")}
 )
 
 app.include_router(health.router, prefix="/ai", tags=["health"])

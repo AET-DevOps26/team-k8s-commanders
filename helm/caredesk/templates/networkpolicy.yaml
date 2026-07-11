@@ -17,13 +17,22 @@ restricted here so the ingress-controller path stays open.
 Each database accepts connections only from its owning backend service.
 */ -}}
 
-{{- /* Backend services: allowed callers per component */ -}}
+{{- /* Backend services: allowed same-namespace callers per component.
+     Prometheus (in the monitoring namespace, see helm/caredesk-monitoring) is
+     added as a cross-namespace peer below when monitoring.enabled.
+     notification reaches patient (reminder scheduler reads the upcoming feed);
+     patient reaches notification (booking-confirmation triggers) and auth
+     (cross-service profile lookup). mailpit is intentionally left unrestricted
+     (no policy) so its web UI is reachable via port-forward and
+     notification-service can deliver SMTP to it. */ -}}
 {{- $backends := dict
-  "auth"    (list "gateway")
-  "patient" (list "gateway" "ai")
-  "notes"   (list "gateway" "ai")
-  "ai"      (list "gateway")
+  "auth"         (list "gateway" "patient")
+  "patient"      (list "gateway" "ai" "notification")
+  "notes"        (list "gateway" "ai")
+  "notification" (list "gateway" "patient")
+  "ai"           (list "gateway")
 -}}
+
 {{- range $svc, $callers := $backends }}
 {{- $cfg := index $root.Values $svc }}
 {{- if $cfg.enabled }}
@@ -46,6 +55,18 @@ spec:
         - podSelector:
             matchLabels:
               {{- include "caredesk.selectorLabels" (dict "root" $root "component" $caller) | nindent 14 }}
+        {{- end }}
+        {{- if $root.Values.monitoring.enabled }}
+        {{- /* A bare podSelector only matches this namespace; scraping from the
+             monitoring namespace needs an explicit namespaceSelector. Matched by
+             component label only — the caredesk-monitoring chart has its own
+             name/instance labels. */}}
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: {{ $root.Values.monitoring.namespace }}
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/component: prometheus
         {{- end }}
       ports:
         - protocol: TCP

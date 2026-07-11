@@ -286,13 +286,8 @@ async def create_message(
     payload["question"] = request.query
 
     if _wants_stream(http_request):
-        # The user message is persisted up front; the assistant reply is saved
-        # once the stream completes successfully.
-        await repository.add_message(
-            db, session=session, role=AIMessageRole.USER.value, content=request.query
-        )
         return StreamingResponse(
-            _stream_answer(chain, payload, sources, db, session),
+            _stream_answer(chain, payload, sources, db, session, request.query),
             media_type=_SSE_MEDIA_TYPE,
             # Defeat proxy/browser response buffering so tokens reach the client
             # as they are produced rather than in one flush at the end.
@@ -321,7 +316,7 @@ async def create_message(
     return AIMessageResponse(answer=answer, sources=sources, confidence=None)
 
 
-async def _stream_answer(chain, payload, sources, db, session):
+async def _stream_answer(chain, payload, sources, db, session, user_query: str):
     """Yield the answer as Server-Sent Events and persist it on completion.
 
     The response status is already 200 by the time this runs, so a mid-stream
@@ -339,6 +334,12 @@ async def _stream_answer(chain, payload, sources, db, session):
         logger.exception("Unexpected error streaming query: %s", e)
         yield _sse("error", {"detail": "Error processing query"})
         return
+    await repository.add_message(
+        db,
+        session=session,
+        role=AIMessageRole.USER.value,
+        content=user_query,
+    )
     await repository.add_message(
         db,
         session=session,

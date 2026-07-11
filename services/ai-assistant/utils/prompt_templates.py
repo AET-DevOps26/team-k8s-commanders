@@ -44,8 +44,10 @@ _GENERAL_SYSTEM = (
     "as general medical information (e.g. conditions, medications, guidelines, "
     "definitions).\n"
     "Do not invent details about any specific patient; you have none.\n"
-    "If answering well would require patient-specific data, say so and note "
-    "that a patient or appointment id can be provided for a grounded answer."
+    "If answering well would require patient-specific data, tell the user you "
+    "have no patient context in this conversation and ask them to open a new "
+    "conversation from the patient's page, which loads that patient's record "
+    "so you can give a grounded answer."
     + _GUIDELINES_GUIDANCE
 )
 

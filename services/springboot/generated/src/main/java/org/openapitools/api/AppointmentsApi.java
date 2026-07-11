@@ -248,86 +248,6 @@ public interface AppointmentsApi {
     }
 
 
-    String PATH_DELETE_APPOINTMENT_NOTE = "/appointments/{appointmentId}/note";
-    /**
-     * DELETE /appointments/{appointmentId}/note : Delete the clinical note for an appointment
-     *
-     * @param appointmentId  (required)
-     * @return Clinical note deleted (status code 204)
-     *         or The request is malformed or fails validation. (status code 400)
-     *         or Authentication is required or has failed. (status code 401)
-     *         or The caller is authenticated but not allowed to access the resource. (status code 403)
-     *         or The requested resource does not exist. (status code 404)
-     *         or An unexpected error occurred while processing the request. (status code 500)
-     */
-    @Operation(
-        operationId = "deleteAppointmentNote",
-        summary = "Delete the clinical note for an appointment",
-        tags = { "Appointments" },
-        responses = {
-            @ApiResponse(responseCode = "204", description = "Clinical note deleted"),
-            @ApiResponse(responseCode = "400", description = "The request is malformed or fails validation.", content = {
-                @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class))
-            }),
-            @ApiResponse(responseCode = "401", description = "Authentication is required or has failed.", content = {
-                @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class))
-            }),
-            @ApiResponse(responseCode = "403", description = "The caller is authenticated but not allowed to access the resource.", content = {
-                @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class))
-            }),
-            @ApiResponse(responseCode = "404", description = "The requested resource does not exist.", content = {
-                @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class))
-            }),
-            @ApiResponse(responseCode = "500", description = "An unexpected error occurred while processing the request.", content = {
-                @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class))
-            })
-        },
-        security = {
-            @SecurityRequirement(name = "bearerAuth")
-        }
-    )
-    @RequestMapping(
-        method = RequestMethod.DELETE,
-        value = AppointmentsApi.PATH_DELETE_APPOINTMENT_NOTE,
-        produces = { "application/problem+json" }
-    )
-    default ResponseEntity<Void> deleteAppointmentNote(
-        @Parameter(name = "appointmentId", description = "", required = true, in = ParameterIn.PATH) @PathVariable("appointmentId") UUID appointmentId
-    ) {
-        getRequest().ifPresent(request -> {
-            for (MediaType mediaType: MediaType.parseMediaTypes(request.getHeader("Accept"))) {
-                if (mediaType.isCompatibleWith(MediaType.valueOf("application/problem+json"))) {
-                    String exampleString = "Custom MIME type example not yet supported: application/problem+json";
-                    ApiUtil.setExampleResponse(request, "application/problem+json", exampleString);
-                    break;
-                }
-                if (mediaType.isCompatibleWith(MediaType.valueOf("application/problem+json"))) {
-                    String exampleString = "Custom MIME type example not yet supported: application/problem+json";
-                    ApiUtil.setExampleResponse(request, "application/problem+json", exampleString);
-                    break;
-                }
-                if (mediaType.isCompatibleWith(MediaType.valueOf("application/problem+json"))) {
-                    String exampleString = "Custom MIME type example not yet supported: application/problem+json";
-                    ApiUtil.setExampleResponse(request, "application/problem+json", exampleString);
-                    break;
-                }
-                if (mediaType.isCompatibleWith(MediaType.valueOf("application/problem+json"))) {
-                    String exampleString = "Custom MIME type example not yet supported: application/problem+json";
-                    ApiUtil.setExampleResponse(request, "application/problem+json", exampleString);
-                    break;
-                }
-                if (mediaType.isCompatibleWith(MediaType.valueOf("application/problem+json"))) {
-                    String exampleString = "Custom MIME type example not yet supported: application/problem+json";
-                    ApiUtil.setExampleResponse(request, "application/problem+json", exampleString);
-                    break;
-                }
-            }
-        });
-        return new ResponseEntity<>(HttpStatus.NOT_IMPLEMENTED);
-
-    }
-
-
     String PATH_GET_APPOINTMENT_BY_ID = "/appointments/{appointmentId}";
     /**
      * GET /appointments/{appointmentId} : Get appointment details
@@ -427,6 +347,7 @@ public interface AppointmentsApi {
      *
      * @param appointmentId  (required)
      * @return Clinical note (status code 200)
+     *         or No clinical note has been written yet (status code 204)
      *         or The request is malformed or fails validation. (status code 400)
      *         or Authentication is required or has failed. (status code 401)
      *         or The caller is authenticated but not allowed to access the resource. (status code 403)
@@ -442,6 +363,7 @@ public interface AppointmentsApi {
                 @Content(mediaType = "application/json", schema = @Schema(implementation = ClinicalNote.class)),
                 @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ClinicalNote.class))
             }),
+            @ApiResponse(responseCode = "204", description = "No clinical note has been written yet"),
             @ApiResponse(responseCode = "400", description = "The request is malformed or fails validation.", content = {
                 @Content(mediaType = "application/json", schema = @Schema(implementation = ProblemDetail.class)),
                 @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class))

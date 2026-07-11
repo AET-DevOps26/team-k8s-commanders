@@ -54,14 +54,16 @@ public class SecurityConfig {
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
+                        .requestMatchers("/actuator/prometheus").permitAll()
                         // Spring forwards errors internally to /error — must be reachable
                         // without authentication or the real status code is swallowed by 401.
                         .requestMatchers("/error").permitAll()
-                        // Note endpoints are restricted to doctors; ownership is enforced
-                        // per-request in the controller and service.
+                        // Note endpoints are restricted to doctors. Any doctor may
+                        // read or write any note (shared clinical-record model); no
+                        // per-author ownership is enforced. Notes are amended, never
+                        // deleted — there is deliberately no DELETE endpoint.
                         .requestMatchers(HttpMethod.GET, "/appointments/*/note").hasRole("DOCTOR")
                         .requestMatchers(HttpMethod.PUT, "/appointments/*/note").hasRole("DOCTOR")
-                        .requestMatchers(HttpMethod.DELETE, "/appointments/*/note").hasRole("DOCTOR")
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(headerAuthFilter, UsernamePasswordAuthenticationFilter.class)

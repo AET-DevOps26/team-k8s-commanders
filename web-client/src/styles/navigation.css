@@ -25,13 +25,10 @@
 }
 
 .brand-mark {
-  display: grid;
+  display: block;
   width: 2rem;
   height: 2rem;
-  place-items: center;
-  border-radius: 0.45rem;
-  color: #f8fbf8;
-  background: #14615b;
+  border-radius: 0.5rem;
   box-shadow: 0 0.75rem 1.5rem rgba(20, 97, 91, 0.18);
 }
 

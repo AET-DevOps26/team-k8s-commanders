@@ -2,6 +2,33 @@
 
 Repository for team K8s Commanders.
 
+## About
+
+CareDesk is a clinic management platform. Patients can register, manage their
+profile and book appointments with doctors; doctors record clinical notes against
+appointments; and an AI assistant answers questions using live patient context.
+
+It is built as a set of microservices — a web client, an API gateway, and auth,
+patient, notes, notification and AI-assistant services, each with its own
+PostgreSQL database. It runs locally via Docker Compose and on Kubernetes via Helm.
+
+### Services
+
+Each backend service has its own README with its endpoints, configuration and how
+to build and run it:
+
+| Service | Port | Responsibility |
+|---------|------|----------------|
+| [api-gateway](services/api-gateway/README.md) | 8080 | Public entry point; verifies JWTs and injects trusted `X-User-*` headers |
+| [auth-service](services/auth-service/README.md) | 8081 | User identity, login/JWT issuance, doctor directory |
+| [patient-service](services/patient-service/README.md) | 8082 | Appointments, doctor availability, clinics |
+| [notes-service](services/notes-service/README.md) | 8083 | Clinical notes per appointment |
+| [notification-service](services/notification-service/README.md) | 8084 | Notification records + SMTP delivery and reminders |
+| [ai-assistant](services/ai-assistant/README.md) | 8000 | Conversational assistant grounded in live patient context |
+
+The web client lives in [`web-client/`](web-client/); the HTTP contract shared by
+all services is [`api/openapi.yaml`](api/openapi.yaml).
+
 ## Local development setup
 
 This project keeps Git hooks and generator tooling in the repository so that a
@@ -46,17 +73,23 @@ docker compose up --build
 
 | Service | URL |
 |---------|-----|
-| Web client via nginx | http://localhost |
-| Web client direct | http://localhost:3000 |
+| Web client (via Caddy) | http://localhost |
 | API gateway | http://localhost:8080 |
+| API docs (Swagger UI) | http://localhost/api/v1/docs |
+| Grafana (via Caddy) | http://localhost/grafana |
 | Auth database (Postgres) | localhost:5432 |
-| Patient service | http://localhost:8082 |
 | Patient database (Postgres) | localhost:5433 |
-| Notes service | http://localhost:8083 |
 | Notes database (Postgres) | localhost:5434 |
+| Notification database (Postgres) | localhost:5435 |
 | AI assistant database (Postgres) | localhost:5436 |
+| Mailpit web UI (caught emails) | http://localhost/mailpit (basic auth: `mailpit` / `mailpit`) |
 
-The web client reads `PUBLIC_API_URL` at runtime (default `/api/v1`) and sends API requests through the gateway. Use `http://localhost` for the full compose setup; nginx serves the frontend and forwards `/api/v1/**` to the API gateway without requiring CORS. Copy `services/ai-assistant/.env.example` to `services/ai-assistant/.env` before the first run if you use the AI assistant service.
+Only Caddy and the databases publish host ports. The databases are
+exposed so you can inspect them locally (e.g. with `psql`); Mailpit's web UI is served through Caddy at `/mailpit` (behind basic auth). The application
+services — web-client, auth-service, patient-service, notes-service and
+ai-assistant — publish no host port; they listen only on the internal compose
+network and are reached through the gateway (or, for the web client, through
+Caddy). The web client reads `PUBLIC_API_URL` at runtime (default `/api/v1`) and sends API requests through the gateway. Use `http://localhost` for the full compose setup; Caddy serves the frontend and forwards `/api/v1/**` to the API gateway without requiring CORS. Copy `services/ai-assistant/.env.example` to `services/ai-assistant/.env` before the first run if you use the AI assistant service.
 
 The AI assistant uses a local Ollama instance — no additional setup is required. 
 
@@ -84,17 +117,61 @@ Authenticated patients can use the web client to open `/patient/profile`, update
 
 Patients can open `/patient/book`, search doctors via `/api/v1/doctors`, view available slots via `/api/v1/doctors/{doctorId}/schedule`, and book a selected slot via `/api/v1/appointments`. Booking consumes the selected `doctor_slots` row and marks it unavailable before creating the appointment.
 
-Dev compose seeds these local credentials:
+### Accounts and seeding
 
-| Role | Email | Password |
-|------|-------|----------|
-| Patient | patient@patient.com | patient123 |
-| Doctor | doctor@doctor.com | doctor123 |
-| Admin | admin@admin.com | admin123 |
+**The administrator is always created from env vars** (`CAREDESK_ADMIN_*`, via the bootstrap admin seeder) — independent of demo seeding, in every environment. Dev compose sets these local defaults:
+
+| Role | Email | Password | Source |
+|------|-------|----------|--------|
+| Admin | admin@admin.com | admin123 | bootstrap env vars (`CAREDESK_ADMIN_*`) |
+
+**Demo users and data** are seeded only when the single demo switch is on — the `dev` Spring profile. It is **always on for local compose** (`SPRING_PROFILES_ACTIVE=dev`) and **off by default on Kubernetes**, where it is toggled by the `SEED_DEMO` GitHub Actions variable on the `AET` environment (set it to `true`, re-run the deploy; the workflow passes it through to the chart's `seedDemoData`). It never runs in production unless explicitly enabled. When on, these demo login accounts exist. **Every patient account uses the password `patient123` and every doctor account uses `doctor123`.**
+
+| Role | Email | Notes |
+|------|-------|-------|
+| Patient | patient@patient.com | Hypertension history (appointments + notes) |
+| Patient | anna.mueller@caredesk.dev | "Anna Müller" — Type 2 diabetes history, the AI-assistant example |
+| Patient | max.schmidt@caredesk.dev | General check-up + back-pain history |
+| Patient | lena.fischer@caredesk.dev | Asthma history |
+| Doctor | doctor@doctor.com | General Medicine — the treating doctor for **all** seeded appointments |
+| Doctor | sarah.chen@caredesk.dev | Cardiology — open booking slots only |
+| Doctor | tom.becker@caredesk.dev | Pediatrics — open booking slots only |
+| Doctor | mark.lopez@caredesk.dev | General Medicine — open booking slots only |
+
+### Demo dataset
+
+The same demo switch also seeds a coherent, cross-service dataset on startup so every dashboard is populated without any manual clicking: appointments across all statuses (including one due within 24h), clinical notes with diagnoses, and notification records. Each of the four demo patients has its own appointment history and notes (hypertension, Type 2 diabetes, a general/back-pain pair, and asthma). All of these appointments are with the General Medicine doctor `doctor@doctor.com`; the three extra doctors (Cardiology, Pediatrics, second General Medicine) currently only provide open slots so the booking dropdown has several specializations to choose from. Seeding is idempotent (fixed UUIDs, upserted) so it survives restarts; disabling the switch stops re-seeding but does not delete already-seeded rows. Log in as `doctor@doctor.com` to see full patient records, schedule and AI context.
+
+> **Warning:** enabling demo seeding creates weak, known-password accounts (above). Keep it off on any public deployment except for a time-boxed demo.
 
 The notes service is a scaffold for clinical notes — the structured visit notes and diagnoses a doctor records against an appointment (`/appointments/{appointmentId}/note`). It follows the same pattern as the patient service: it sits behind the API gateway, trusts the gateway-injected `X-User-Email` / `X-User-Role` headers, and uses its own Postgres container (`notes-db`). The gateway routes the clinical note sub-path to it while the rest of `/appointments/**` stays with the patient service.
 
+The notification service records the automated messages CareDesk sends to patients (appointment confirmations and reminders) and serves them via `/notifications` and `/appointments/{appointmentId}/notifications`. It follows the same pattern as the notes service: it sits behind the API gateway, trusts the gateway-injected `X-User-*` headers, and uses its own Postgres container (`notification-db`). Reads are role-scoped — admins see everything, patients only their own.
+
+The service also delivers those messages by email. We don't run a real mail server: notification-service sends plain SMTP to **Mailpit**, a catch-all container that stores every message and shows it in a web UI reached through Caddy at [http://localhost/mailpit](http://localhost/mailpit) (basic auth `mailpit` / `mailpit` in dev). Pointing at a real provider is purely an `SMTP_*` change. Two things trigger mail:
+
+- **Booking confirmations** — after a patient books, reschedules or cancels, patient-service makes a best-effort call to notification-service, which records the notification and emails the patient. The contact email is captured from the booking request, and a failing or unreachable mail server never blocks the booking.
+- **Reminders** — a scheduled job in notification-service polls patient-service for appointments due within the next 24 hours and emails a one-off reminder for each, recorded so the same appointment is never reminded twice (even across restarts).
+
+Both patient-service and notification-service expose internal, gateway-unreachable `/internal/**` endpoints for this service-to-service traffic, restricted to in-cluster callers by NetworkPolicy. On Kubernetes, reach the Mailpit UI with `kubectl port-forward svc/caredesk-mailpit 8025:8025 -n <namespace>` (the Helm chart keeps it ClusterIP-only). In the Docker deployments it is fronted by Caddy at `/mailpit`; override `MAILPIT_BASIC_AUTH_USER` / `MAILPIT_BASIC_AUTH_HASH` for any non-local deployment.
+
 See [web-client/README.md](web-client/README.md) for standalone client image builds.
+
+## API-driven development
+
+We follow an API-first workflow: the OpenAPI specification at
+[`api/openapi.yaml`](api/openapi.yaml) is the single source of truth. The Spring
+server stubs, FastAPI models and the TypeScript client types are all generated
+from it (see [Local development setup](#local-development-setup)), so the contract
+is defined before the code.
+
+The spec is bundled into the API gateway and served alongside an interactive
+Swagger UI in every deployment (compose, prod compose and Kubernetes):
+
+- **Swagger UI:** `/api/v1/docs`
+- **Raw spec:** `/api/v1/openapi.yaml`
+
+Locally that is http://localhost/api/v1/docs.
 
 ## Kubernetes deployment
 
@@ -107,22 +184,13 @@ the GHCR images are public.
 
 ```bash
 helm upgrade --install caredesk helm/caredesk \
-  --namespace <your-namespace> --create-namespace \
-  --set tumId=<your-tum-id>
+  --namespace team-k8s-commanders --create-namespace
 ```
 
-Example:
-
-```bash
-helm upgrade --install caredesk helm/caredesk \
-  --namespace ge38yuc-devops26-team-k8s-commanders --create-namespace \
-  --set tumId=ge38yuc
-```
-
-Open `https://caredesk-<tumId>.student.k8s.aet.cit.tum.de/`. cert-manager issues
-the TLS cert on first deploy (~30 s). The AI assistant deploys healthy without a
-key; add one with `--set ai.secrets.llmApiKey=sk-...`. Full chart docs and
-routing: [`helm/caredesk/README.md`](helm/caredesk/README.md).
+Open `https://caredesk-team-k8s-commanders.student.k8s.aet.cit.tum.de/`.
+cert-manager issues the TLS cert on first deploy (~30 s). The AI assistant
+deploys healthy without a key; add one with `--set ai.secrets.llmApiKey=sk-...`.
+Full chart docs and routing: [`helm/caredesk/README.md`](helm/caredesk/README.md).
 
 **For the AET cluster** you only need the kubeconfig (context `stud`):
 
@@ -204,10 +272,3 @@ are directly commited, changes are reflected through the git hooks.
 - Node tools: edit `package.json` and run `npm install`.
 - For a custom FastAPI implementation, create a separate Python environment
   and import the generated models from `services/ai-assistant/models/`.
-
-## Notes
-
-- Hooks are implemented as shell scripts under `git/hooks` and are
-  authoritative; no `pre-commit` YAML is required.
-- The OpenAPI specification lives at `api/openapi.yaml` and is the single
-  source of truth for all generated clients and server stubs.

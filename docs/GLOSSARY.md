@@ -70,7 +70,7 @@
 | **Diagnosis** | A medical classification tag attached to a ClinicalNote. Categorises the condition identified during a visit. Enables structured querying of patient history. |
 | **VisitHistory** | The complete collection of a Patient's past appointments and associated clinical notes. Readable by the patient and queryable by the doctor via the AI assistant. |
 | **Notification** | An automated message sent to a Patient before an upcoming Appointment. Can be delivered via email or SMS. Triggered by the system based on appointment time. |
-| **AIAssistant** | A RAG-based intelligent component available to Doctors. Accepts natural language queries and retrieves grounded answers from patient data and medical guidelines. Does not operate independently of a user query. |
+| **AIAssistant** | An LLM-backed intelligent component available to Doctors. Accepts natural language queries and answers them grounded in live patient data pulled at query time. Does not operate independently of a user query. |
 
 ## Use Case Diagram
 

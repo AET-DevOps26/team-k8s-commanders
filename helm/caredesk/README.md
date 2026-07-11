@@ -11,35 +11,31 @@ Deploys the **full CareDesk stack** to a Kubernetes cluster (local **kind** or t
 
 ---
 
-## 1 · Deploy with one command — no env files
+## 1 · Deploy
 
-The chart ships working development defaults (JWT secret, DB password) and the
-GHCR images are **public**, so it installs with a **single command and zero
-pre-created files or secrets** — exactly what a grader needs.
-
-```bash
-helm upgrade --install caredesk helm/caredesk \
-  --namespace <your-namespace> --create-namespace \
-  --set tumId=<your-tum-id>
-```
-
-That is the whole deploy. Example for this team:
+The GHCR images are **public** (no pull secret needed), but the chart ships **no
+hardcoded secrets**: you must supply the shared JWT secret and the Postgres
+password at install time. Rendering fails with a clear message if either is
+missing.
 
 ```bash
 helm upgrade --install caredesk helm/caredesk \
-  --namespace ge38yuc-devops26-team-k8s-commanders --create-namespace \
-  --set tumId=ge38yuc
+  --namespace team-k8s-commanders --create-namespace \
+  --set backend.jwtSecret="$(openssl rand -hex 32)" \
+  --set postgres.password="$(openssl rand -hex 16)"
 ```
 
-- `tumId` only drives the default ingress host
-  `caredesk-<tumId>.student.k8s.aet.cit.tum.de`. Override the host directly with
+That is the whole deploy. (CI injects both from the `JWT_SECRET` and
+`POSTGRES_PASSWORD` GitHub secrets — see `.github/workflows/deploy-k8s.yml`.)
+
+- The default ingress host is
+  `caredesk-team-k8s-commanders.student.k8s.aet.cit.tum.de`. Override it with
   `--set ingress.host=<host>` if it differs (look it up in Rancher → Ingresses).
 - The AI assistant **deploys and stays healthy without a key**; it just cannot
   answer until you add one: `--set ai.secrets.llmApiKey=sk-...`.
-- For a real environment, override the dev defaults:
-  `--set backend.jwtSecret=<secret> --set postgres.password=<pw>`.
 
-Open the printed URL (`https://caredesk-<tumId>.student.k8s.aet.cit.tum.de/`).
+Open the printed URL
+(`https://caredesk-team-k8s-commanders.student.k8s.aet.cit.tum.de/`).
 cert-manager (`letsencrypt-prod`) issues the TLS cert on first deploy (~30 s).
 
 ### Prerequisites
@@ -98,21 +94,27 @@ Requires a CNI that enforces NetworkPolicy — **AET (Calico) does**; kind/kindn
 does **not**, so locally the policies are harmless no-ops. Disable with
 `--set networkPolicy.enabled=false` (e.g. if a cluster CNI blocks kubelet probes).
 
-### AET namespace CPU quota
+### AET namespace CPU/memory quota
 
-Student namespaces on the AET Rancher cluster enforce **`limits.cpu=4`** (4000m).
-The chart defaults are sized to fit with headroom:
+The `team-k8s-commanders` namespace on the AET Rancher cluster enforces
+**`limits.cpu=6000m`** / **`limits.memory=8192Mi`**. The chart defaults are
+sized to fit with headroom:
 
-| Component | CPU limit | Count | Total |
-|-----------|-----------|-------|-------|
-| Backend services | 400m | 5 | 2000m |
-| PostgreSQL | 250m | 3 | 750m |
-| web-client | 200m | 1 | 200m |
-| **Steady state** | | | **2950m** |
+| Component | CPU limit | Mem limit | Count | CPU total | Mem total |
+|-----------|-----------|-----------|-------|-----------|-----------|
+| Backend services | 400m | 512–768Mi | 6 | 2400m | 4096Mi |
+| PostgreSQL | 250m | 256Mi | 5 | 1250m | 1280Mi |
+| web-client | 200m | 128Mi | 1 | 200m | 128Mi |
+| **Steady state** | | | | **3850m** | **5504Mi** |
+
+That leaves ~2150m CPU / ~2688Mi memory spare. Prometheus + Grafana deploy
+separately into the `team-k8s-commanders-monitoring` namespace via the
+[caredesk-monitoring chart](../caredesk-monitoring/), so they no longer count
+against this namespace's quota.
 
 All Deployments use **`Recreate`** strategy (not `RollingUpdate`) so image
 rollouts terminate the old pod before starting the new one. That avoids
-temporary double-booking of CPU quota during upgrades — the failure mode that
+temporary double-booking of quota during upgrades — the failure mode that
 caused `UPGRADE FAILED: context deadline exceeded` when old + new pods overlapped.
 
 If you add replicas or raise limits, re-check quota with:
@@ -154,15 +156,30 @@ A `Makefile` wrapper (`make deploy` / `make undeploy`, driven by an optional
 |----------|---------|--------|
 | `publish.yml` | push to `main` touching `services/**` or `web-client/**` | Build + push all 6 images to GHCR (matrix: web-client, api-gateway, auth-service, patient-service, notes-service, ai-assistant) |
 | `deploy-k8s.yml` | after Publish Images succeeds, or manual `workflow_dispatch` | `helm upgrade --install` against the AET cluster (image tag = `sha-<short>` or `latest`) |
+| `deploy-k8s-monitoring.yml` | push to `main` touching `helm/caredesk-monitoring/**` or `infra/grafana/**`, or manual `workflow_dispatch` | Deploys Prometheus + Grafana ([caredesk-monitoring chart](../caredesk-monitoring/)) into the `team-k8s-commanders-monitoring` namespace |
 
 Helm-only changes deploy via **Actions → Deploy to AET Cluster → Run workflow**
 (manual dispatch uses the `latest` image tag). The workflow no longer triggers on
 a direct `push` to `helm/**` — that previously raced with the post-build deploy and
 triggered overlapping rollouts at full CPU quota.
 
-**Required repo secrets/variables** for the CI deploy: `KUBECONFIG_AET`,
-`TUM_ID`, and (optionally) `LLM_API_KEY`. JWT secret and DB password fall back to
-the chart's dev defaults unless overridden.
+**Shared production admin configuration** for both `deploy-k8s.yml` and
+`deploy-azure.yml`:
+
+- GitHub Actions variables: `ADMIN_NAME` and `ADMIN_EMAIL`
+- GitHub Actions secret: `ADMIN_PASSWORD`
+
+The AET deployment additionally **requires** the `TUM_ID` variable, the
+`KUBECONFIG_AET` secret, and the `JWT_SECRET` and `POSTGRES_PASSWORD` secrets
+(the chart ships no defaults for the latter two — the deploy fails fast if
+they are unset). `LLM_API_KEY` is optional.
+
+`ADMIN_PASSWORD` must remain a secret; never store it as a GitHub Actions
+variable. The deployment creates the configured admin only when no admin account
+exists yet. Later deployments leave the existing account and password unchanged,
+even if the configured email changes.
+To rotate the password, use the authenticated account-management flow rather
+than changing the deployment secret.
 
 ---
 
@@ -171,12 +188,13 @@ the chart's dev defaults unless overridden.
 ### `UPGRADE FAILED: context deadline exceeded` (CI deploy)
 
 Helm `--wait` timed out because one or more pods never became Ready. On the AET
-cluster the most common cause is **namespace CPU quota exhaustion during a rolling
-update** — Kubernetes keeps old pods while starting new ones, but the namespace
-was already at `limits.cpu=4`.
+cluster the most common cause is **namespace quota exhaustion during a rolling
+update** — Kubernetes keeps old pods while starting new ones, which can exceed
+the namespace's `limits.cpu=6000m` / `limits.memory=8192Mi`.
 
-The chart now uses **Recreate** deployments and lower CPU limits (2950m steady
-state). If a previous failed rollout left stuck ReplicaSets, clean up and redeploy:
+The chart now uses **Recreate** deployments so old and new pods never overlap
+(steady state: 3850m CPU / 5504Mi memory). If a previous
+failed rollout left stuck ReplicaSets, clean up and redeploy:
 
 ```bash
 kubectl -n <ns> get rs
@@ -210,9 +228,9 @@ kubectl -n <ns> logs deploy/caredesk-<service> --previous
 ```
 
 ### Ingress host shows the wrong URL
-Default host is `caredesk-<tumId>.student.k8s.aet.cit.tum.de`. If the cluster uses
-a different suffix, look it up in Rancher → Ingresses and redeploy with
-`--set ingress.host=<actual-host>`.
+Default host is `caredesk-team-k8s-commanders.student.k8s.aet.cit.tum.de`. If the
+cluster uses a different suffix, look it up in Rancher → Ingresses and redeploy
+with `--set ingress.host=<actual-host>`.
 
 ### AET cluster gets reset weekly
 The DevOps namespace is wiped end of week. Re-run the one-command deploy — the

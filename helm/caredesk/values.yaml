@@ -1,22 +1,38 @@
-# ─── Identity ──────────────────────────────────────────────────────────────────
-# TUM ID determines the default ingress host. Namespace is passed via --namespace.
-# Override at install: --set tumId=<your-id>
-tumId: ge38yuc
-
 # ─── AET cluster constraints ───────────────────────────────────────────────────
-# Student namespaces on the AET Rancher cluster enforce limits.cpu=4 (4000m).
-# Steady-state CPU limits must stay below that cap. Recreate (not RollingUpdate)
-# terminates the old pod before starting the new one, so rollouts do not need
-# temporary spare quota for overlapping pods.
-# Budget: 5×400m backends + 3×250m Postgres + 1×200m web = 2950m (1050m spare).
+# The team namespace on the AET Rancher cluster has a quota of limits.cpu=6000m /
+# limits.memory=8192Mi. Steady-state limits must stay below that cap. Recreate
+# (not RollingUpdate) terminates the old pod before starting the new one, so
+# rollouts do not need temporary spare quota for overlapping pods.
+# Budget: 6×400m backends + 5×250m Postgres + 1×200m web = 3850m CPU (2150m
+# spare), 5504Mi memory (2688Mi spare). Prometheus + Grafana live in their own
+# namespace (helm/caredesk-monitoring) and no longer count against this one.
 deploymentStrategy:
   type: Recreate
+
+# ─── Demo/test data seeding ───────────────────────────────────────────────────
+# Single switch for demo seeding. When true, the backends run under the `dev`
+# Spring profile, which enables auth-service's DemoDataSeeder (4 demo patients +
+# 4 doctors) and every other service's DemoDataSeeder (appointments across all
+# statuses, clinical notes, notifications, "Anna Müller"). Off by default — production never seeds.
+# The administrator is always created from auth.bootstrapAdmin (env vars),
+# independent of this switch.
+# In CI this is driven by the SEED_DEMO GitHub Actions variable.
+# WARNING: enabling this exposes weak, known-password demo accounts
+# (patient123 / doctor123) on the public ingress. Enable only for a time-boxed
+# demo and turn it off again afterwards. Disabling does NOT delete rows already
+# seeded — remove those manually if required.
+seedDemoData: false
 
 # ─── CareDesk image settings ──────────────────────────────────────────────────
 images:
   registry: ghcr.io/aet-devops26/team-k8s-commanders
   tag: latest
-  pullPolicy: IfNotPresent
+  # Always, not IfNotPresent: `tag: latest` is a mutable tag, and this cluster
+  # has multiple worker nodes. IfNotPresent only pulls when a node has never
+  # seen this tag string before — once cached, that node keeps serving the
+  # same (possibly months-stale) image forever, even after CI publishes a new
+  # `:latest`. Always forces a registry digest check on every pull.
+  pullPolicy: Always
   # GHCR packages for this project are PUBLIC — no pull secret is needed, so the
   # chart installs with a single command and zero credentials. CI may flip
   # create=true and inject a PAT for rate-limit headroom; not required to deploy.
@@ -29,13 +45,14 @@ images:
     email: caredesk@example.com
 
 # ─── Shared backend settings ──────────────────────────────────────────────────
-# A development default is baked in so the whole stack deploys with one command
-# and no pre-created env files / secrets. Override in any real environment:
+# No secret is baked into the chart — provide it at install time (CI injects the
+# JWT_SECRET GitHub secret; locally pass it yourself):
 #   --set backend.jwtSecret=<your-secret>
 backend:
   # Shared HMAC secret. auth-service signs JWTs with it; api-gateway verifies
-  # them with the same value. Must be >= 32 chars for HS256/384.
-  jwtSecret: "caredesk-cluster-dev-jwt-secret-change-me-32+"
+  # them with the same value. Must be >= 32 chars for HS256/384. Required —
+  # rendering the -app Secret fails if this is empty.
+  jwtSecret: ""
   jwtExpirationMs: "86400000"   # 24h (string to avoid YAML int→float)
   # Fresh databases have no schema; `update` lets Hibernate create tables on
   # first boot. Switch to `validate` once real migrations exist.
@@ -47,8 +64,10 @@ backend:
 postgres:
   image: postgres:16-alpine
   username: caredesk
-  # Development default — override with --set postgres.password=<secret>.
-  password: caredesk
+  # No secret is baked into the chart — provide it at install time (CI injects
+  # the POSTGRES_PASSWORD GitHub secret). Required: rendering the -db Secret
+  # fails if this is empty.
+  password: ""
   storage: 1Gi
   resources:
     requests: { cpu: 50m,  memory: 64Mi }
@@ -63,6 +82,8 @@ databases:
     database: patient_db
   notes-db:
     database: notes_db
+  notification-db:
+    database: notification_db
   ai-db:
     database: ai_db
     # pgvector image (stock postgres:16 + `vector` extension) for the
@@ -82,7 +103,7 @@ networkPolicy:
 ingress:
   enabled: true
   className: nginx
-  # If empty, _helpers renders: caredesk-<tumId>.student.k8s.aet.cit.tum.de
+  # If empty, _helpers renders: caredesk-team-k8s-commanders.student.k8s.aet.cit.tum.de
   host: ""
   # Extra DNS hosts render the same ingress rules. Useful for local aliases
   # such as localhost without changing the canonical cluster host.
@@ -97,7 +118,7 @@ ingress:
 # ─── web-client (React + nginx, port 3000) ────────────────────────────────────
 web:
   enabled: true
-  # Single replica keeps CPU quota headroom on the AET student cluster (4 CPU cap).
+  # Single replica keeps CPU quota headroom on the AET team cluster (6 CPU cap).
   replicaCount: 1
   image:
     repository: web-client
@@ -137,6 +158,13 @@ auth:
     port: 8081
   dbHost: caredesk-auth-db
   dbName: auth_db
+  # Disabled for local installs. Production CI enables this and injects values
+  # from GitHub Actions repository variables/secrets.
+  bootstrapAdmin:
+    enabled: false
+    name: ""
+    email: ""
+    password: ""
   resources:
     requests: { cpu: 100m, memory: 384Mi }
     limits:   { cpu: 400m, memory: 768Mi }
@@ -170,6 +198,62 @@ notes:
   resources:
     requests: { cpu: 100m, memory: 384Mi }
     limits:   { cpu: 400m, memory: 768Mi }
+
+# ─── notification-service (Spring Boot, port 8084) ────────────────────────────
+notification:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: notification-service
+    tag: ""
+  service:
+    port: 8084
+  dbHost: caredesk-notification-db
+  dbName: notification_db
+  # SMTP target. Empty host falls back to the in-cluster Mailpit service; set
+  # these to a real provider to send actual mail. username/password/auth/startTls
+  # stay empty/false for Mailpit; provide them (password ideally via --set) for an
+  # authenticated/TLS provider.
+  smtp:
+    host: ""
+    port: ""
+    username: ""
+    password: ""
+    auth: false
+    startTls: false
+  mailFrom: "CareDesk <no-reply@caredesk.local>"
+  resources:
+    requests: { cpu: 100m, memory: 384Mi }
+    limits:   { cpu: 400m, memory: 768Mi }
+
+
+# ─── Mailpit (catch-all SMTP server + web UI) ──────────────────────────────────
+# notification-service sends SMTP here; Mailpit catches every message and shows
+# it in a web UI. Image is from Docker Hub (not the project GHCR registry).
+# The web UI is ClusterIP-only — reach it with:
+#   kubectl port-forward svc/caredesk-mailpit 8025:8025 -n <namespace>
+# Point notification-service at a real SMTP provider (notification.smtp.*) to
+# send actual mail instead.
+mailpit:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: axllent/mailpit
+    tag: latest
+  smtpPort: 1025
+  webPort: 8025
+  resources:
+    requests: { cpu: 25m,  memory: 32Mi }
+    limits:   { cpu: 100m, memory: 128Mi }
+
+# ─── Monitoring (deployed separately — helm/caredesk-monitoring) ──────────────
+# Prometheus + Grafana run in their own namespace via the caredesk-monitoring
+# chart (deployed by .github/workflows/deploy-k8s-monitoring.yml). This block
+# only controls the NetworkPolicy openings that let Prometheus scrape the
+# backends' metrics endpoints cross-namespace.
+monitoring:
+  enabled: true
+  namespace: team-k8s-commanders-monitoring
 
 # ─── ai-assistant (FastAPI, port 8000) ─────────────────────────────────────────
 ai:

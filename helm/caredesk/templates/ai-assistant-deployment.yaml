@@ -33,6 +33,7 @@ spec:
             - configMapRef:
                 name: {{ include "caredesk.fullname" . }}-config
           env:
+            {{- include "caredesk.appVersionEnv" (dict "root" $ "image" .Values.ai.image) | nindent 12 }}
             {{- include "caredesk.dbEnv" (dict "root" $ "host" .Values.ai.dbHost "name" .Values.ai.dbName) | nindent 12 }}
             {{- if .Values.ai.secrets.llmApiKey }}
             - name: LLM_API_KEY
@@ -41,17 +42,22 @@ spec:
                   name: {{ include "caredesk.fullname" . }}-app
                   key: LLM_API_KEY
             {{- end }}
+          startupProbe:
+            httpGet:
+              path: /ai/health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            failureThreshold: 40
           readinessProbe:
             httpGet:
               path: /ai/health
               port: http
-            initialDelaySeconds: 5
             periodSeconds: 10
           livenessProbe:
             httpGet:
               path: /ai/health
               port: http
-            initialDelaySeconds: 20
             periodSeconds: 30
           resources:
             {{- toYaml .Values.ai.resources | nindent 12 }}

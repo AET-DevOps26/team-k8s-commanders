@@ -46,12 +46,42 @@ spring:
           filters:
             - StripPrefix=2
 
+        # Must come before patient-service: the notifications sub-path is more
+        # specific than /appointments/** and is owned by the notification-service.
+        - id: notification-service
+          uri: ${NOTIFICATION_SERVICE_URL:http://localhost:8084}
+          predicates:
+            - Path=/api/v1/notifications/**,/api/v1/appointments/*/notifications
+          filters:
+            - StripPrefix=2
+
         - id: patient-service
           uri: ${PATIENT_SERVICE_URL:http://localhost:8082}
           predicates:
             - Path=/api/v1/patients/**,/api/v1/doctors/**,/api/v1/appointments/**,/api/v1/clinics/**
           filters:
             - StripPrefix=2
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,prometheus
+  endpoint:
+    prometheus:
+      enabled: true
+  metrics:
+    distribution:
+      # Emit http_server_requests_seconds_bucket so Grafana's p95 latency alert
+      # (histogram_quantile in infra/grafana/provisioning/alerting/alerts.yaml)
+      # has buckets to read. Without this Micrometer only exports _count/_sum and
+      # the p95 rule sits at NoData forever.
+      percentiles-histogram:
+        http.server.requests: true
+    tags:
+      # Deployed version (image tag), injected as APP_VERSION by Helm/compose.
+      # Tags every metric so changes can be correlated with releases in Grafana.
+      version: ${APP_VERSION:unknown}
 
 # Shared secret used to verify JWTs issued by auth-service.
 # Must match auth-service's JWT_SECRET.

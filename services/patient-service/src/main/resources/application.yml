@@ -10,6 +10,10 @@ openapi:
 auth-service:
   url: ${AUTH_SERVICE_URL:http://localhost:8081}
 
+# Internal notification-service URL for best-effort booking-confirmation triggers.
+notification-service:
+  url: ${NOTIFICATION_SERVICE_URL:http://localhost:8084}
+
 spring:
   application:
     name: patient-service
@@ -31,9 +35,24 @@ spring:
       hibernate:
         format_sql: true
 
-# Actuator health is permitted in SecurityConfig for the Docker healthcheck.
+# Actuator health and prometheus are permitted in SecurityConfig for Docker healthcheck and scraping.
 management:
   endpoints:
     web:
       exposure:
-        include: health
+        include: health,prometheus
+  endpoint:
+    prometheus:
+      enabled: true
+  metrics:
+    distribution:
+      # Emit http_server_requests_seconds_bucket so Grafana's p95 latency alert
+      # (histogram_quantile in infra/grafana/provisioning/alerting/alerts.yaml)
+      # has buckets to read. Without this Micrometer only exports _count/_sum and
+      # the p95 rule sits at NoData forever.
+      percentiles-histogram:
+        http.server.requests: true
+    tags:
+      # Deployed version (image tag), injected as APP_VERSION by Helm/compose.
+      # Tags every metric so changes can be correlated with releases in Grafana.
+      version: ${APP_VERSION:unknown}

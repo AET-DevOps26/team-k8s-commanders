@@ -32,6 +32,7 @@ spec:
           env:
             - name: SERVER_PORT
               value: {{ .Values.gateway.service.port | quote }}
+            {{- include "caredesk.appVersionEnv" (dict "root" $ "image" .Values.gateway.image) | nindent 12 }}
             # The published api-gateway image pins Spring Cloud 2023.0.x while the
             # parent is Spring Boot 3.5.x. The strict compatibility verifier aborts
             # startup, although Spring Cloud Gateway runs fine on Boot 3.5 at
@@ -46,6 +47,8 @@ spec:
               value: {{ printf "http://%s-patient:%d" $fn (int .Values.patient.service.port) | quote }}
             - name: NOTES_SERVICE_URL
               value: {{ printf "http://%s-notes:%d" $fn (int .Values.notes.service.port) | quote }}
+            - name: NOTIFICATION_SERVICE_URL
+              value: {{ printf "http://%s-notification:%d" $fn (int .Values.notification.service.port) | quote }}
             - name: AI_ASSISTANT_URL
               value: {{ printf "http://%s-ai:%d" $fn (int .Values.ai.service.port) | quote }}
             {{- include "caredesk.jwtEnv" . | nindent 12 }}

@@ -1,10 +1,18 @@
 services:
-  nginx:
-    image: nginx:stable-alpine
+  caddy:
+    image: caddy:2-alpine
     ports:
       - "80:80"
+    environment:
+      # ":80" makes Caddy serve plain HTTP (no TLS/ACME) — same shared
+      # Caddyfile as prod, which instead sets SITE_ADDRESS to a public host.
+      SITE_ADDRESS: ":80"
+      # HTTP basic auth for the /mailpit UI. Dev credentials: mailpit / mailpit
+      # (the hash is bcrypt of "mailpit"; $$ escapes $ for compose interpolation).
+      MAILPIT_BASIC_AUTH_USER: mailpit
+      MAILPIT_BASIC_AUTH_HASH: "$$2y$$05$$EKc8Qn8M119jQbj.A2W1JuOfZl3O7QJ7LYyrPikreFIG/BgfgQpPu"
     volumes:
-      - ./infra/nginx/nginx.dev.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./infra/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
     restart: unless-stopped
     depends_on:
       web-client:
@@ -48,7 +56,11 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
-      start_period: 30s
+      # Generous window: on a fresh volume Postgres has to initdb, run init
+      # scripts and restart, which can exceed 30s under a heavy first-build on
+      # WSL2. A long start_period keeps it "starting" (never "unhealthy") until
+      # it accepts connections.
+      start_period: 120s
     networks:
       - caredesk
 
@@ -58,6 +70,8 @@ services:
       dockerfile: Dockerfile
     restart: unless-stopped
     environment:
+      # Surfaces in the app_info metric; compose builds from source, so no image tag.
+      APP_VERSION: local
       LLM_PROVIDER: openwebui
       LLM_MODEL: llama3.2
       LLM_API_KEY: ollama
@@ -154,7 +168,8 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
-      start_period: 30s
+      # See ai-db: long window so a fresh-volume first init never flips to unhealthy.
+      start_period: 120s
     networks:
       - caredesk
 
@@ -170,6 +185,8 @@ services:
         condition: service_healthy
     # No published port — only reachable inside the compose network via the gateway.
     environment:
+      # Surfaces as the `version` tag on all metrics; compose builds from source.
+      APP_VERSION: local
       DB_HOST: auth-db
       DB_PORT: 5432
       DB_NAME: auth_db
@@ -177,7 +194,18 @@ services:
       DB_PASSWORD: caredesk
       # Dev-only secret — override in production via env or secrets management.
       JWT_SECRET: caredesk-compose-dev-secret-must-be-at-least-32-chars
+      # The `dev` profile is the single switch for all demo seeding: it enables
+      # every service's DemoDataSeeder (auth seeds the demo users; the others
+      # seed appointments, notes and notifications). Always on for local compose;
+      # on k8s it is off by default and toggled via the SEED_DEMO GitHub variable
+      # (helm seedDemoData).
       SPRING_PROFILES_ACTIVE: dev
+      # The administrator is always created from these env vars (never from the
+      # demo seeding), matching production. Local default creds:
+      CAREDESK_BOOTSTRAP_ADMIN_ENABLED: "true"
+      CAREDESK_ADMIN_NAME: Admin
+      CAREDESK_ADMIN_EMAIL: admin@admin.com
+      CAREDESK_ADMIN_PASSWORD: admin123
       # application.yml ships with ddl-auto: validate for production safety.
       # Compose dev profile overrides to `update` so schema is auto-created
       # against a fresh Postgres. Production should use proper migrations.
@@ -207,7 +235,8 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
-      start_period: 30s
+      # See ai-db: long window so a fresh-volume first init never flips to unhealthy.
+      start_period: 120s
     networks:
       - caredesk
 
@@ -223,6 +252,8 @@ services:
         condition: service_healthy
     # No published port — only reachable inside the compose network via the gateway.
     environment:
+      # Surfaces as the `version` tag on all metrics; compose builds from source.
+      APP_VERSION: local
       DB_HOST: patient-db
       DB_PORT: 5432
       DB_NAME: patient_db
@@ -230,6 +261,10 @@ services:
       DB_PASSWORD: caredesk
       # Internal auth-service URL for the cross-service profile lookup.
       AUTH_SERVICE_URL: http://auth-service:8081
+      # Internal notification-service URL for booking-confirmation triggers.
+      NOTIFICATION_SERVICE_URL: http://notification-service:8084
+      # The `dev` profile is the single switch that enables this service's
+      # DemoDataSeeder (demo dataset for presentations, #168). Always on locally.
       SPRING_PROFILES_ACTIVE: dev
       # application.yml ships with ddl-auto: validate. Compose dev profile
       # overrides to update so the schema is auto-created against a fresh DB.
@@ -259,7 +294,8 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
-      start_period: 30s
+      # See ai-db: long window so a fresh-volume first init never flips to unhealthy.
+      start_period: 120s
     networks:
       - caredesk
 
@@ -275,11 +311,16 @@ services:
         condition: service_healthy
     # No published port — only reachable inside the compose network via the gateway.
     environment:
+      # Surfaces as the `version` tag on all metrics; compose builds from source.
+      APP_VERSION: local
       DB_HOST: notes-db
       DB_PORT: 5432
       DB_NAME: notes_db
       DB_USER: caredesk
       DB_PASSWORD: caredesk
+      # The `dev` profile is the single switch that enables this service's
+      # DemoDataSeeder (demo dataset for presentations, #168). Always on locally.
+      SPRING_PROFILES_ACTIVE: dev
       # application.yml ships with ddl-auto: validate. Compose dev profile
       # overrides to update so the schema is auto-created against a fresh DB.
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
@@ -292,10 +333,87 @@ services:
     networks:
       - caredesk
 
+  notification-db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: notification_db
+      POSTGRES_USER: caredesk
+      POSTGRES_PASSWORD: caredesk
+    ports:
+      - "5435:5432"
+    volumes:
+      - notification-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U caredesk -d notification_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      # See ai-db: long window so a fresh-volume first init never flips to unhealthy.
+      start_period: 120s
+    networks:
+      - caredesk
+
+  # Catch-all SMTP server for dev. notification-service sends real SMTP to it;
+  # Mailpit stores nothing externally and exposes every caught message in a web
+  # UI reached through Caddy at http://localhost/mailpit (basic auth: mailpit /
+  # mailpit). No real mail ever leaves the machine.
+  mailpit:
+    image: axllent/mailpit:latest
+    restart: unless-stopped
+    environment:
+      # Serve the UI under /mailpit so its assets resolve behind the Caddy route.
+      MP_WEBROOT: mailpit
+    # SMTP (1025) is reachable in-cluster by service name; the web UI (8025) is
+    # fronted by Caddy at /mailpit, so no host ports are published.
+    networks:
+      - caredesk
+
+  notification-service:
+    build:
+      # Build context is the repo root so the Dockerfile can reach both
+      # services/notification-service AND services/springboot/generated (stubs).
+      context: .
+      dockerfile: services/notification-service/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      notification-db:
+        condition: service_healthy
+    # No published port — only reachable inside the compose network via the gateway.
+    environment:
+      # Surfaces as the `version` tag on all metrics; compose builds from source.
+      APP_VERSION: local
+      DB_HOST: notification-db
+      DB_PORT: 5432
+      DB_NAME: notification_db
+      DB_USER: caredesk
+      DB_PASSWORD: caredesk
+      # The `dev` profile is the single switch that enables this service's
+      # DemoDataSeeder (demo dataset for presentations, #168). Always on locally.
+      SPRING_PROFILES_ACTIVE: dev
+      # application.yml ships with ddl-auto: validate. Compose dev profile
+      # overrides to update so the schema is auto-created against a fresh DB.
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      # SMTP target is the Mailpit container (no auth, no TLS).
+      SMTP_HOST: mailpit
+      SMTP_PORT: 1025
+      # Reminder scheduler reads upcoming appointments from patient-service.
+      PATIENT_SERVICE_URL: http://patient-service:8082
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8084/actuator/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - caredesk
+
   api-gateway:
     build:
-      context: ./services/api-gateway
-      dockerfile: Dockerfile
+      # Build context is the repo root so the Dockerfile can reach api/openapi.yaml
+      # and bundle it (served at /api/v1/openapi.yaml with Swagger UI at /api/v1/docs).
+      context: .
+      dockerfile: services/api-gateway/Dockerfile
     restart: unless-stopped
     depends_on:
       auth-service:
@@ -304,13 +422,18 @@ services:
         condition: service_healthy
       notes-service:
         condition: service_healthy
+      notification-service:
+        condition: service_healthy
     ports:
       - "8080:8080"
     environment:
+      # Surfaces as the `version` tag on all metrics; compose builds from source.
+      APP_VERSION: local
       AUTH_SERVICE_URL: http://auth-service:8081
       AI_ASSISTANT_URL: http://ai-assistant:8000
       PATIENT_SERVICE_URL: http://patient-service:8082
       NOTES_SERVICE_URL: http://notes-service:8083
+      NOTIFICATION_SERVICE_URL: http://notification-service:8084
       # Must match auth-service's JWT_SECRET so issued tokens verify.
       JWT_SECRET: caredesk-compose-dev-secret-must-be-at-least-32-chars
     healthcheck:
@@ -322,6 +445,51 @@ services:
     networks:
       - caredesk
 
+  prometheus:
+    image: prom/prometheus:v3.3.1
+    volumes:
+      - ./infra/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=7d'
+    ports:
+      - "9090:9090"
+    restart: unless-stopped
+    depends_on:
+      api-gateway:
+        condition: service_healthy
+    networks:
+      - caredesk
+
+  grafana:
+    image: grafana/grafana:11.6.16
+    # No host port published — reached through Caddy at http://localhost/grafana
+    # (matches the prod sub-path setup so dev and prod behave the same).
+    expose:
+      - "3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+      GF_SERVER_ROOT_URL: http://localhost/grafana
+      GF_SERVER_SERVE_FROM_SUB_PATH: "true"
+      PROMETHEUS_URL: http://prometheus:9090
+      # Alert delivery (provisioning/alerting/contact-points.yaml). The
+      # placeholder keeps Grafana provisioning valid when no webhook is set —
+      # alerts then only show in the UI. Set a real URL in .env to deliver.
+      DISCORD_WEBHOOK_URL: ${DISCORD_WEBHOOK_URL:-https://alerts-disabled.invalid/discord}
+    volumes:
+      - ./infra/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./infra/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    restart: unless-stopped
+    depends_on:
+      - prometheus
+    networks:
+      - caredesk
+
 networks:
   caredesk:
     driver: bridge
@@ -330,5 +498,8 @@ volumes:
   auth-db-data:
   patient-db-data:
   notes-db-data:
+  notification-db-data:
   ai-db-data:
   ollama_data:
+  prometheus-data:
+  grafana-data:

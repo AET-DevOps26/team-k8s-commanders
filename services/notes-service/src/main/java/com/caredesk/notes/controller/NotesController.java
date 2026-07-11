@@ -46,26 +46,28 @@ public class NotesController implements AppointmentsApi {
     /**
      * Returns the clinical note for an appointment.
      *
+     * <p>Any doctor may read any note, matching the shared clinical-record model
+     * used for the patient chart (a doctor reads a patient's full history for
+     * continuity of care).
+     *
      * @param appointmentId the appointment id
-     * @return 200 with the note, or 404 if no note has been written yet
+     * @return 200 with the note, or 204 if no note has been written yet
      */
     @Override
     public ResponseEntity<ClinicalNote> getAppointmentNote(UUID appointmentId) {
-        UUID doctorId = currentDoctorId();
         com.caredesk.notes.model.ClinicalNote note = notesService.getByAppointment(appointmentId)
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND,
-                        "No clinical note exists for appointment " + appointmentId));
-        if (!note.getDoctorId().equals(doctorId)) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Not your appointment");
+                .orElse(null);
+        if (note == null) {
+            return ResponseEntity.noContent().build();
         }
         return ResponseEntity.ok(NoteMapper.toModel(note));
     }
 
     /**
-     * Creates or replaces the clinical note for an appointment. The authoring
-     * doctor is taken from the gateway-provided {@code X-User-Id} header, not
-     * from the request body.
+     * Creates or replaces the clinical note for an appointment. Any doctor may
+     * write it (shared clinical-record model); the {@code doctorId} recorded on
+     * the note is the last writer, taken from the gateway-provided
+     * {@code X-User-Id} header, not from the request body.
      *
      * @param appointmentId     the appointment the note documents
      * @param clinicalNoteInput the note content and optional diagnosis
@@ -88,19 +90,6 @@ public class NotesController implements AppointmentsApi {
         return ResponseEntity
                 .status(result.created() ? HttpStatus.CREATED : HttpStatus.OK)
                 .body(NoteMapper.toModel(result.note()));
-    }
-
-    /**
-     * Deletes the clinical note for an appointment. Only the authoring doctor
-     * may delete their own note.
-     *
-     * @param appointmentId the appointment whose note should be deleted
-     * @return 204 No Content on success, 404 if no note exists, 403 if not the author
-     */
-    @Override
-    public ResponseEntity<Void> deleteAppointmentNote(UUID appointmentId) {
-        notesService.delete(appointmentId, currentDoctorId());
-        return ResponseEntity.noContent().build();
     }
 
     /**

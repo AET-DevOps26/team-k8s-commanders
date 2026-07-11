@@ -1,7 +1,23 @@
-export type Route = '/' | '/login' | '/register' | '/patient' | '/admin'
+export type Route =
+  | '/'
+  | '/login'
+  | '/register'
+  | '/patient'
+  | '/patient/profile'
+  | '/patient/book'
+  | '/admin'
+  | '/doctor'
+  | '/doctor/schedule'
+  | '/doctor/patients'
 
 export function dashboardPath(role: string): Route {
-  return role === 'ADMIN' ? '/admin' : '/patient'
+  if (role === 'ADMIN') {
+    return '/admin'
+  }
+  if (role === 'DOCTOR') {
+    return '/doctor'
+  }
+  return '/patient'
 }
 
 export function getInitialRoute(): Route {
@@ -11,7 +27,12 @@ export function getInitialRoute(): Route {
     path === '/login' ||
     path === '/register' ||
     path === '/patient' ||
-    path === '/admin'
+    path === '/patient/profile' ||
+    path === '/patient/book' ||
+    path === '/admin' ||
+    path === '/doctor' ||
+    path === '/doctor/schedule' ||
+    path === '/doctor/patients'
   ) {
     return path
   }

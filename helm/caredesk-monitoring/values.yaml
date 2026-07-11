@@ -19,7 +19,7 @@ app:
 # and on the shared AET cluster that would leak metrics. Reach it with:
 #   kubectl -n team-k8s-commanders-monitoring port-forward svc/caredesk-monitoring-prometheus 9090
 prometheus:
-  image: prom/prometheus:v3.3.1
+  image: prom/prometheus:v3.13.1
   retention: 7d
   storage: 2Gi
   resources:

@@ -21,3 +21,9 @@
 #docs/*.md
 # Then explicitly reverse the ignore rule for a single file:
 #!docs/README.md
+
+# The pom.xml is hand-maintained (Spring Boot / springdoc versions are bumped by
+# Renovate and pinned to the SB4 line). The generator hardcodes an old Spring Boot
+# version in its pom template, so letting it regenerate the pom silently reverts
+# those upgrades. Keep generation to the Java sources only.
+pom.xml

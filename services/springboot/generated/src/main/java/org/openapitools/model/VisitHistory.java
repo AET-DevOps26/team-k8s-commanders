@@ -11,7 +11,6 @@ import java.util.UUID;
 import org.openapitools.model.Appointment;
 import org.openapitools.model.ClinicalNote;
 import org.springframework.lang.Nullable;
-import org.openapitools.jackson.nullable.JsonNullable;
 import java.time.OffsetDateTime;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;

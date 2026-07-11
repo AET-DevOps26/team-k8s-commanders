@@ -2,7 +2,7 @@ package com.caredesk.notification;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.TestPropertySource;
 
 import com.caredesk.notification.repository.NotificationRepository;
@@ -18,16 +18,16 @@ import com.caredesk.notification.repository.NotificationRepository;
 @SpringBootTest
 @TestPropertySource(properties = {
         // Skip the JPA dialect / connection so the context loads without a real DB.
-        "spring.autoconfigure.exclude=org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration," +
-                "org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration," +
-                "org.springframework.boot.autoconfigure.data.jpa.JpaRepositoriesAutoConfiguration",
+        "spring.autoconfigure.exclude=org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration," +
+                "org.springframework.boot.hibernate.autoconfigure.HibernateJpaAutoConfiguration," +
+                "org.springframework.boot.data.jpa.autoconfigure.DataJpaRepositoriesAutoConfiguration",
         // Keep the reminder scheduler from firing (and calling patient-service) during the smoke test.
         "notification.reminder.enabled=false"
 })
 class NotificationServiceApplicationTests {
 
     // Stands in for the JPA repository, which is not created while JPA is excluded.
-    @MockBean
+    @MockitoBean
     private NotificationRepository notificationRepository;
 
     /**

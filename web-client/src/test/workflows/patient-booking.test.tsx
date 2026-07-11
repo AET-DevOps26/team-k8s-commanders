@@ -16,6 +16,11 @@ function renderAppAt(path: string) {
   return render(<App />)
 }
 
+function dayKey(value: string) {
+  const date = new Date(value)
+  return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`
+}
+
 describe('appointment booking workflow', () => {
   async function chooseDoctor(user: ReturnType<typeof userEvent.setup>) {
     await screen.findByText('Choose a specialization to load doctors.')
@@ -60,14 +65,21 @@ describe('appointment booking workflow', () => {
     // Select specialization first, then choose a doctor from the dependent list
     await chooseDoctor(user)
 
-    // Calendar shows the doctor's available slots; pick the first one
+    // Calendar groups slots by day; pick the first visible slot for the active day
     expect(
       await screen.findByRole('heading', { name: doctorUser.name }),
     ).toBeInTheDocument()
+    expect(await screen.findByLabelText('Available day range')).toHaveTextContent(
+      `Days 1-2 of ${availableSlots.length}`,
+    )
     const slotButtons = await screen.findAllByRole('button', {
       name: /\d{2}:\d{2} - \d{2}:\d{2}/,
     })
-    expect(slotButtons).toHaveLength(availableSlots.length)
+    const firstDay = dayKey(availableSlots[0].startAt)
+    const firstDaySlots = availableSlots.filter(
+      (slot) => dayKey(slot.startAt) === firstDay,
+    )
+    expect(slotButtons).toHaveLength(firstDaySlots.length)
     await user.click(slotButtons[0])
 
     // Add a reason and book

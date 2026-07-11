@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Shared SpotBugs exclude filter for all CareDesk Spring Boot services.
+  Referenced from each service pom's spotbugs-maven-plugin configuration.
+
+  The gate runs at effort=Max, threshold=Medium (Medium-and-above confidence findings).
+  Threshold=Medium already drops low-confidence (priority 3) patterns such as
+  SIC_INNER_SHOULD_BE_STATIC_ANON on ParameterizedTypeReference subclasses and
+  UPM_UNCALLED_PRIVATE_METHOD on JPA @PrePersist/@PreUpdate callbacks (which are
+  invoked reflectively, not from application code). Only the entries below are
+  deliberately excluded on top of that.
+-->
+<FindBugsFilter>
+
+    <!--
+      EI_EXPOSE_REP / EI_EXPOSE_REP2: "may expose internal representation by
+      returning/storing a reference to a mutable object". This fires constantly
+      in Spring/JPA code — constructor-injected singleton beans (e.g. a security
+      filter stored on a @Configuration) and JPA entities exposing their fields.
+      Defensive copying of injected Spring beans or entity fields is neither
+      idiomatic nor desirable here, so this pattern is pure noise for us.
+    -->
+    <Match>
+        <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+    </Match>
+
+</FindBugsFilter>

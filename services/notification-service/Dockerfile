@@ -35,6 +35,8 @@ RUN cd target/classes && jar cf /tmp/openapi-spring-1.0.0.jar . \
 FROM maven:3.9-eclipse-temurin-25 AS app-builder
 WORKDIR /app
 COPY --from=stubs-builder /root/.m2 /root/.m2
+COPY pom.xml /pom.xml
+COPY config/spotbugs/spotbugs-exclude.xml /config/spotbugs/spotbugs-exclude.xml
 COPY services/notification-service/pom.xml .
 RUN mvn dependency:go-offline -q
 COPY services/notification-service/src ./src

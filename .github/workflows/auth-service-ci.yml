@@ -5,11 +5,15 @@ on:
     paths:
       - "api/openapi.yaml"
       - "services/auth-service/**"
+      - "config/spotbugs/**"
+      - "pom.xml"
       - ".github/workflows/auth-service-ci.yml"
   pull_request:
     paths:
       - "api/openapi.yaml"
       - "services/auth-service/**"
+      - "config/spotbugs/**"
+      - "pom.xml"
       - ".github/workflows/auth-service-ci.yml"
 
 jobs:
@@ -51,14 +55,16 @@ jobs:
             -Dversion=1.0.0 \
             -Dpackaging=jar
 
-      - name: Run tests
-        run: mvn -B test
+      - name: Run tests and SpotBugs static analysis
+        run: mvn -B verify
         working-directory: services/auth-service
 
-      - name: Upload test reports on failure
+      - name: Upload verification reports on failure
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: auth-service-surefire-reports
-          path: services/auth-service/target/surefire-reports/
+          name: auth-service-verification-reports
+          path: |
+            services/auth-service/target/surefire-reports/
+            services/auth-service/target/spotbugsXml.xml
           retention-days: 7

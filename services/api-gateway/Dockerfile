@@ -9,6 +9,8 @@
 # Stage 1 — build the JAR
 FROM maven:3.9-eclipse-temurin-25 AS builder
 WORKDIR /app
+COPY pom.xml /pom.xml
+COPY config/spotbugs/spotbugs-exclude.xml /config/spotbugs/spotbugs-exclude.xml
 COPY services/api-gateway/pom.xml .
 RUN mvn dependency:go-offline -q
 COPY services/api-gateway/src ./src

@@ -9,8 +9,25 @@ profile and book appointments with doctors; doctors record clinical notes agains
 appointments; and an AI assistant answers questions using live patient context.
 
 It is built as a set of microservices — a web client, an API gateway, and auth,
-patient, notes and AI-assistant services, each with its own PostgreSQL database.
-It runs locally via Docker Compose and on Kubernetes via Helm.
+patient, notes, notification and AI-assistant services, each with its own
+PostgreSQL database. It runs locally via Docker Compose and on Kubernetes via Helm.
+
+### Services
+
+Each backend service has its own README with its endpoints, configuration and how
+to build and run it:
+
+| Service | Port | Responsibility |
+|---------|------|----------------|
+| [api-gateway](services/api-gateway/README.md) | 8080 | Public entry point; verifies JWTs and injects trusted `X-User-*` headers |
+| [auth-service](services/auth-service/README.md) | 8081 | User identity, login/JWT issuance, doctor directory |
+| [patient-service](services/patient-service/README.md) | 8082 | Appointments, doctor availability, clinics |
+| [notes-service](services/notes-service/README.md) | 8083 | Clinical notes per appointment |
+| [notification-service](services/notification-service/README.md) | 8084 | Notification records + SMTP delivery and reminders |
+| [ai-assistant](services/ai-assistant/README.md) | 8000 | Conversational assistant grounded in live patient context |
+
+The web client lives in [`web-client/`](web-client/); the HTTP contract shared by
+all services is [`api/openapi.yaml`](api/openapi.yaml).
 
 ## Local development setup
 

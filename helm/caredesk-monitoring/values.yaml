@@ -19,7 +19,7 @@ app:
 # and on the shared AET cluster that would leak metrics. Reach it with:
 #   kubectl -n team-k8s-commanders-monitoring port-forward svc/caredesk-monitoring-prometheus 9090
 prometheus:
-  image: prom/prometheus:v3.3.1
+  image: prom/prometheus:v3.13.1
   retention: 7d
   storage: 2Gi
   resources:
@@ -59,7 +59,7 @@ prometheus:
 # docker-compose stack mounts), so Grafana itself is stateless: no PVC needed,
 # config-as-code survives restarts by construction.
 grafana:
-  image: grafana/grafana:11.2.0
+  image: grafana/grafana:11.6.16
   adminUser: admin
   # No default password is baked into the chart — provide it at install time so
   # Grafana never ships with a known password. CI injects the

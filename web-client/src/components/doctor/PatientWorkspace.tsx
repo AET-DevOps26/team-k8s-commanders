@@ -54,21 +54,16 @@ export function PatientWorkspace({
 
   useEffect(() => {
     if (!patientId) {
-      setData(null)
       onLoadingChange?.(false)
       return
     }
-
-    setData(null)
-
     const activePatientId = patientId
     let isActive = true
 
-    setLoading(true)
-    setError('')
-    onLoadingChange?.(true)
-
     async function loadRecord() {
+      setLoading(true)
+      setError('')
+      onLoadingChange?.(true)
 
       try {
         const [profile, appointmentsResponse, visitHistory] = await Promise.all([
@@ -137,24 +132,14 @@ export function PatientWorkspace({
 
   const displayProfile = data?.profile ?? directoryProfile
   const displayName = displayProfile?.name ?? patientId ?? 'Patient'
+  const activeSelectedAppointmentId =
+    selectedAppointmentId &&
+    sortedAppointments.some((appointment) => appointment.id === selectedAppointmentId)
+      ? selectedAppointmentId
+      : upcomingAppointments[0]?.id ?? sortedAppointments[0]?.id ?? null
   const selectedAppointment =
-    sortedAppointments.find((appointment) => appointment.id === selectedAppointmentId) ??
+    sortedAppointments.find((appointment) => appointment.id === activeSelectedAppointmentId) ??
     null
-
-  useEffect(() => {
-    if (!sortedAppointments.length) {
-      setSelectedAppointmentId(null)
-      return
-    }
-
-    setSelectedAppointmentId((current) => {
-      if (current && sortedAppointments.some((appointment) => appointment.id === current)) {
-        return current
-      }
-
-      return upcomingAppointments[0]?.id ?? sortedAppointments[0].id
-    })
-  }, [sortedAppointments, upcomingAppointments])
 
   useEffect(() => {
     if (!patientId) {
@@ -163,11 +148,11 @@ export function PatientWorkspace({
     }
 
     onAiContextChange?.({
-      appointmentId: selectedAppointmentId,
+      appointmentId: activeSelectedAppointmentId,
       patientId,
       patientName: displayName,
     })
-  }, [displayName, onAiContextChange, patientId, selectedAppointmentId])
+  }, [activeSelectedAppointmentId, displayName, onAiContextChange, patientId])
 
   function handleNoteSaved(appointmentId: string) {
     setNotedAppointmentIds((current) => {

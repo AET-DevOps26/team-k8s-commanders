@@ -1,4 +1,11 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  useSyncExternalStore,
+  type FormEvent,
+} from 'react'
 import ReactMarkdown, { type Components } from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import type { AIMessage, AISession, AISessionSummary } from '../../clientApi'
@@ -134,7 +141,19 @@ export function DoctorAiAssistant({
     (patientId
       ? `patient:${patientId}:appointment:${appointmentId ?? 'none'}`
       : 'doctor:general')
-  const [state, setState] = useState(() => getDoctorAiState(resolvedContextKey))
+  const subscribeState = useCallback(
+    (listener: () => void) => subscribeDoctorAiState(resolvedContextKey, listener),
+    [resolvedContextKey],
+  )
+  const getStateSnapshot = useCallback(
+    () => getDoctorAiState(resolvedContextKey),
+    [resolvedContextKey],
+  )
+  const state = useSyncExternalStore(
+    subscribeState,
+    getStateSnapshot,
+    getStateSnapshot,
+  )
   const [loadAttempt, setLoadAttempt] = useState(0)
   const {
     activeSession,
@@ -146,18 +165,6 @@ export function DoctorAiAssistant({
     sessions,
     streamingReply,
   } = state
-
-  useEffect(
-    () =>
-      subscribeDoctorAiState(resolvedContextKey, () => {
-        setState(getDoctorAiState(resolvedContextKey))
-      }),
-    [resolvedContextKey],
-  )
-
-  useEffect(() => {
-    setState(getDoctorAiState(resolvedContextKey))
-  }, [resolvedContextKey])
 
   useEffect(() => {
     const loadKey = `${token}:${patientId ?? ''}:${appointmentId ?? ''}`

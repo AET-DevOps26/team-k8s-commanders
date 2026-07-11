@@ -30,7 +30,7 @@ jobs:
   check-generated-sync:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - uses: actions/setup-java@v5
         with:
@@ -112,7 +112,7 @@ jobs:
             image: ghcr.io/aet-devops26/team-k8s-commanders/notification-service
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Generate image tags
         id: meta

@@ -21,7 +21,7 @@ COPY api/openapi.yaml ./src/main/resources/static/api/v1/openapi.yaml
 RUN mvn package -DskipTests -q
 
 # Stage 2 — slim runtime image
-FROM eclipse-temurin:25-jre-alpine
+FROM eclipse-temurin:25.0.3_9-jre-alpine
 # Run as a non-root user for runtime security.
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 WORKDIR /app

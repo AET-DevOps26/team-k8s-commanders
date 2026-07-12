@@ -15,6 +15,11 @@ export type PasswordChangeRequest = components['schemas']['PasswordChangeRequest
 export type Schedule = components['schemas']['Schedule']
 export type ScheduleSlot = components['schemas']['ScheduleSlot']
 export type ScheduleSlotCreate = components['schemas']['ScheduleSlotCreate']
+export type RecurringScheduleCreate =
+  components['schemas']['RecurringScheduleCreate']
+export type RecurringScheduleResult =
+  components['schemas']['RecurringScheduleResult']
+export type Weekday = components['schemas']['Weekday']
 export type VisitHistory = components['schemas']['VisitHistory']
 export type PaginatedAppointmentResponse =
   components['schemas']['PaginatedAppointmentResponse']
@@ -69,7 +74,9 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
   const response = await fetch(`${API_URL}${path}`, {
     method: options.method ?? 'GET',
     headers: {
-      Accept: 'application/json',
+      // problem+json included so 204-only endpoints (whose sole declared
+      // content type is the RFC 9457 error shape) pass content negotiation.
+      Accept: 'application/json, application/problem+json',
       ...(options.body ? { 'Content-Type': 'application/json' } : {}),
       ...(options.token ? { Authorization: `Bearer ${options.token}` } : {}),
     },
@@ -434,6 +441,10 @@ export function listDoctors(
   })
 }
 
+export function listDoctorSpecializations(token: string) {
+  return request<string[]>('/doctors/specializations', { token })
+}
+
 export function getDoctorSchedule(doctorId: string, token: string) {
   return request<Schedule>(`/doctors/${doctorId}/schedule`, { token })
 }
@@ -447,6 +458,32 @@ export function createDoctorScheduleSlot(
     method: 'POST',
     token,
     body: payload,
+  })
+}
+
+export function createDoctorRecurringSchedule(
+  doctorId: string,
+  token: string,
+  payload: RecurringScheduleCreate,
+) {
+  return request<RecurringScheduleResult>(
+    `/doctors/${doctorId}/schedule/recurring`,
+    {
+      method: 'POST',
+      token,
+      body: payload,
+    },
+  )
+}
+
+export function deleteDoctorScheduleSlot(
+  doctorId: string,
+  token: string,
+  slotId: string,
+) {
+  return request<void>(`/doctors/${doctorId}/schedule/${slotId}`, {
+    method: 'DELETE',
+    token,
   })
 }
 

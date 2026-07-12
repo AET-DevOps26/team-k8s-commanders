@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { ScheduleSlot } from '../../clientApi'
-import { getDoctorSchedule } from '../../clientApi'
+import { deleteDoctorScheduleSlot, getDoctorSchedule } from '../../clientApi'
 import { userMessage } from '../../lib/messages'
 import type { DoctorDashboardProps } from '../../types/route'
 import { DoctorSubNav } from '../layout/DoctorSubNav'
@@ -17,6 +17,7 @@ export function DoctorSchedulePage({
 }: DoctorDashboardProps) {
   const [slots, setSlots] = useState<ScheduleSlot[]>([])
   const [error, setError] = useState('')
+  const [actionError, setActionError] = useState('')
   const [isLoading, setLoading] = useState(true)
   const doctorId = session.user.id
   const token = session.accessToken
@@ -72,10 +73,28 @@ export function DoctorSchedulePage({
     setSlots((current) => [...current, slot])
   }
 
+  function handleCreatedMany(created: ScheduleSlot[]) {
+    setSlots((current) => [...current, ...created])
+  }
+
+  async function handleDeleteSlot(slotId: string) {
+    setActionError('')
+
+    try {
+      await deleteDoctorScheduleSlot(doctorId, token, slotId)
+      setSlots((current) => current.filter((slot) => slot.id !== slotId))
+    } catch {
+      setActionError(
+        userMessage('The slot could not be removed. It may have just been booked.'),
+      )
+    }
+  }
+
   return (
     <main className="landing-page app-page">
       <ShellNav session={session} onNavigate={onNavigate} onLogout={onLogout} />
       <section className="dashboard-shell doctor-dashboard-shell">
+        <DoctorSubNav active="schedule" onNavigate={onNavigate} />
         <header className="patient-hero doctor-hero">
           <div>
             <p className="eyebrow">Doctor schedule</p>
@@ -84,10 +103,9 @@ export function DoctorSchedulePage({
           </div>
         </header>
 
-        <DoctorSubNav active="schedule" onNavigate={onNavigate} />
-
         {isLoading && <StatusPanel title="Loading availability" />}
         {error && <StatusPanel title="Schedule API unavailable" text={error} />}
+        {actionError && <StatusPanel title="Slot not removed" text={actionError} />}
 
         {!isLoading && !error && (
           <section className="schedule-management-grid">
@@ -95,8 +113,9 @@ export function DoctorSchedulePage({
               doctorId={doctorId}
               token={token}
               onCreated={handleCreated}
+              onCreatedMany={handleCreatedMany}
             />
-            <AvailabilitySlotsPanel slots={slots} />
+            <AvailabilitySlotsPanel slots={slots} onDelete={handleDeleteSlot} />
           </section>
         )}
       </section>

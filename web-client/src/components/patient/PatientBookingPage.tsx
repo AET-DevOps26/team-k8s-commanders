@@ -1,15 +1,15 @@
-import { FormEvent, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { ScheduleSlot, UserProfile } from '../../clientApi'
 import {
   bookAppointment,
   getDoctorSchedule,
+  listDoctorSpecializations,
   listDoctors,
 } from '../../clientApi'
 import { isPastDateTime } from '../../lib/dates'
 import { userMessage } from '../../lib/messages'
 import type { PatientBookingPageProps } from '../../types/route'
 import { BookingCalendarSection } from '../booking/BookingCalendarSection'
-import { BookingEntityResults } from '../booking/BookingEntityResults'
 import { BookingSearchSection } from '../booking/BookingSearchSection'
 import { PatientSubNav } from '../layout/PatientSubNav'
 import { ShellNav } from '../layout/ShellNav'
@@ -21,7 +21,7 @@ export function PatientBookingPage({
   onNavigate,
   onBooked,
 }: PatientBookingPageProps) {
-  const [query, setQuery] = useState('')
+  const [specializations, setSpecializations] = useState<string[]>([])
   const [specialization, setSpecialization] = useState('')
   const [doctors, setDoctors] = useState<UserProfile[]>([])
   const [selectedDoctor, setSelectedDoctor] = useState<UserProfile | null>(null)
@@ -29,30 +29,29 @@ export function PatientBookingPage({
   const [selectedSlot, setSelectedSlot] = useState<ScheduleSlot | null>(null)
   const [reason, setReason] = useState('')
   const [error, setError] = useState('')
-  const [isLoading, setLoading] = useState(false)
+  const [isLoadingSpecializations, setLoadingSpecializations] = useState(false)
+  const [isLoadingDoctors, setLoadingDoctors] = useState(false)
 
-  async function searchDoctors(event?: FormEvent<HTMLFormElement>) {
-    event?.preventDefault()
-    setLoading(true)
+  function handleSpecializationChange(value: string) {
+    setSpecialization(value)
+    setDoctors([])
+    setSelectedDoctor(null)
+    setSlots([])
+    setSelectedSlot(null)
     setError('')
+  }
 
-    try {
-      const response = await listDoctors(session.accessToken, {
-        q: query,
-        specialization,
-        size: 12,
-      })
-      setDoctors(response.content)
-      if (!response.content.some((doctor) => doctor.id === selectedDoctor?.id)) {
-        setSelectedDoctor(null)
-        setSlots([])
-        setSelectedSlot(null)
-      }
-    } catch {
-      setError(userMessage('Doctors could not be loaded. Please try again in a moment.'))
-    } finally {
-      setLoading(false)
+  function handleDoctorChange(doctorId: string) {
+    const doctor = doctors.find((candidate) => candidate.id === doctorId)
+
+    if (!doctor) {
+      setSelectedDoctor(null)
+      setSlots([])
+      setSelectedSlot(null)
+      return
     }
+
+    void selectDoctor(doctor)
   }
 
   async function selectDoctor(doctor: UserProfile) {
@@ -102,10 +101,101 @@ export function PatientBookingPage({
   }
 
   useEffect(() => {
-    searchDoctors()
-    // Initial doctor list should load once for the active session.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    let active = true
+
+    async function loadSpecializations() {
+      setLoadingSpecializations(true)
+      setError('')
+
+      try {
+        const response = await listDoctorSpecializations(session.accessToken)
+        if (active) {
+          setSpecializations(response)
+        }
+      } catch {
+        if (active) {
+          setError(userMessage('Specializations could not be loaded. Please try again in a moment.'))
+        }
+      } finally {
+        if (active) {
+          setLoadingSpecializations(false)
+        }
+      }
+    }
+
+    loadSpecializations()
+
+    return () => {
+      active = false
+    }
   }, [session.accessToken])
+
+  useEffect(() => {
+    let active = true
+
+    if (!specialization) {
+      return () => {
+        active = false
+      }
+    }
+
+    async function loadDoctors() {
+      setLoadingDoctors(true)
+      setError('')
+
+      try {
+        const response = await listDoctors(session.accessToken, {
+          specialization,
+          size: 100,
+        })
+        if (active) {
+          setDoctors(response.content)
+        }
+      } catch {
+        if (active) {
+          setError(userMessage('Doctors could not be loaded. Please try again in a moment.'))
+        }
+      } finally {
+        if (active) {
+          setLoadingDoctors(false)
+        }
+      }
+    }
+
+    loadDoctors()
+
+    return () => {
+      active = false
+    }
+  }, [session.accessToken, specialization])
+
+  function searchHelperText() {
+    if (isLoadingSpecializations) {
+      return 'Loading specializations.'
+    }
+
+    if (!specializations.length) {
+      return 'No specializations available yet.'
+    }
+
+    if (!specialization) {
+      return 'Choose a specialization to load doctors.'
+    }
+
+    if (isLoadingDoctors) {
+      return 'Loading doctors.'
+    }
+
+    if (!doctors.length) {
+      return 'No doctors found for this specialization.'
+    }
+
+    if (!selectedDoctor) {
+      return 'Choose a doctor to view available slots.'
+    }
+
+    return ''
+  }
 
   return (
     <main className="landing-page app-page">
@@ -124,26 +214,29 @@ export function PatientBookingPage({
 
         <BookingSearchSection
           title="Doctor search"
-          searchPlaceholder="Name or specialization"
-          searchValue={query}
-          onSearchChange={setQuery}
-          secondaryLabel="Specialization"
-          secondaryPlaceholder="General Medicine"
-          secondaryValue={specialization}
-          onSecondaryChange={setSpecialization}
-          onSubmit={searchDoctors}
-          isLoading={isLoading}
-          submitLabel="Search doctors"
-          loadingLabel="Searching"
-          results={
-            <BookingEntityResults
-              entities={doctors}
-              selectedEntityId={selectedDoctor?.id ?? null}
-              onSelectEntity={selectDoctor}
-              emptyMessage="No doctors found. Try another search."
-              subtitle={(doctor) => doctor.specialization ?? 'CareDesk doctor'}
-            />
+          searchLabel="Specialization"
+          searchPlaceholder={
+            isLoadingSpecializations
+              ? 'Loading specializations'
+              : specializations.length
+                ? 'Select specialization'
+                : 'No specializations available'
           }
+          searchValue={specialization}
+          onSearchChange={handleSpecializationChange}
+          searchOptions={specializations.map((name) => ({ value: name, label: name }))}
+          searchDisabled={isLoadingSpecializations || !specializations.length}
+          secondaryLabel="Doctor"
+          secondaryPlaceholder={specialization ? 'Select doctor' : 'Select specialization first'}
+          secondaryValue={selectedDoctor?.id ?? ''}
+          onSecondaryChange={handleDoctorChange}
+          secondaryOptions={doctors.map((doctor) => ({ value: doctor.id, label: doctor.name }))}
+          secondaryDisabled={!specialization || isLoadingDoctors || !doctors.length}
+          onSubmit={(event) => event?.preventDefault()}
+          isLoading={isLoadingSpecializations || isLoadingDoctors}
+          showSubmit={false}
+          helperText={searchHelperText()}
+          layout="inline"
         />
 
         {selectedDoctor && (

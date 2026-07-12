@@ -18,6 +18,10 @@
     grid-template-columns: 1fr;
   }
 
+  .booking-grid-inline .booking-search-fields {
+    grid-template-columns: 1fr;
+  }
+
   .feature-grid,
   .patient-summary {
     grid-template-columns: 1fr;
@@ -110,6 +114,14 @@
 
   .availability-slot-meta {
     justify-items: start;
+  }
+
+  .availability-slot-card {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .availability-slot-delete {
+    grid-column: 1 / -1;
   }
 
   .segmented-control,

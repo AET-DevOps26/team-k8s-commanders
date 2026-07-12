@@ -8,6 +8,8 @@ package org.openapitools.api;
 import org.springframework.lang.Nullable;
 import org.openapitools.model.PaginatedUserProfileResponse;
 import org.openapitools.model.ProblemDetail;
+import org.openapitools.model.RecurringScheduleCreate;
+import org.openapitools.model.RecurringScheduleResult;
 import org.openapitools.model.Schedule;
 import org.openapitools.model.ScheduleSlot;
 import org.openapitools.model.ScheduleSlotCreate;
@@ -48,6 +50,104 @@ public interface DoctorsApi {
     default Optional<NativeWebRequest> getRequest() {
         return Optional.empty();
     }
+
+    String PATH_CREATE_DOCTOR_RECURRING_SCHEDULE = "/doctors/{doctorId}/schedule/recurring";
+    /**
+     * POST /doctors/{doctorId}/schedule/recurring : Publish recurring availability as materialized slots
+     * Expands a weekly recurrence (weekdays, time window, slot length, date range) into individual schedule slots. Occurrences that overlap an existing slot are skipped and reported instead of failing the request.
+     *
+     * @param doctorId  (required)
+     * @param recurringScheduleCreate  (required)
+     * @return Recurrence expanded; overlapping occurrences skipped (status code 201)
+     *         or The request is malformed or fails validation. (status code 400)
+     *         or Authentication is required or has failed. (status code 401)
+     *         or The caller is authenticated but not allowed to access the resource. (status code 403)
+     *         or The requested resource does not exist. (status code 404)
+     *         or An unexpected error occurred while processing the request. (status code 500)
+     */
+    @Operation(
+        operationId = "createDoctorRecurringSchedule",
+        summary = "Publish recurring availability as materialized slots",
+        description = "Expands a weekly recurrence (weekdays, time window, slot length, date range) into individual schedule slots. Occurrences that overlap an existing slot are skipped and reported instead of failing the request.",
+        tags = { "Doctors" },
+        responses = {
+            @ApiResponse(responseCode = "201", description = "Recurrence expanded; overlapping occurrences skipped", content = {
+                @Content(mediaType = "application/json", schema = @Schema(implementation = RecurringScheduleResult.class)),
+                @Content(mediaType = "application/problem+json", schema = @Schema(implementation = RecurringScheduleResult.class))
+            }),
+            @ApiResponse(responseCode = "400", description = "The request is malformed or fails validation.", content = {
+                @Content(mediaType = "application/json", schema = @Schema(implementation = ProblemDetail.class)),
+                @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class))
+            }),
+            @ApiResponse(responseCode = "401", description = "Authentication is required or has failed.", content = {
+                @Content(mediaType = "application/json", schema = @Schema(implementation = ProblemDetail.class)),
+                @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class))
+            }),
+            @ApiResponse(responseCode = "403", description = "The caller is authenticated but not allowed to access the resource.", content = {
+                @Content(mediaType = "application/json", schema = @Schema(implementation = ProblemDetail.class)),
+                @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class))
+            }),
+            @ApiResponse(responseCode = "404", description = "The requested resource does not exist.", content = {
+                @Content(mediaType = "application/json", schema = @Schema(implementation = ProblemDetail.class)),
+                @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class))
+            }),
+            @ApiResponse(responseCode = "500", description = "An unexpected error occurred while processing the request.", content = {
+                @Content(mediaType = "application/json", schema = @Schema(implementation = ProblemDetail.class)),
+                @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class))
+            })
+        },
+        security = {
+            @SecurityRequirement(name = "bearerAuth")
+        }
+    )
+    @RequestMapping(
+        method = RequestMethod.POST,
+        value = DoctorsApi.PATH_CREATE_DOCTOR_RECURRING_SCHEDULE,
+        produces = { "application/json", "application/problem+json" },
+        consumes = { "application/json" }
+    )
+    default ResponseEntity<RecurringScheduleResult> createDoctorRecurringSchedule(
+        @Parameter(name = "doctorId", description = "", required = true, in = ParameterIn.PATH) @PathVariable("doctorId") UUID doctorId,
+        @Parameter(name = "RecurringScheduleCreate", description = "", required = true) @Valid @RequestBody RecurringScheduleCreate recurringScheduleCreate
+    ) {
+        getRequest().ifPresent(request -> {
+            for (MediaType mediaType: MediaType.parseMediaTypes(request.getHeader("Accept"))) {
+                if (mediaType.isCompatibleWith(MediaType.valueOf("application/json"))) {
+                    String exampleString = "{ \"created\" : [ { \"available\" : true, \"id\" : \"046b6c7f-0b8a-43b9-b35d-6489e6daee91\", \"endAt\" : \"2000-01-23T04:56:07.000+00:00\", \"startAt\" : \"2000-01-23T04:56:07.000+00:00\" }, { \"available\" : true, \"id\" : \"046b6c7f-0b8a-43b9-b35d-6489e6daee91\", \"endAt\" : \"2000-01-23T04:56:07.000+00:00\", \"startAt\" : \"2000-01-23T04:56:07.000+00:00\" } ], \"skipped\" : [ { \"endAt\" : \"2000-01-23T04:56:07.000+00:00\", \"startAt\" : \"2000-01-23T04:56:07.000+00:00\" }, { \"endAt\" : \"2000-01-23T04:56:07.000+00:00\", \"startAt\" : \"2000-01-23T04:56:07.000+00:00\" } ] }";
+                    ApiUtil.setExampleResponse(request, "application/json", exampleString);
+                    break;
+                }
+                if (mediaType.isCompatibleWith(MediaType.valueOf("application/problem+json"))) {
+                    String exampleString = "Custom MIME type example not yet supported: application/problem+json";
+                    ApiUtil.setExampleResponse(request, "application/problem+json", exampleString);
+                    break;
+                }
+                if (mediaType.isCompatibleWith(MediaType.valueOf("application/problem+json"))) {
+                    String exampleString = "Custom MIME type example not yet supported: application/problem+json";
+                    ApiUtil.setExampleResponse(request, "application/problem+json", exampleString);
+                    break;
+                }
+                if (mediaType.isCompatibleWith(MediaType.valueOf("application/problem+json"))) {
+                    String exampleString = "Custom MIME type example not yet supported: application/problem+json";
+                    ApiUtil.setExampleResponse(request, "application/problem+json", exampleString);
+                    break;
+                }
+                if (mediaType.isCompatibleWith(MediaType.valueOf("application/problem+json"))) {
+                    String exampleString = "Custom MIME type example not yet supported: application/problem+json";
+                    ApiUtil.setExampleResponse(request, "application/problem+json", exampleString);
+                    break;
+                }
+                if (mediaType.isCompatibleWith(MediaType.valueOf("application/problem+json"))) {
+                    String exampleString = "Custom MIME type example not yet supported: application/problem+json";
+                    ApiUtil.setExampleResponse(request, "application/problem+json", exampleString);
+                    break;
+                }
+            }
+        });
+        return new ResponseEntity<>(HttpStatus.NOT_IMPLEMENTED);
+
+    }
+
 
     String PATH_CREATE_DOCTOR_SCHEDULE_SLOT = "/doctors/{doctorId}/schedule";
     /**
@@ -109,10 +209,92 @@ public interface DoctorsApi {
         getRequest().ifPresent(request -> {
             for (MediaType mediaType: MediaType.parseMediaTypes(request.getHeader("Accept"))) {
                 if (mediaType.isCompatibleWith(MediaType.valueOf("application/json"))) {
-                    String exampleString = "{ \"available\" : true, \"endAt\" : \"2000-01-23T04:56:07.000+00:00\", \"startAt\" : \"2000-01-23T04:56:07.000+00:00\" }";
+                    String exampleString = "{ \"available\" : true, \"id\" : \"046b6c7f-0b8a-43b9-b35d-6489e6daee91\", \"endAt\" : \"2000-01-23T04:56:07.000+00:00\", \"startAt\" : \"2000-01-23T04:56:07.000+00:00\" }";
                     ApiUtil.setExampleResponse(request, "application/json", exampleString);
                     break;
                 }
+                if (mediaType.isCompatibleWith(MediaType.valueOf("application/problem+json"))) {
+                    String exampleString = "Custom MIME type example not yet supported: application/problem+json";
+                    ApiUtil.setExampleResponse(request, "application/problem+json", exampleString);
+                    break;
+                }
+                if (mediaType.isCompatibleWith(MediaType.valueOf("application/problem+json"))) {
+                    String exampleString = "Custom MIME type example not yet supported: application/problem+json";
+                    ApiUtil.setExampleResponse(request, "application/problem+json", exampleString);
+                    break;
+                }
+                if (mediaType.isCompatibleWith(MediaType.valueOf("application/problem+json"))) {
+                    String exampleString = "Custom MIME type example not yet supported: application/problem+json";
+                    ApiUtil.setExampleResponse(request, "application/problem+json", exampleString);
+                    break;
+                }
+                if (mediaType.isCompatibleWith(MediaType.valueOf("application/problem+json"))) {
+                    String exampleString = "Custom MIME type example not yet supported: application/problem+json";
+                    ApiUtil.setExampleResponse(request, "application/problem+json", exampleString);
+                    break;
+                }
+                if (mediaType.isCompatibleWith(MediaType.valueOf("application/problem+json"))) {
+                    String exampleString = "Custom MIME type example not yet supported: application/problem+json";
+                    ApiUtil.setExampleResponse(request, "application/problem+json", exampleString);
+                    break;
+                }
+            }
+        });
+        return new ResponseEntity<>(HttpStatus.NOT_IMPLEMENTED);
+
+    }
+
+
+    String PATH_DELETE_DOCTOR_SCHEDULE_SLOT = "/doctors/{doctorId}/schedule/{slotId}";
+    /**
+     * DELETE /doctors/{doctorId}/schedule/{slotId} : Delete an unbooked schedule slot
+     *
+     * @param doctorId  (required)
+     * @param slotId  (required)
+     * @return Slot deleted (status code 204)
+     *         or Authentication is required or has failed. (status code 401)
+     *         or The caller is authenticated but not allowed to access the resource. (status code 403)
+     *         or The requested resource does not exist. (status code 404)
+     *         or The request conflicts with the current state of the resource. (status code 409)
+     *         or An unexpected error occurred while processing the request. (status code 500)
+     */
+    @Operation(
+        operationId = "deleteDoctorScheduleSlot",
+        summary = "Delete an unbooked schedule slot",
+        tags = { "Doctors" },
+        responses = {
+            @ApiResponse(responseCode = "204", description = "Slot deleted"),
+            @ApiResponse(responseCode = "401", description = "Authentication is required or has failed.", content = {
+                @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class))
+            }),
+            @ApiResponse(responseCode = "403", description = "The caller is authenticated but not allowed to access the resource.", content = {
+                @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class))
+            }),
+            @ApiResponse(responseCode = "404", description = "The requested resource does not exist.", content = {
+                @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class))
+            }),
+            @ApiResponse(responseCode = "409", description = "The request conflicts with the current state of the resource.", content = {
+                @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class))
+            }),
+            @ApiResponse(responseCode = "500", description = "An unexpected error occurred while processing the request.", content = {
+                @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class))
+            })
+        },
+        security = {
+            @SecurityRequirement(name = "bearerAuth")
+        }
+    )
+    @RequestMapping(
+        method = RequestMethod.DELETE,
+        value = DoctorsApi.PATH_DELETE_DOCTOR_SCHEDULE_SLOT,
+        produces = { "application/problem+json" }
+    )
+    default ResponseEntity<Void> deleteDoctorScheduleSlot(
+        @Parameter(name = "doctorId", description = "", required = true, in = ParameterIn.PATH) @PathVariable("doctorId") UUID doctorId,
+        @Parameter(name = "slotId", description = "", required = true, in = ParameterIn.PATH) @PathVariable("slotId") UUID slotId
+    ) {
+        getRequest().ifPresent(request -> {
+            for (MediaType mediaType: MediaType.parseMediaTypes(request.getHeader("Accept"))) {
                 if (mediaType.isCompatibleWith(MediaType.valueOf("application/problem+json"))) {
                     String exampleString = "Custom MIME type example not yet supported: application/problem+json";
                     ApiUtil.setExampleResponse(request, "application/problem+json", exampleString);
@@ -295,7 +477,7 @@ public interface DoctorsApi {
         getRequest().ifPresent(request -> {
             for (MediaType mediaType: MediaType.parseMediaTypes(request.getHeader("Accept"))) {
                 if (mediaType.isCompatibleWith(MediaType.valueOf("application/json"))) {
-                    String exampleString = "{ \"slots\" : [ { \"available\" : true, \"endAt\" : \"2000-01-23T04:56:07.000+00:00\", \"startAt\" : \"2000-01-23T04:56:07.000+00:00\" }, { \"available\" : true, \"endAt\" : \"2000-01-23T04:56:07.000+00:00\", \"startAt\" : \"2000-01-23T04:56:07.000+00:00\" } ], \"doctorId\" : \"046b6c7f-0b8a-43b9-b35d-6489e6daee91\" }";
+                    String exampleString = "{ \"slots\" : [ { \"available\" : true, \"id\" : \"046b6c7f-0b8a-43b9-b35d-6489e6daee91\", \"endAt\" : \"2000-01-23T04:56:07.000+00:00\", \"startAt\" : \"2000-01-23T04:56:07.000+00:00\" }, { \"available\" : true, \"id\" : \"046b6c7f-0b8a-43b9-b35d-6489e6daee91\", \"endAt\" : \"2000-01-23T04:56:07.000+00:00\", \"startAt\" : \"2000-01-23T04:56:07.000+00:00\" } ], \"doctorId\" : \"046b6c7f-0b8a-43b9-b35d-6489e6daee91\" }";
                     ApiUtil.setExampleResponse(request, "application/json", exampleString);
                     break;
                 }

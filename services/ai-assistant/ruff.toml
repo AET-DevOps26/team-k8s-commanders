@@ -1,1 +1,1 @@
-exclude = ["models/"]
+exclude = ["models/", "caredesk_client/"]

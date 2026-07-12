@@ -4,9 +4,14 @@ FROM node:24-alpine AS builder
 # Bump npm so bundled deps (e.g. picomatch in tinyglobby) match patched versions scanners expect
 RUN npm install -g npm@latest
 
+WORKDIR /app
+
+COPY package.json package-lock.json* ./
+RUN npm ci
+
 WORKDIR /app/web-client
 
-COPY web-client/package.json web-client/package-lock.json* ./
+COPY web-client/package.json web-client/package-lock.json* web-client/.npmrc* ./
 RUN npm ci
 
 COPY api/openapi.yaml /app/api/openapi.yaml

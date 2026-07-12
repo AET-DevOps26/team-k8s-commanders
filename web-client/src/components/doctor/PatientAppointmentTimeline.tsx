@@ -7,15 +7,17 @@ type PatientAppointmentTimelineProps = {
   appointments: Appointment[]
   selectedAppointmentId: string | null
   onSelectAppointment: (appointmentId: string) => void
+  emptyText?: string
 }
 
 export function PatientAppointmentTimeline({
   appointments,
   selectedAppointmentId,
   onSelectAppointment,
+  emptyText = 'No appointments for this patient.',
 }: PatientAppointmentTimelineProps) {
   if (!appointments.length) {
-    return <EmptyPanel text="No appointments for this patient." />
+    return <EmptyPanel text={emptyText} />
   }
 
   return (

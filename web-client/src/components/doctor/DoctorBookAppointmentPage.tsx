@@ -51,38 +51,6 @@ export function DoctorBookAppointmentPage({
     )
   }, [patients, query])
 
-  async function loadPatients() {
-    setLoading(true)
-    setError('')
-
-    try {
-      const users = await fetchAllUserPages(token)
-      const patientProfiles = users.filter((user) => user.role === 'PATIENT')
-      setAllPatients(patientProfiles)
-      setPatients(patientProfiles)
-
-      if (selectedPatient && !patientProfiles.some((patient) => patient.id === selectedPatient.id)) {
-        setSelectedPatient(null)
-        setSelectedSlot(null)
-      }
-    } catch {
-      setError(userMessage('Patients could not be loaded. Please try again in a moment.'))
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  async function loadSchedule() {
-    try {
-      const schedule = await getDoctorSchedule(doctorId, token)
-      const availableFutureSlots = schedule.slots.filter((slot) => !isPastDateTime(slot.startAt))
-      setSlots(availableFutureSlots)
-    } catch {
-      setSlots([])
-      setError(userMessage('Available times could not be loaded. Please try again.'))
-    }
-  }
-
   function searchPatients(event?: FormEvent<HTMLFormElement>) {
     event?.preventDefault()
     setPatients(allPatients)
@@ -126,10 +94,54 @@ export function DoctorBookAppointmentPage({
   }
 
   useEffect(() => {
-    loadPatients()
-    loadSchedule()
-    // Initial patient list and schedule should load once for the active session.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    let active = true
+
+    async function loadBookingData() {
+      setLoading(true)
+      setError('')
+
+      try {
+        const [users, schedule] = await Promise.all([
+          fetchAllUserPages(token),
+          getDoctorSchedule(doctorId, token),
+        ])
+        const patientProfiles = users.filter((user) => user.role === 'PATIENT')
+        const availableFutureSlots = schedule.slots.filter(
+          (slot) => !isPastDateTime(slot.startAt),
+        )
+
+        if (active) {
+          setAllPatients(patientProfiles)
+          setPatients(patientProfiles)
+          setSlots(availableFutureSlots)
+          setSelectedPatient((current) => {
+            if (
+              current &&
+              !patientProfiles.some((patient) => patient.id === current.id)
+            ) {
+              return null
+            }
+
+            return current
+          })
+        }
+      } catch {
+        if (active) {
+          setError(userMessage('Booking data could not be loaded. Please try again.'))
+          setSlots([])
+        }
+      } finally {
+        if (active) {
+          setLoading(false)
+        }
+      }
+    }
+
+    loadBookingData()
+
+    return () => {
+      active = false
+    }
   }, [token, doctorId])
 
   if (session.user.role !== 'DOCTOR') {
@@ -151,6 +163,7 @@ export function DoctorBookAppointmentPage({
     <main className="landing-page app-page">
       <ShellNav session={session} onNavigate={onNavigate} onLogout={onLogout} />
       <section className="dashboard-shell doctor-dashboard-shell">
+        <DoctorSubNav active="book" onNavigate={onNavigate} />
         <header className="patient-hero doctor-hero">
           <div>
             <p className="eyebrow">Booking</p>
@@ -158,8 +171,6 @@ export function DoctorBookAppointmentPage({
             <p>Choose a patient, pick one of your available slots, and create the appointment.</p>
           </div>
         </header>
-
-        <DoctorSubNav active="book" onNavigate={onNavigate} />
 
         {error && <StatusPanel title="We could not complete your booking" text={error} />}
 

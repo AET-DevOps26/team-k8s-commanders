@@ -192,7 +192,8 @@ public class AppointmentService {
             throw new AppointmentStateConflictException("Completed appointment cannot be rescheduled: " + id);
         }
         rejectPastAppointment(entity, "rescheduled");
-        int duration = request.getDuration() != null ? request.getDuration() : entity.getDuration();
+        Integer requestedDuration = request.getDuration();
+        int duration = requestedDuration != null ? requestedDuration : entity.getDuration();
         DoctorSlot newSlot = findAvailableSlot(entity.getDoctorId(), request.getDateTime(), duration);
         releaseSlot(entity.getDoctorId(), entity.getDateTime(), entity.getDuration());
         newSlot.setAvailable(false);

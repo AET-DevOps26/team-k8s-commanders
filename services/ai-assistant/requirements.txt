@@ -17,11 +17,13 @@ langchain-text-splitters==1.1.2
 pgvector==0.3.6
 
 # == Backend service calls (live patient/notes context) ==
+# httpx + attrs back the generated `caredesk_client` (see api/scripts/gen-all.sh).
 httpx==0.28.1
+attrs==26.1.0
 
 # == Persistence (conversation sessions) ==
 sqlalchemy[asyncio]==2.0.51
 asyncpg==0.31.0
 
 # == Metrics ==
-prometheus-fastapi-instrumentator==7.1.0
+prometheus-fastapi-instrumentator==8.0.2

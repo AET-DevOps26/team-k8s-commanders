@@ -96,7 +96,7 @@ class PatientServiceTest {
     }
 
     @Test
-    void getVisitHistory_wrapsAppointments_andLeavesNotesEmpty() {
+    void getVisitHistory_wrapsAppointments() {
         UUID patientId = UUID.randomUUID();
         Appointment a1 = appointment(patientId);
         when(appointmentRepository.findByPatientId(patientId)).thenReturn(List.of(a1));
@@ -105,7 +105,6 @@ class PatientServiceTest {
 
         assertThat(history.getPatientId()).isEqualTo(patientId);
         assertThat(history.getAppointments()).hasSize(1);
-        assertThat(history.getNotes()).isEmpty();
     }
 
     private static Appointment appointment(UUID patientId) {

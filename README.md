@@ -12,6 +12,31 @@ It is built as a set of microservices — a web client, an API gateway, and auth
 patient, notes, notification and AI-assistant services, each with its own
 PostgreSQL database. It runs locally via Docker Compose and on Kubernetes via Helm.
 
+### Project documentation
+
+- [Database schema](docs/DATABASE_SCHEMA.md) documents service-owned databases,
+  tables, cross-service references and schema lifecycle.
+- [Architecture component diagram](docs/images/Architecture_Component_Diagram.png)
+  shows the deployed subsystem decomposition.
+- [Use case diagram](docs/images/Use_Case.png) captures the main patient,
+  doctor and administrator workflows.
+- [Analysis object model](docs/images/AOM.png) documents the core domain objects
+  and relationships.
+- [Glossary](docs/GLOSSARY.md) defines shared CareDesk terminology and embeds
+  the UML diagrams.
+
+### Team responsibilities
+
+CareDesk was built collaboratively through pull requests and shared review. The
+table below records the main ownership areas for the project submission; many
+features cross service boundaries and were integrated jointly.
+
+| Student | Main responsibilities |
+|---------|-----------------------|
+| Tobias Klingenberg | Backend domain services, OpenAPI contract implementation, auth/patient/notes/notification service behavior, server-side tests and integration fixes |
+| Florian Behrend | DevOps platform, Docker/Compose setup, Kubernetes/Helm deployment, CI/CD, monitoring/alerting, release workflows and cross-service integration |
+| Raj Vasani | Web client workflows, patient/doctor/admin UI, client-side tests, booking/scheduling UX and AI chat UI integration |
+
 ### Services
 
 Each backend service has its own README with its endpoints, configuration and how

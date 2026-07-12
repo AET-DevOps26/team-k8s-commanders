@@ -364,6 +364,13 @@ services:
       # placeholder keeps Grafana provisioning valid when no webhook is set —
       # alerts then only show in the UI.
       DISCORD_WEBHOOK_URL: ${DISCORD_WEBHOOK_URL:-https://alerts-disabled.invalid/discord}
+      # SMTP relay for the caredesk-mailpit-email alert contact point — delivers
+      # alert emails into the Mailpit inbox. skipVerify because Mailpit is
+      # plaintext (no TLS cert to validate).
+      GF_SMTP_ENABLED: "true"
+      GF_SMTP_HOST: ${GRAFANA_SMTP_HOST:-mailpit:1025}
+      GF_SMTP_FROM_ADDRESS: ${GRAFANA_SMTP_FROM_ADDRESS:-grafana-alerts@caredesk.local}
+      GF_SMTP_SKIP_VERIFY: "true"
     volumes:
       - ./infra/grafana/provisioning:/etc/grafana/provisioning:ro
       - ./infra/grafana/dashboards:/var/lib/grafana/dashboards:ro

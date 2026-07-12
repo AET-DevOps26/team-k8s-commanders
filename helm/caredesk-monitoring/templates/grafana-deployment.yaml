@@ -56,6 +56,19 @@ spec:
                 secretKeyRef:
                   name: {{ $fullName }}-grafana
                   key: DISCORD_WEBHOOK_URL
+            {{- if .Values.grafana.smtp.enabled }}
+            # SMTP relay for the caredesk-mailpit-email alert contact point —
+            # delivers alert emails to Mailpit (host/from are plain config, not
+            # secrets). skipVerify because Mailpit is plaintext (no TLS cert).
+            - name: GF_SMTP_ENABLED
+              value: "true"
+            - name: GF_SMTP_HOST
+              value: {{ .Values.grafana.smtp.host | quote }}
+            - name: GF_SMTP_FROM_ADDRESS
+              value: {{ .Values.grafana.smtp.fromAddress | quote }}
+            - name: GF_SMTP_SKIP_VERIFY
+              value: {{ .Values.grafana.smtp.skipVerify | quote }}
+            {{- end }}
             {{- if .Values.ingress.enabled }}
             # Grafana owns the root path of its dedicated host — no sub-path
             # serving needed (unlike the compose stack, which sits behind

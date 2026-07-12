@@ -134,8 +134,6 @@ export function PatientBookingPage({
     let active = true
 
     if (!specialization) {
-      setDoctors([])
-      setLoadingDoctors(false)
       return () => {
         active = false
       }

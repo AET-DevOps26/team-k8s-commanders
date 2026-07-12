@@ -53,11 +53,13 @@ describe('BookingCalendarSection', () => {
     const sharedStart = isoDaysFromNow(3, 11)
     const slots: ScheduleSlot[] = [
       {
+        id: 'slot-1',
         startAt: sharedStart,
         endAt: minutesAfter(sharedStart, 45),
         available: true,
       },
       {
+        id: 'slot-2',
         startAt: sharedStart,
         endAt: minutesAfter(sharedStart, 30),
         available: true,

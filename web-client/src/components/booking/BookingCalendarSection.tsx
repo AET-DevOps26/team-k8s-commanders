@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import type { ScheduleSlot } from '../../clientApi'
 import { formatAppointmentDate, formatTimeRange, isPastDateTime } from '../../lib/dates'
 import { EmptyPanel } from '../ui/EmptyPanel'
@@ -92,23 +92,23 @@ export function BookingCalendarSection({
   cancelLabel,
   bookLabel,
 }: BookingCalendarSectionProps) {
-  const now = Date.now()
   const futureSlots = useMemo(
     () =>
       slots
-        .filter((slot) => !isPastDateTime(slot.startAt, now))
+        .filter((slot) => !isPastDateTime(slot.startAt))
         .sort(
           (first, second) =>
             new Date(first.startAt).getTime() - new Date(second.startAt).getTime(),
         ),
-    [now, slots],
+    [slots],
   )
   const dayGroups = useMemo(() => groupSlotsByDay(futureSlots), [futureSlots])
   const selectedDayKey = selectedSlot ? slotDayKey(selectedSlot) : null
-  const [activeDayKey, setActiveDayKey] = useState<string | null>(
+  const [preferredDayKey, setPreferredDayKey] = useState<string | null>(
     selectedDayKey ?? dayGroups[0]?.key ?? null,
   )
   const [dayPage, setDayPage] = useState(0)
+  const activeDayKey = selectedDayKey ?? preferredDayKey
   const activeDay = dayGroups.find((group) => group.key === activeDayKey) ?? dayGroups[0]
   const selectedSlotKey = selectedSlot ? slotSelectionKey(selectedSlot) : null
   const activeSlotKeyCounts = useMemo(() => {
@@ -137,18 +137,6 @@ export function BookingCalendarSection({
   const visibleDayStart = boundedPage * DAYS_PER_PAGE + 1
   const visibleDayEnd = Math.min((boundedPage + 1) * DAYS_PER_PAGE, dayGroups.length)
 
-  useEffect(() => {
-    if (!dayGroups.some((group) => group.key === activeDayKey)) {
-      setActiveDayKey(dayGroups[0]?.key ?? null)
-    }
-  }, [activeDayKey, dayGroups])
-
-  useEffect(() => {
-    if (boundedPage !== dayPage) {
-      setDayPage(boundedPage)
-    }
-  }, [boundedPage, dayPage])
-
   function moveDayPage(direction: -1 | 1) {
     const nextPage = Math.min(Math.max(boundedPage + direction, 0), pageCount - 1)
     const firstDayOnPage = dayGroups[nextPage * DAYS_PER_PAGE]
@@ -158,7 +146,7 @@ export function BookingCalendarSection({
       if (firstDayOnPage.key !== activeDay?.key && selectedSlot) {
         onSelectSlot(null)
       }
-      setActiveDayKey(firstDayOnPage.key)
+      setPreferredDayKey(firstDayOnPage.key)
     }
   }
 
@@ -167,7 +155,7 @@ export function BookingCalendarSection({
       onSelectSlot(null)
     }
 
-    setActiveDayKey(dayKey)
+    setPreferredDayKey(dayKey)
     setDayPage(
       Math.floor(
         dayGroups.findIndex((dayGroup) => dayGroup.key === dayKey) / DAYS_PER_PAGE,

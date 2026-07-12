@@ -7,11 +7,8 @@ from uuid import UUID
 from attrs import define as _attrs_define
 from attrs import field as _attrs_field
 
-from ..types import UNSET, Unset
-
 if TYPE_CHECKING:
     from ..models.appointment import Appointment
-    from ..models.clinical_note import ClinicalNote
 
 
 T = TypeVar("T", bound="VisitHistory")
@@ -23,12 +20,10 @@ class VisitHistory:
     Attributes:
         patient_id (UUID):
         appointments (list[Appointment]):
-        notes (list[ClinicalNote] | Unset):
     """
 
     patient_id: UUID
     appointments: list[Appointment]
-    notes: list[ClinicalNote] | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -39,13 +34,6 @@ class VisitHistory:
             appointments_item = appointments_item_data.to_dict()
             appointments.append(appointments_item)
 
-        notes: list[dict[str, Any]] | Unset = UNSET
-        if not isinstance(self.notes, Unset):
-            notes = []
-            for notes_item_data in self.notes:
-                notes_item = notes_item_data.to_dict()
-                notes.append(notes_item)
-
         field_dict: dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update(
@@ -54,15 +42,12 @@ class VisitHistory:
                 "appointments": appointments,
             }
         )
-        if notes is not UNSET:
-            field_dict["notes"] = notes
 
         return field_dict
 
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         from ..models.appointment import Appointment
-        from ..models.clinical_note import ClinicalNote
 
         d = dict(src_dict)
         patient_id = UUID(d.pop("patientId"))
@@ -74,19 +59,9 @@ class VisitHistory:
 
             appointments.append(appointments_item)
 
-        _notes = d.pop("notes", UNSET)
-        notes: list[ClinicalNote] | Unset = UNSET
-        if _notes is not UNSET:
-            notes = []
-            for notes_item_data in _notes:
-                notes_item = ClinicalNote.from_dict(notes_item_data)
-
-                notes.append(notes_item)
-
         visit_history = cls(
             patient_id=patient_id,
             appointments=appointments,
-            notes=notes,
         )
 
         visit_history.additional_properties = d

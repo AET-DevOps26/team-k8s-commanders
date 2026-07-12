@@ -31,11 +31,9 @@ export function PatientDashboard({
   onLogout,
   onNavigate,
   bookingSuccess = false,
-  onBookingSuccessAcknowledged,
 }: PatientDashboardViewProps) {
   const [patientData, setPatientData] = useState<PatientData | null>(null)
   const [error, setError] = useState('')
-  const [status, setStatus] = useState('')
   const [isLoading, setLoading] = useState(true)
   const [reloadKey, setReloadKey] = useState(0)
   const [statusFilter, setStatusFilter] = useState<AppointmentStatusFilter>('ALL')
@@ -47,11 +45,9 @@ export function PatientDashboard({
       return []
     }
 
-    const now = Date.now()
-
     return patientData.appointments
       .filter((appointment) => appointment.status !== 'CANCELLED')
-      .filter((appointment) => !isPastDateTime(appointment.dateTime, now))
+      .filter((appointment) => !isPastDateTime(appointment.dateTime))
       .sort(
         (first, second) =>
           new Date(first.dateTime).getTime() -
@@ -83,12 +79,10 @@ export function PatientDashboard({
       return []
     }
 
-    const now = Date.now()
-
     return patientData.visitHistory.appointments.filter(
       (appointment) =>
         appointment.status === 'COMPLETED' ||
-        isPastDateTime(appointment.dateTime, now),
+        isPastDateTime(appointment.dateTime),
     )
   }, [patientData])
 
@@ -96,22 +90,15 @@ export function PatientDashboard({
     return upcomingAppointments[0] ?? null
   }, [upcomingAppointments])
 
-  useEffect(() => {
-    if (!bookingSuccess || isLoading || !patientData) {
-      return
-    }
-
-    setStatus('Appointment booked successfully.')
-    onBookingSuccessAcknowledged?.()
-  }, [bookingSuccess, isLoading, onBookingSuccessAcknowledged, patientData])
+  const showBookingSuccess = bookingSuccess && !isLoading && Boolean(patientData)
 
   useEffect(() => {
-    if (!status || isLoading || !patientData) {
+    if (!showBookingSuccess) {
       return
     }
 
     document.getElementById('patient-schedule')?.scrollIntoView({ behavior: 'smooth' })
-  }, [isLoading, patientData, status])
+  }, [showBookingSuccess])
 
   useEffect(() => {
     let isActive = true
@@ -200,9 +187,9 @@ export function PatientDashboard({
 
         {isLoading && <StatusPanel title="Loading your dashboard" />}
         {error && <StatusPanel title="We could not load your dashboard" text={error} />}
-        {status && (
+        {showBookingSuccess && (
           <StatusPanel
-            title={status}
+            title="Appointment booked successfully."
             text="Your appointment is now listed in your schedule below."
           />
         )}

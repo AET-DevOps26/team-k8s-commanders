@@ -59,6 +59,12 @@
   gap: 0.8rem;
 }
 
+#patient-schedule .appointment-list {
+  max-height: 30rem;
+  overflow-y: auto;
+  padding-right: 0.15rem;
+}
+
 .appointment-item,
 .note-item,
 .profile-list div {

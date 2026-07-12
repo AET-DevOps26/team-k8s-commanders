@@ -70,6 +70,36 @@ function AiMessageBody({ content }: { content: string }) {
   )
 }
 
+function CopyMessageButton({ content }: { content: string }) {
+  const [copied, setCopied] = useState(false)
+
+  useEffect(() => {
+    if (!copied) {
+      return
+    }
+    const timer = window.setTimeout(() => setCopied(false), 1500)
+    return () => window.clearTimeout(timer)
+  }, [copied])
+
+  return (
+    <button
+      aria-label={copied ? 'Message copied' : 'Copy message'}
+      className="ai-copy-button"
+      onClick={async () => {
+        try {
+          await navigator.clipboard.writeText(content)
+          setCopied(true)
+        } catch {
+          setCopied(false)
+        }
+      }}
+      type="button"
+    >
+      {copied ? 'Copied' : 'Copy'}
+    </button>
+  )
+}
+
 type DoctorAiState = {
   activeSession: AISession | null
   error: string
@@ -358,6 +388,7 @@ export function DoctorAiAssistant({
       ...current,
       error: '',
       isStreaming: true,
+      query: '',
       streamingReply: {
         id: retryReplyId ?? `streaming-${Date.now()}`,
         question: trimmed,
@@ -537,13 +568,23 @@ export function DoctorAiAssistant({
 
           <div className="ai-thread" aria-live="polite">
             {renderedMessages.length ? (
-              renderedMessages.map((message) => (
+              renderedMessages.map((message) => {
+                const showCopyButton =
+                  message.role === 'assistant' &&
+                  Boolean(message.content) &&
+                  !message.failed &&
+                  !(isStreaming && message.id.endsWith('-assistant'))
+
+                return (
                 <article
                   className={`ai-message ai-message-${message.role}${
                     message.failed ? ' ai-message-failed' : ''
-                  }`}
+                  }${showCopyButton ? ' has-copy-button' : ''}`}
                   key={message.id}
                 >
+                  {showCopyButton ? (
+                    <CopyMessageButton content={message.content} />
+                  ) : null}
                   <AiMessageBody
                     content={message.content || (isStreaming ? 'Thinking...' : '')}
                   />
@@ -568,7 +609,8 @@ export function DoctorAiAssistant({
                     <span className="ai-cursor" aria-hidden="true" />
                   )}
                 </article>
-              ))
+                )
+              })
             ) : (
               <div className="ai-empty">
                 No messages in this chat.
@@ -586,6 +628,16 @@ export function DoctorAiAssistant({
                     query: event.target.value,
                   }))
                 }
+                onKeyDown={(event) => {
+                  if (
+                    event.key === 'Enter' &&
+                    !event.shiftKey &&
+                    !event.nativeEvent.isComposing
+                  ) {
+                    event.preventDefault()
+                    event.currentTarget.form?.requestSubmit()
+                  }
+                }}
                 placeholder={placeholder}
                 required
                 rows={4}
@@ -593,7 +645,7 @@ export function DoctorAiAssistant({
               />
             </label>
             <button className="primary-button" disabled={isStreaming} type="submit">
-              {isStreaming ? 'Streaming answer' : 'Ask AI'}
+              Ask AI
             </button>
           </form>
         </div>

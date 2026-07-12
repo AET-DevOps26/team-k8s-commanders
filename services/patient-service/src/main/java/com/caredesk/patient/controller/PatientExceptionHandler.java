@@ -3,6 +3,7 @@ package com.caredesk.patient.controller;
 import com.caredesk.patient.service.AppointmentNotFoundException;
 import com.caredesk.patient.service.AppointmentStateConflictException;
 import com.caredesk.patient.service.DoctorNotFoundException;
+import com.caredesk.patient.service.SlotNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.security.access.AccessDeniedException;
@@ -13,7 +14,8 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 @RestControllerAdvice
 public class PatientExceptionHandler {
 
-    @ExceptionHandler({AppointmentNotFoundException.class, DoctorNotFoundException.class})
+    @ExceptionHandler({AppointmentNotFoundException.class, DoctorNotFoundException.class,
+            SlotNotFoundException.class})
     ProblemDetail notFound(RuntimeException exception) {
         return problem(HttpStatus.NOT_FOUND, exception.getMessage());
     }

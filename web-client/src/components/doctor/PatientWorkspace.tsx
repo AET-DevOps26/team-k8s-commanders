@@ -1,24 +1,27 @@
 import { useEffect, useMemo, useState } from 'react'
-import type { Appointment, UserProfile, VisitHistory } from '../../clientApi'
+import type { Appointment, UserProfile } from '../../clientApi'
 import {
   getAppointmentNote,
   getPatientAppointments,
   getPatientProfile,
-  getPatientVisitHistory,
 } from '../../clientApi'
 import { formatAppointmentDate } from '../../lib/dates'
 import { userMessage } from '../../lib/messages'
 import { EmptyPanel } from '../ui/EmptyPanel'
 import { StatusPanel } from '../ui/StatusPanel'
 import { SummaryCard } from '../ui/SummaryCard'
+import {
+  AppointmentFilterBar,
+  type AppointmentSortOrder,
+  type AppointmentStatusFilter,
+} from '../appointments/AppointmentFilterBar'
 import { NoteEditor } from './NoteEditor'
 import { PatientAppointmentTimeline } from './PatientAppointmentTimeline'
-import { byDateDesc, isUpcomingAppointment } from './doctorUtils'
+import { byDateAsc, byDateDesc, isUpcomingAppointment } from './doctorUtils'
 
 type PatientRecordData = {
   profile: UserProfile
   appointments: Appointment[]
-  visitHistory: VisitHistory
 }
 
 type PatientWorkspaceProps = {
@@ -51,6 +54,8 @@ export function PatientWorkspace({
   const [selectedAppointmentId, setSelectedAppointmentId] = useState<string | null>(
     null,
   )
+  const [statusFilter, setStatusFilter] = useState<AppointmentStatusFilter>('ALL')
+  const [sortOrder, setSortOrder] = useState<AppointmentSortOrder>('newest')
 
   useEffect(() => {
     if (!patientId) {
@@ -66,10 +71,9 @@ export function PatientWorkspace({
       onLoadingChange?.(true)
 
       try {
-        const [profile, appointmentsResponse, visitHistory] = await Promise.all([
+        const [profile, appointmentsResponse] = await Promise.all([
           getPatientProfile(activePatientId, token),
           getPatientAppointments(activePatientId, token),
-          getPatientVisitHistory(activePatientId, token),
         ])
         const noteResults = await Promise.all(
           appointmentsResponse.content.map(async (appointment) => {
@@ -86,7 +90,6 @@ export function PatientWorkspace({
           setData({
             profile,
             appointments: appointmentsResponse.content,
-            visitHistory,
           })
           setNotedAppointmentIds(
             new Set(
@@ -129,6 +132,15 @@ export function PatientWorkspace({
     () => sortedAppointments.filter((appointment) => isUpcomingAppointment(appointment)),
     [sortedAppointments],
   )
+
+  const visibleAppointments = useMemo(() => {
+    const filtered =
+      statusFilter === 'ALL'
+        ? sortedAppointments
+        : sortedAppointments.filter((appointment) => appointment.status === statusFilter)
+
+    return [...filtered].sort(sortOrder === 'oldest' ? byDateAsc : byDateDesc)
+  }, [sortOrder, sortedAppointments, statusFilter])
 
   const displayProfile = data?.profile ?? directoryProfile
   const displayName = displayProfile?.name ?? patientId ?? 'Patient'
@@ -221,8 +233,19 @@ export function PatientWorkspace({
                   <h3>Appointments</h3>
                 </div>
               </div>
+              <AppointmentFilterBar
+                statusFilter={statusFilter}
+                sortOrder={sortOrder}
+                onStatusFilterChange={setStatusFilter}
+                onSortOrderChange={setSortOrder}
+              />
               <PatientAppointmentTimeline
-                appointments={sortedAppointments}
+                appointments={visibleAppointments}
+                emptyText={
+                  statusFilter === 'ALL'
+                    ? 'No appointments for this patient.'
+                    : 'No appointments match this filter.'
+                }
                 selectedAppointmentId={activeSelectedAppointmentId}
                 onSelectAppointment={setSelectedAppointmentId}
               />
@@ -254,30 +277,6 @@ export function PatientWorkspace({
               </section>
             </div>
           </section>
-
-          {data.visitHistory.notes?.length ? (
-            <section className="record-section visit-history-panel">
-              <div className="panel-header">
-                <div>
-                  <p className="eyebrow">History</p>
-                  <h3>Recent notes</h3>
-                </div>
-              </div>
-              <div className="note-list">
-                {data.visitHistory.notes.map((note) => (
-                  <div className="note-item" key={note.id}>
-                    <strong>{formatAppointmentDate(note.createdAt)}</strong>
-                    <p>{note.content}</p>
-                    {note.diagnosis && (
-                      <span>
-                        {note.diagnosis.code} · {note.diagnosis.description}
-                      </span>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </section>
-          ) : null}
         </>
       )}
     </section>

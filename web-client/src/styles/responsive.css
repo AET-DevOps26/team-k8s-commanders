@@ -116,6 +116,14 @@
     justify-items: start;
   }
 
+  .availability-slot-card {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .availability-slot-delete {
+    grid-column: 1 / -1;
+  }
+
   .segmented-control,
   .doctor-row-actions {
     width: 100%;

@@ -7,7 +7,7 @@ type BookingCalendarSectionProps = {
   subjectName: string
   slots: ScheduleSlot[]
   selectedSlot: ScheduleSlot | null
-  onSelectSlot: (slot: ScheduleSlot) => void
+  onSelectSlot: (slot: ScheduleSlot | null) => void
   reason: string
   onReasonChange: (value: string) => void
   onCancel: () => void
@@ -44,6 +44,10 @@ function slotDayKey(slot: ScheduleSlot) {
   const month = `${date.getMonth() + 1}`.padStart(2, '0')
   const day = `${date.getDate()}`.padStart(2, '0')
   return `${year}-${month}-${day}`
+}
+
+function slotSelectionKey(slot: ScheduleSlot) {
+  return `${slot.startAt}-${slot.endAt}`
 }
 
 function groupSlotsByDay(slots: ScheduleSlot[]) {
@@ -106,6 +110,17 @@ export function BookingCalendarSection({
   const [dayPage, setDayPage] = useState(0)
   const activeDayKey = selectedDayKey ?? preferredDayKey
   const activeDay = dayGroups.find((group) => group.key === activeDayKey) ?? dayGroups[0]
+  const selectedSlotKey = selectedSlot ? slotSelectionKey(selectedSlot) : null
+  const activeSlotKeyCounts = useMemo(() => {
+    const counts = new Map<string, number>()
+
+    activeDay?.slots.forEach((slot) => {
+      const key = slotSelectionKey(slot)
+      counts.set(key, (counts.get(key) ?? 0) + 1)
+    })
+
+    return counts
+  }, [activeDay])
   const activeDayIndex = activeDay
     ? dayGroups.findIndex((group) => group.key === activeDay.key)
     : 0
@@ -128,8 +143,38 @@ export function BookingCalendarSection({
 
     setDayPage(nextPage)
     if (firstDayOnPage) {
+      if (firstDayOnPage.key !== activeDay?.key && selectedSlot) {
+        onSelectSlot(null)
+      }
       setPreferredDayKey(firstDayOnPage.key)
     }
+  }
+
+  function selectDay(dayKey: string) {
+    if (dayKey !== activeDay?.key && selectedSlot) {
+      onSelectSlot(null)
+    }
+
+    setPreferredDayKey(dayKey)
+    setDayPage(
+      Math.floor(
+        dayGroups.findIndex((dayGroup) => dayGroup.key === dayKey) / DAYS_PER_PAGE,
+      ),
+    )
+  }
+
+  function isSlotSelected(slot: ScheduleSlot) {
+    if (!selectedSlot || !selectedSlotKey) {
+      return false
+    }
+
+    if (selectedSlot === slot) {
+      return true
+    }
+
+    const key = slotSelectionKey(slot)
+
+    return selectedSlotKey === key && activeSlotKeyCounts.get(key) === 1
   }
 
   return (
@@ -176,15 +221,7 @@ export function BookingCalendarSection({
                     : 'slot-day-button'
                 }
                 key={group.key}
-                onClick={() => {
-                  setPreferredDayKey(group.key)
-                  setDayPage(
-                    Math.floor(
-                      dayGroups.findIndex((dayGroup) => dayGroup.key === group.key) /
-                        DAYS_PER_PAGE,
-                    ),
-                  )
-                }}
+                onClick={() => selectDay(group.key)}
                 type="button"
               >
                 <span>{group.shortLabel}</span>
@@ -199,14 +236,10 @@ export function BookingCalendarSection({
           </div>
 
           <div className="slot-grid slot-time-grid">
-            {activeDay?.slots.map((slot) => (
+            {activeDay?.slots.map((slot, index) => (
               <button
-                className={
-                  selectedSlot?.startAt === slot.startAt
-                    ? 'slot-button active'
-                    : 'slot-button'
-                }
-                key={`${slot.startAt}-${slot.endAt}`}
+                className={isSlotSelected(slot) ? 'slot-button active' : 'slot-button'}
+                key={`${slotSelectionKey(slot)}-${index}`}
                 onClick={() => onSelectSlot(slot)}
                 type="button"
               >

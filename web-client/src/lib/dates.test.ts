@@ -8,6 +8,7 @@ import {
 } from './dates'
 
 const slot: ScheduleSlot = {
+  id: '66666666-6666-4666-8666-666666666666',
   startAt: '2026-07-01T09:00:00.000Z',
   endAt: '2026-07-01T09:45:00.000Z',
   available: true,

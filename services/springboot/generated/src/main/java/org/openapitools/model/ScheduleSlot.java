@@ -5,6 +5,7 @@ import java.util.Objects;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import java.time.OffsetDateTime;
+import java.util.UUID;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.lang.Nullable;
 import java.time.OffsetDateTime;
@@ -23,6 +24,8 @@ import jakarta.annotation.Generated;
 @Generated(value = "org.openapitools.codegen.languages.SpringCodegen", comments = "Generator version: 7.22.0")
 public class ScheduleSlot {
 
+  private UUID id;
+
   @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
   private OffsetDateTime startAt;
 
@@ -38,10 +41,32 @@ public class ScheduleSlot {
   /**
    * Constructor with only required parameters
    */
-  public ScheduleSlot(OffsetDateTime startAt, OffsetDateTime endAt, Boolean available) {
+  public ScheduleSlot(UUID id, OffsetDateTime startAt, OffsetDateTime endAt, Boolean available) {
+    this.id = id;
     this.startAt = startAt;
     this.endAt = endAt;
     this.available = available;
+  }
+
+  public ScheduleSlot id(UUID id) {
+    this.id = id;
+    return this;
+  }
+
+  /**
+   * Get id
+   * @return id
+   */
+  @NotNull @Valid 
+  @Schema(name = "id", requiredMode = Schema.RequiredMode.REQUIRED)
+  @JsonProperty("id")
+  public UUID getId() {
+    return id;
+  }
+
+  @JsonProperty("id")
+  public void setId(UUID id) {
+    this.id = id;
   }
 
   public ScheduleSlot startAt(OffsetDateTime startAt) {
@@ -116,20 +141,22 @@ public class ScheduleSlot {
       return false;
     }
     ScheduleSlot scheduleSlot = (ScheduleSlot) o;
-    return Objects.equals(this.startAt, scheduleSlot.startAt) &&
+    return Objects.equals(this.id, scheduleSlot.id) &&
+        Objects.equals(this.startAt, scheduleSlot.startAt) &&
         Objects.equals(this.endAt, scheduleSlot.endAt) &&
         Objects.equals(this.available, scheduleSlot.available);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(startAt, endAt, available);
+    return Objects.hash(id, startAt, endAt, available);
   }
 
   @Override
   public String toString() {
     StringBuilder sb = new StringBuilder();
     sb.append("class ScheduleSlot {\n");
+    sb.append("    id: ").append(toIndentedString(id)).append("\n");
     sb.append("    startAt: ").append(toIndentedString(startAt)).append("\n");
     sb.append("    endAt: ").append(toIndentedString(endAt)).append("\n");
     sb.append("    available: ").append(toIndentedString(available)).append("\n");

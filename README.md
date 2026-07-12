@@ -33,9 +33,9 @@ features cross service boundaries and were integrated jointly.
 
 | Student | Main responsibilities |
 |---------|-----------------------|
-| Tobias Klingenberg | Backend domain services, OpenAPI contract implementation, auth/patient/notes/notification service behavior, server-side tests and integration fixes |
-| Florian Behrend | DevOps platform, Docker/Compose setup, Kubernetes/Helm deployment, CI/CD, monitoring/alerting, release workflows and cross-service integration |
-| Raj Vasani | Web client workflows, patient/doctor/admin UI, client-side tests, booking/scheduling UX and AI chat UI integration |
+| Florian Behrend | Client Owner |
+| Raj Vasani | Server Owner |
+| Tobias Klingenberg | GenAI Lead |
 
 ### Services
 

@@ -19,15 +19,18 @@ metadata:
     {{- include "caredesk.labels" . | nindent 4 }}
     app.kubernetes.io/component: mailpit
   annotations:
-    nginx.ingress.kubernetes.io/auth-type: basic
-    nginx.ingress.kubernetes.io/auth-secret: {{ $fullName }}-mailpit-basic-auth
-    nginx.ingress.kubernetes.io/auth-realm: "Mailpit"
-    {{- if and $tls.enabled $tls.clusterIssuer }}
-    cert-manager.io/cluster-issuer: {{ $tls.clusterIssuer | quote }}
-    {{- end }}
+    # Shared annotations first so the basic-auth entries below always win — a
+    # stray auth-* key in .Values.ingress.annotations must never override them
+    # (YAML last-key-wins) and silently unprotect the public Mailpit endpoint.
     {{- with .Values.ingress.annotations }}
     {{- toYaml . | nindent 4 }}
     {{- end }}
+    {{- if and $tls.enabled $tls.clusterIssuer }}
+    cert-manager.io/cluster-issuer: {{ $tls.clusterIssuer | quote }}
+    {{- end }}
+    nginx.ingress.kubernetes.io/auth-type: basic
+    nginx.ingress.kubernetes.io/auth-secret: {{ $fullName }}-mailpit-basic-auth
+    nginx.ingress.kubernetes.io/auth-realm: "Mailpit"
 spec:
   ingressClassName: {{ .Values.ingress.className }}
   {{- if $tls.enabled }}

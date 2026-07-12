@@ -111,7 +111,23 @@ async def _fetch(base_url: str, headers: dict, endpoint, model, resource_id: str
             raise DownstreamError(f"backend service returned HTTP {status}")
         if not response.content:
             return None
-        return model.from_dict(response.json()).to_dict()
+        try:
+            result = model.from_dict(response.json()).to_dict()
+        except (ValueError, KeyError, TypeError) as e:
+            # Malformed JSON (ValueError) or a body that doesn't match the
+            # generated model's schema (missing keys / bad UUIDs / wrong types)
+            # is an upstream fault — surface it as a DownstreamError so the route
+            # keeps its documented 502 mapping instead of leaking an unhandled 500.
+            raise DownstreamError(
+                f"backend service returned an unparseable or invalid body: {e}"
+            ) from e
+        # Defense-in-depth: the shared UserProfile schema declares a writeOnly
+        # `password` field (it doubles as the update-user request body). The
+        # generated client ignores writeOnly and would round-trip that value
+        # straight into the LLM context if a backend response ever carried it —
+        # so never propagate it, regardless of the model being fetched.
+        result.pop("password", None)
+        return result
 
 
 async def get_patient_profile(patient_id: str, headers: dict):

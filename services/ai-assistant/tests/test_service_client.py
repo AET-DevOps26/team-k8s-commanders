@@ -100,6 +100,34 @@ def test_raises_on_server_error():
         _run_with_status(httpx.codes.INTERNAL_SERVER_ERROR)
 
 
+def test_raises_on_invalid_body():
+    # A 2xx whose body doesn't match the model's schema (here: missing required
+    # fields) is an upstream fault — it must raise DownstreamError (an
+    # httpx.HTTPError) so the route maps it to 502, not leak an unhandled 500.
+    with pytest.raises(httpx.HTTPError):
+        _run_with_status(httpx.codes.OK, {})
+
+
+def test_patient_profile_strips_password():
+    # The shared UserProfile schema carries a writeOnly `password` field and the
+    # generated client ignores writeOnly, so a backend response including it would
+    # otherwise round-trip into the LLM context. It must never be propagated.
+    profile = {
+        "id": "55555555-5555-4555-8555-555555555555",
+        "name": "Jane Doe",
+        "email": "jane@example.com",
+        "role": "PATIENT",
+        "password": "$2b$10$shouldneverleak",
+    }
+    result = _run_with_status(
+        httpx.codes.OK,
+        profile,
+        call=lambda: service_client.get_patient_profile("p-1", headers={}),
+    )
+    assert "password" not in result
+    assert result["email"] == "jane@example.com"
+
+
 def test_visit_history_flattens_nested_appointments():
     # context.py consumes appointments as plain dicts (a.get("dateTime"), a["id"]);
     # verify the generated model's nested to_dict produces exactly that shape.

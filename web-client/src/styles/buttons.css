@@ -55,8 +55,7 @@
   cursor: pointer;
 }
 
-.appointment-actions button,
-.move-slot-grid button {
+.appointment-actions button {
   min-height: 2.25rem;
   border: 1px solid rgba(19, 35, 34, 0.12);
   border-radius: 0.45rem;

@@ -9,7 +9,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 import org.openapitools.model.Appointment;
-import org.openapitools.model.ClinicalNote;
 import org.springframework.lang.Nullable;
 import java.time.OffsetDateTime;
 import jakarta.validation.Valid;
@@ -31,9 +30,6 @@ public class VisitHistory {
 
   @Valid
   private List<@Valid Appointment> appointments = new ArrayList<>();
-
-  @Valid
-  private List<@Valid ClinicalNote> notes = new ArrayList<>();
 
   public VisitHistory() {
     super();
@@ -97,35 +93,6 @@ public class VisitHistory {
     this.appointments = appointments;
   }
 
-  public VisitHistory notes(List<@Valid ClinicalNote> notes) {
-    this.notes = notes;
-    return this;
-  }
-
-  public VisitHistory addNotesItem(ClinicalNote notesItem) {
-    if (this.notes == null) {
-      this.notes = new ArrayList<>();
-    }
-    this.notes.add(notesItem);
-    return this;
-  }
-
-  /**
-   * Get notes
-   * @return notes
-   */
-  @Valid 
-  @Schema(name = "notes", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
-  @JsonProperty("notes")
-  public List<@Valid ClinicalNote> getNotes() {
-    return notes;
-  }
-
-  @JsonProperty("notes")
-  public void setNotes(List<@Valid ClinicalNote> notes) {
-    this.notes = notes;
-  }
-
   @Override
   public boolean equals(Object o) {
     if (this == o) {
@@ -136,13 +103,12 @@ public class VisitHistory {
     }
     VisitHistory visitHistory = (VisitHistory) o;
     return Objects.equals(this.patientId, visitHistory.patientId) &&
-        Objects.equals(this.appointments, visitHistory.appointments) &&
-        Objects.equals(this.notes, visitHistory.notes);
+        Objects.equals(this.appointments, visitHistory.appointments);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(patientId, appointments, notes);
+    return Objects.hash(patientId, appointments);
   }
 
   @Override
@@ -151,7 +117,6 @@ public class VisitHistory {
     sb.append("class VisitHistory {\n");
     sb.append("    patientId: ").append(toIndentedString(patientId)).append("\n");
     sb.append("    appointments: ").append(toIndentedString(appointments)).append("\n");
-    sb.append("    notes: ").append(toIndentedString(notes)).append("\n");
     sb.append("}");
     return sb.toString();
   }

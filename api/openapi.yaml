@@ -1435,10 +1435,6 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Appointment'
-        notes:
-          type: array
-          items:
-            $ref: '#/components/schemas/ClinicalNote'
     AISessionCreateRequest:
       type: object
       description: >

@@ -126,6 +126,7 @@ export function DoctorDashboard({
     <main className="landing-page app-page">
       <ShellNav session={session} onNavigate={onNavigate} onLogout={onLogout} />
       <section className="dashboard-shell doctor-dashboard-shell">
+        <DoctorSubNav active="dashboard" onNavigate={onNavigate} />
         <header className="patient-hero doctor-hero">
           <div>
             <p className="eyebrow">Doctor dashboard</p>
@@ -144,8 +145,6 @@ export function DoctorDashboard({
             Refresh
           </button>
         </header>
-
-        <DoctorSubNav active="dashboard" onNavigate={onNavigate} />
 
         {isLoading && <StatusPanel title="Loading doctor data" />}
         {error && <StatusPanel title="Doctor API unavailable" text={error} />}

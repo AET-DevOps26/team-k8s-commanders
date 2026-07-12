@@ -84,14 +84,12 @@ public class PatientService {
     }
 
     /**
-     * Returns the patient's visit history.
-     *
-     * <p>For now the history is composed only of appointments owned by the
-     * patient service. Clinical notes belong to a separate service that does
-     * not exist yet, so {@link VisitHistory#getNotes()} is always empty.
+     * Returns the patient's visit history, composed of the appointments owned by
+     * this service. Clinical notes are owned by the separate notes-service and
+     * are not part of the patient-facing visit history.
      *
      * @param patientId the patient's user id
-     * @return a {@link VisitHistory} with appointments and an empty notes list
+     * @return a {@link VisitHistory} with the patient's appointments
      */
     public VisitHistory getVisitHistory(UUID patientId) {
         List<org.openapitools.model.Appointment> appointments = appointmentRepository

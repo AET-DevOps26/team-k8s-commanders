@@ -123,15 +123,10 @@ export function BookingCalendarSection({
   const visibleDayEnd = Math.min((boundedPage + 1) * DAYS_PER_PAGE, dayGroups.length)
 
   useEffect(() => {
-    if (selectedDayKey && dayGroups.some((group) => group.key === selectedDayKey)) {
-      setActiveDayKey(selectedDayKey)
-      return
-    }
-
     if (!dayGroups.some((group) => group.key === activeDayKey)) {
       setActiveDayKey(dayGroups[0]?.key ?? null)
     }
-  }, [activeDayKey, dayGroups, selectedDayKey])
+  }, [activeDayKey, dayGroups])
 
   useEffect(() => {
     if (boundedPage !== dayPage) {

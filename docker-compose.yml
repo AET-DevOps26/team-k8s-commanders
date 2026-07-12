@@ -430,7 +430,7 @@ services:
       - caredesk
 
   grafana:
-    image: grafana/grafana:11.6.16
+    image: grafana/grafana:13.1.0
     # No host port published — reached through Caddy at http://localhost/grafana
     # (matches the prod sub-path setup so dev and prod behave the same).
     expose:

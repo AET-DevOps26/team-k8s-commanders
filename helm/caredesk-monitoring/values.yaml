@@ -59,7 +59,7 @@ prometheus:
 # docker-compose stack mounts), so Grafana itself is stateless: no PVC needed,
 # config-as-code survives restarts by construction.
 grafana:
-  image: grafana/grafana:11.6.16
+  image: grafana/grafana:13.1.0
   adminUser: admin
   # No default password is baked into the chart — provide it at install time so
   # Grafana never ships with a known password. CI injects the

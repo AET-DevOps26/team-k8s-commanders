@@ -10,23 +10,14 @@ import { userMessage } from '../../lib/messages'
 import { EmptyPanel } from '../ui/EmptyPanel'
 import { StatusPanel } from '../ui/StatusPanel'
 import { SummaryCard } from '../ui/SummaryCard'
+import {
+  AppointmentFilterBar,
+  type AppointmentSortOrder,
+  type AppointmentStatusFilter,
+} from '../appointments/AppointmentFilterBar'
 import { NoteEditor } from './NoteEditor'
 import { PatientAppointmentTimeline } from './PatientAppointmentTimeline'
 import { byDateAsc, byDateDesc, isUpcomingAppointment } from './doctorUtils'
-
-type AppointmentSortOrder = 'newest' | 'oldest'
-type AppointmentStatusFilter = 'ALL' | Appointment['status']
-
-const appointmentStatusFilters: Array<{
-  value: AppointmentStatusFilter
-  label: string
-}> = [
-  { value: 'ALL', label: 'All statuses' },
-  { value: 'SCHEDULED', label: 'Scheduled' },
-  { value: 'RESCHEDULED', label: 'Rescheduled' },
-  { value: 'COMPLETED', label: 'Completed' },
-  { value: 'CANCELLED', label: 'Cancelled' },
-]
 
 type PatientRecordData = {
   profile: UserProfile
@@ -257,35 +248,12 @@ export function PatientWorkspace({
                   <h3>Appointments</h3>
                 </div>
               </div>
-              <div className="appointment-filter-bar">
-                <label className="appointment-filter-field">
-                  <span>Status</span>
-                  <select
-                    onChange={(event) =>
-                      setStatusFilter(event.target.value as AppointmentStatusFilter)
-                    }
-                    value={statusFilter}
-                  >
-                    {appointmentStatusFilters.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label className="appointment-filter-field">
-                  <span>Sort</span>
-                  <select
-                    onChange={(event) =>
-                      setSortOrder(event.target.value as AppointmentSortOrder)
-                    }
-                    value={sortOrder}
-                  >
-                    <option value="newest">Newest first</option>
-                    <option value="oldest">Oldest first</option>
-                  </select>
-                </label>
-              </div>
+              <AppointmentFilterBar
+                statusFilter={statusFilter}
+                sortOrder={sortOrder}
+                onStatusFilterChange={setStatusFilter}
+                onSortOrderChange={setSortOrder}
+              />
               <PatientAppointmentTimeline
                 appointments={visibleAppointments}
                 emptyText={

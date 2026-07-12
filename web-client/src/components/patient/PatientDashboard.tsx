@@ -8,6 +8,11 @@ import {
 import { formatAppointmentDate, isPastDateTime } from '../../lib/dates'
 import { userMessage } from '../../lib/messages'
 import type { PatientDashboardViewProps } from '../../types/route'
+import {
+  AppointmentFilterBar,
+  type AppointmentSortOrder,
+  type AppointmentStatusFilter,
+} from '../appointments/AppointmentFilterBar'
 import { AppointmentRow } from '../appointments/AppointmentRow'
 import { PatientSubNav } from '../layout/PatientSubNav'
 import { ShellNav } from '../layout/ShellNav'
@@ -20,20 +25,6 @@ type PatientData = {
   appointments: Appointment[]
   visitHistory: VisitHistory
 }
-
-type AppointmentSortOrder = 'newest' | 'oldest'
-type AppointmentStatusFilter = 'ALL' | Appointment['status']
-
-const statusFilterOptions: Array<{
-  value: AppointmentStatusFilter
-  label: string
-}> = [
-  { value: 'ALL', label: 'All statuses' },
-  { value: 'SCHEDULED', label: 'Scheduled' },
-  { value: 'RESCHEDULED', label: 'Rescheduled' },
-  { value: 'COMPLETED', label: 'Completed' },
-  { value: 'CANCELLED', label: 'Cancelled' },
-]
 
 export function PatientDashboard({
   session,
@@ -248,35 +239,12 @@ export function PatientDashboard({
                     <h2>My schedule</h2>
                   </div>
                 </div>
-                <div className="appointment-filter-bar">
-                  <label className="appointment-filter-field">
-                    <span>Status</span>
-                    <select
-                      onChange={(event) =>
-                        setStatusFilter(event.target.value as AppointmentStatusFilter)
-                      }
-                      value={statusFilter}
-                    >
-                      {statusFilterOptions.map((option) => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <label className="appointment-filter-field">
-                    <span>Sort</span>
-                    <select
-                      onChange={(event) =>
-                        setSortOrder(event.target.value as AppointmentSortOrder)
-                      }
-                      value={sortOrder}
-                    >
-                      <option value="newest">Newest first</option>
-                      <option value="oldest">Oldest first</option>
-                    </select>
-                  </label>
-                </div>
+                <AppointmentFilterBar
+                  statusFilter={statusFilter}
+                  sortOrder={sortOrder}
+                  onStatusFilterChange={setStatusFilter}
+                  onSortOrderChange={setSortOrder}
+                />
                 {scheduleAppointments.length ? (
                   <div className="appointment-list">
                     {scheduleAppointments.map((appointment) => (

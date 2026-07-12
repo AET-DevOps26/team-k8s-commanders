@@ -17,6 +17,15 @@ notification-service:
 spring:
   application:
     name: patient-service
+  jackson:
+    # Omit null properties from JSON responses. The OpenAPI contract models
+    # optional fields by absence (e.g. UserProfile.clinicId is optional and NOT
+    # nullable), so a patient with no clinic must serialize as an omitted key,
+    # not "clinicId": null. Emitting an explicit null breaks strict generated
+    # clients — the ai-assistant's Python client calls UUID(clinicId) on any
+    # present key and raises on UUID(None), which surfaced as a 502 on every
+    # patient-scoped AI query.
+    default-property-inclusion: non_null
   datasource:
     url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:patient_db}
     username: ${DB_USER:caredesk}

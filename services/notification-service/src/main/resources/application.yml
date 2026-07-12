@@ -27,6 +27,14 @@ notification:
 spring:
   application:
     name: notification-service
+  jackson:
+    # Omit null properties from JSON responses. The OpenAPI contract models
+    # optional fields by absence (not nullability), so an optional field must
+    # serialize as an omitted key, not an explicit null. Emitting null breaks
+    # strict generated clients — the ai-assistant's Python client calls
+    # UUID(value) on any present key and raises on UUID(None), which surfaced as
+    # a 502 on patient-scoped AI queries.
+    default-property-inclusion: non_null
   # Render errors as RFC 9457 application/problem+json, matching the API contract.
   mvc:
     problemdetails:

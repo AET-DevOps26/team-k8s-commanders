@@ -246,8 +246,14 @@ mailpit:
   # Expose the web UI on its own ingress host, guarded by HTTP basic auth. A
   # dedicated Ingress carries the nginx auth annotations so the auth only gates
   # Mailpit, not the main app.
+  #
+  # Opt-in: disabled by default so the zero-config deploy paths (deploy-k8s.sh,
+  # deploy-local.sh, the README one-command install) never render the public
+  # endpoint with baked-in credentials. To expose it, set enabled=true AND
+  # supply basicAuth.user + basicAuth.hash — both are required at that point.
+  # Without the ingress, reach the UI via kubectl port-forward (see above).
   ingress:
-    enabled: true
+    enabled: false
     # Own hostname for the Mailpit UI. If empty, _helpers renders:
     # caredesk-mail-team-k8s-commanders.student.k8s.aet.cit.tum.de
     host: ""
@@ -258,9 +264,10 @@ mailpit:
       # Distinct host ⇒ its own cert/secret (no conflict with the main ingress).
       secretName: caredesk-mailpit-tls
     basicAuth:
-      # No defaults — required at install so the endpoint is never shipped with
-      # known credentials. CI injects these from the MAILPIT_BASIC_AUTH_USER /
-      # MAILPIT_BASIC_AUTH_HASH GitHub values (hash is bcrypt; nginx supports $2y$).
+      # No defaults — required whenever ingress.enabled=true so the endpoint is
+      # never shipped with known credentials. CI enables the ingress and injects
+      # these from the MAILPIT_BASIC_AUTH_USER / MAILPIT_BASIC_AUTH_HASH GitHub
+      # values (hash is bcrypt; nginx supports $2y$).
       user: ""
       hash: ""
   resources:

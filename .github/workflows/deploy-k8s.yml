@@ -151,6 +151,7 @@ jobs:
             --set "seedDemoData=${SEED_DEMO:-false}"
             --set-file "backend.jwtSecret=${ADMIN_CONFIG_DIR}/jwt-secret"
             --set-file "postgres.password=${ADMIN_CONFIG_DIR}/postgres-password"
+            --set "mailpit.ingress.enabled=true"
             --set "mailpit.ingress.basicAuth.user=${MAILPIT_BASIC_AUTH_USER}"
             --set-file "mailpit.ingress.basicAuth.hash=${ADMIN_CONFIG_DIR}/mailpit-hash"
           )

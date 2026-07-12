@@ -42,7 +42,7 @@ services:
       - caredesk
 
   ai-db:
-    image: postgres:16-alpine
+    image: postgres:18-alpine
     restart: always
     environment:
       POSTGRES_DB: ${AI_DB_NAME:?AI_DB_NAME must be set}
@@ -91,7 +91,7 @@ services:
       - caredesk
 
   auth-db:
-    image: postgres:16-alpine
+    image: postgres:18-alpine
     restart: always
     environment:
       POSTGRES_DB: ${AUTH_DB_NAME:?AUTH_DB_NAME must be set}
@@ -140,7 +140,7 @@ services:
       - caredesk
 
   patient-db:
-    image: postgres:16-alpine
+    image: postgres:18-alpine
     restart: always
     environment:
       POSTGRES_DB: ${PATIENT_DB_NAME:?PATIENT_DB_NAME must be set}
@@ -188,7 +188,7 @@ services:
       - caredesk
 
   notes-db:
-    image: postgres:16-alpine
+    image: postgres:18-alpine
     restart: always
     environment:
       POSTGRES_DB: ${NOTES_DB_NAME:?NOTES_DB_NAME must be set}
@@ -232,7 +232,7 @@ services:
       - caredesk
 
   notification-db:
-    image: postgres:16-alpine
+    image: postgres:18-alpine
     restart: always
     environment:
       POSTGRES_DB: ${NOTIFICATION_DB_NAME:?NOTIFICATION_DB_NAME must be set}

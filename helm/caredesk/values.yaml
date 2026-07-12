@@ -62,7 +62,7 @@ backend:
 # Plain postgres:16-alpine (public on Docker Hub) — predictable, fast to pull,
 # no subchart / private-registry caveats. One DB per service mirrors compose.
 postgres:
-  image: postgres:16-alpine
+  image: postgres:18-alpine
   username: caredesk
   # No secret is baked into the chart — provide it at install time (CI injects
   # the POSTGRES_PASSWORD GitHub secret). Required: rendering the -db Secret

@@ -529,6 +529,61 @@ paths:
           $ref: '#/components/responses/Conflict'
         '500':
           $ref: '#/components/responses/InternalServerError'
+  /doctors/{doctorId}/schedule/recurring:
+    post:
+      tags: [Doctors]
+      summary: Publish recurring availability as materialized slots
+      description: >-
+        Expands a weekly recurrence (weekdays, time window, slot length, date
+        range) into individual schedule slots. Occurrences that overlap an
+        existing slot are skipped and reported instead of failing the request.
+      operationId: createDoctorRecurringSchedule
+      parameters:
+        - $ref: '#/components/parameters/DoctorId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RecurringScheduleCreate'
+      responses:
+        '201':
+          description: Recurrence expanded; overlapping occurrences skipped
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecurringScheduleResult'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /doctors/{doctorId}/schedule/{slotId}:
+    delete:
+      tags: [Doctors]
+      summary: Delete an unbooked schedule slot
+      operationId: deleteDoctorScheduleSlot
+      parameters:
+        - $ref: '#/components/parameters/DoctorId'
+        - $ref: '#/components/parameters/SlotId'
+      responses:
+        '204':
+          description: Slot deleted
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
   /appointments:
     post:
       tags: [Appointments]
@@ -993,6 +1048,13 @@ components:
       schema:
         type: string
         format: uuid
+    SlotId:
+      name: slotId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
     AppointmentId:
       name: appointmentId
       in: path
@@ -1285,8 +1347,11 @@ components:
             $ref: '#/components/schemas/ScheduleSlot'
     ScheduleSlot:
       type: object
-      required: [startAt, endAt, available]
+      required: [id, startAt, endAt, available]
       properties:
+        id:
+          type: string
+          format: uuid
         startAt:
           type: string
           format: date-time
@@ -1305,6 +1370,66 @@ components:
         endAt:
           type: string
           format: date-time
+    Weekday:
+      type: string
+      enum: [MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY, SATURDAY, SUNDAY]
+    RecurringScheduleCreate:
+      type: object
+      required: [weekdays, startTime, endTime, slotDurationMinutes, startDate, endDate, timezone]
+      properties:
+        weekdays:
+          type: array
+          items:
+            $ref: '#/components/schemas/Weekday'
+          minItems: 1
+          uniqueItems: true
+        startTime:
+          type: string
+          pattern: '^([01][0-9]|2[0-3]):[0-5][0-9]$'
+          description: Daily window start (wall clock, HH:mm).
+          example: '09:00'
+        endTime:
+          type: string
+          pattern: '^([01][0-9]|2[0-3]):[0-5][0-9]$'
+          description: Daily window end (wall clock, HH:mm, exclusive).
+          example: '12:00'
+        slotDurationMinutes:
+          type: integer
+          enum: [15, 30, 45, 60]
+        startDate:
+          type: string
+          format: date
+        endDate:
+          type: string
+          format: date
+          description: Inclusive; at most 12 weeks after startDate.
+        timezone:
+          type: string
+          description: IANA zone id used for wall-clock expansion.
+          example: Europe/Berlin
+    SlotInterval:
+      type: object
+      required: [startAt, endAt]
+      properties:
+        startAt:
+          type: string
+          format: date-time
+        endAt:
+          type: string
+          format: date-time
+    RecurringScheduleResult:
+      type: object
+      required: [created, skipped]
+      properties:
+        created:
+          type: array
+          items:
+            $ref: '#/components/schemas/ScheduleSlot'
+        skipped:
+          type: array
+          description: Occurrences not created because they overlap existing slots.
+          items:
+            $ref: '#/components/schemas/SlotInterval'
     Appointment:
       type: object
       required: [id, patientId, doctorId, dateTime, status, duration]

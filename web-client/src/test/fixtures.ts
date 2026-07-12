@@ -66,11 +66,13 @@ export const visitHistory: VisitHistory = {
 
 export const availableSlots: ScheduleSlot[] = [
   {
+    id: '77777777-7777-4777-8777-777777777777',
     startAt: isoDaysFromNow(3, 9),
     endAt: isoDaysFromNow(3, 10),
     available: true,
   },
   {
+    id: '88888888-8888-4888-8888-888888888888',
     startAt: isoDaysFromNow(4, 14),
     endAt: isoDaysFromNow(4, 15),
     available: true,

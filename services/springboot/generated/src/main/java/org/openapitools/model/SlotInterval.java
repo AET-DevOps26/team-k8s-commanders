@@ -5,7 +5,6 @@ import java.util.Objects;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import java.time.OffsetDateTime;
-import java.util.UUID;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.lang.Nullable;
 import java.time.OffsetDateTime;
@@ -18,13 +17,11 @@ import java.util.*;
 import jakarta.annotation.Generated;
 
 /**
- * ScheduleSlot
+ * SlotInterval
  */
 
 @Generated(value = "org.openapitools.codegen.languages.SpringCodegen", comments = "Generator version: 7.22.0")
-public class ScheduleSlot {
-
-  private UUID id;
+public class SlotInterval {
 
   @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
   private OffsetDateTime startAt;
@@ -32,44 +29,19 @@ public class ScheduleSlot {
   @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
   private OffsetDateTime endAt;
 
-  private Boolean available;
-
-  public ScheduleSlot() {
+  public SlotInterval() {
     super();
   }
 
   /**
    * Constructor with only required parameters
    */
-  public ScheduleSlot(UUID id, OffsetDateTime startAt, OffsetDateTime endAt, Boolean available) {
-    this.id = id;
+  public SlotInterval(OffsetDateTime startAt, OffsetDateTime endAt) {
     this.startAt = startAt;
     this.endAt = endAt;
-    this.available = available;
   }
 
-  public ScheduleSlot id(UUID id) {
-    this.id = id;
-    return this;
-  }
-
-  /**
-   * Get id
-   * @return id
-   */
-  @NotNull @Valid 
-  @Schema(name = "id", requiredMode = Schema.RequiredMode.REQUIRED)
-  @JsonProperty("id")
-  public UUID getId() {
-    return id;
-  }
-
-  @JsonProperty("id")
-  public void setId(UUID id) {
-    this.id = id;
-  }
-
-  public ScheduleSlot startAt(OffsetDateTime startAt) {
+  public SlotInterval startAt(OffsetDateTime startAt) {
     this.startAt = startAt;
     return this;
   }
@@ -90,7 +62,7 @@ public class ScheduleSlot {
     this.startAt = startAt;
   }
 
-  public ScheduleSlot endAt(OffsetDateTime endAt) {
+  public SlotInterval endAt(OffsetDateTime endAt) {
     this.endAt = endAt;
     return this;
   }
@@ -111,27 +83,6 @@ public class ScheduleSlot {
     this.endAt = endAt;
   }
 
-  public ScheduleSlot available(Boolean available) {
-    this.available = available;
-    return this;
-  }
-
-  /**
-   * Get available
-   * @return available
-   */
-  @NotNull 
-  @Schema(name = "available", requiredMode = Schema.RequiredMode.REQUIRED)
-  @JsonProperty("available")
-  public Boolean getAvailable() {
-    return available;
-  }
-
-  @JsonProperty("available")
-  public void setAvailable(Boolean available) {
-    this.available = available;
-  }
-
   @Override
   public boolean equals(Object o) {
     if (this == o) {
@@ -140,26 +91,22 @@ public class ScheduleSlot {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    ScheduleSlot scheduleSlot = (ScheduleSlot) o;
-    return Objects.equals(this.id, scheduleSlot.id) &&
-        Objects.equals(this.startAt, scheduleSlot.startAt) &&
-        Objects.equals(this.endAt, scheduleSlot.endAt) &&
-        Objects.equals(this.available, scheduleSlot.available);
+    SlotInterval slotInterval = (SlotInterval) o;
+    return Objects.equals(this.startAt, slotInterval.startAt) &&
+        Objects.equals(this.endAt, slotInterval.endAt);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(id, startAt, endAt, available);
+    return Objects.hash(startAt, endAt);
   }
 
   @Override
   public String toString() {
     StringBuilder sb = new StringBuilder();
-    sb.append("class ScheduleSlot {\n");
-    sb.append("    id: ").append(toIndentedString(id)).append("\n");
+    sb.append("class SlotInterval {\n");
     sb.append("    startAt: ").append(toIndentedString(startAt)).append("\n");
     sb.append("    endAt: ").append(toIndentedString(endAt)).append("\n");
-    sb.append("    available: ").append(toIndentedString(available)).append("\n");
     sb.append("}");
     return sb.toString();
   }

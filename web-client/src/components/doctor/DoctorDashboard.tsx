@@ -16,12 +16,10 @@ export function DoctorDashboard({
   onLogout,
   onNavigate,
   bookingSuccess = false,
-  onBookingSuccessAcknowledged,
 }: DoctorDashboardViewProps) {
   const [appointments, setAppointments] = useState<Appointment[]>([])
   const [users, setUsers] = useState<UserProfile[]>([])
   const [error, setError] = useState('')
-  const [status, setStatus] = useState('')
   const [isLoading, setLoading] = useState(true)
   const [reloadKey, setReloadKey] = useState(0)
   const doctorId = session.user.id
@@ -89,22 +87,15 @@ export function DoctorDashboard({
     [doctorAppointments, patients],
   )
 
-  useEffect(() => {
-    if (!bookingSuccess || isLoading) {
-      return
-    }
-
-    setStatus('Appointment booked successfully.')
-    onBookingSuccessAcknowledged?.()
-  }, [bookingSuccess, isLoading, onBookingSuccessAcknowledged])
+  const showBookingSuccess = bookingSuccess && !isLoading
 
   useEffect(() => {
-    if (!status || isLoading) {
+    if (!showBookingSuccess) {
       return
     }
 
     document.getElementById('doctor-schedule')?.scrollIntoView({ behavior: 'smooth' })
-  }, [isLoading, status])
+  }, [showBookingSuccess])
 
   if (session.user.role !== 'DOCTOR') {
     return (
@@ -126,6 +117,7 @@ export function DoctorDashboard({
     <main className="landing-page app-page">
       <ShellNav session={session} onNavigate={onNavigate} onLogout={onLogout} />
       <section className="dashboard-shell doctor-dashboard-shell">
+        <DoctorSubNav active="dashboard" onNavigate={onNavigate} />
         <header className="patient-hero doctor-hero">
           <div>
             <p className="eyebrow">Doctor dashboard</p>
@@ -145,13 +137,11 @@ export function DoctorDashboard({
           </button>
         </header>
 
-        <DoctorSubNav active="dashboard" onNavigate={onNavigate} />
-
         {isLoading && <StatusPanel title="Loading doctor data" />}
         {error && <StatusPanel title="Doctor API unavailable" text={error} />}
-        {status && (
+        {showBookingSuccess && (
           <StatusPanel
-            title={status}
+            title="Appointment booked successfully."
             text="The appointment is now listed in your schedule below."
           />
         )}

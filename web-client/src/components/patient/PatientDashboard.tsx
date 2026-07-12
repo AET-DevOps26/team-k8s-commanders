@@ -8,6 +8,11 @@ import {
 import { formatAppointmentDate, isPastDateTime } from '../../lib/dates'
 import { userMessage } from '../../lib/messages'
 import type { PatientDashboardViewProps } from '../../types/route'
+import {
+  AppointmentFilterBar,
+  type AppointmentSortOrder,
+  type AppointmentStatusFilter,
+} from '../appointments/AppointmentFilterBar'
 import { AppointmentRow } from '../appointments/AppointmentRow'
 import { PatientSubNav } from '../layout/PatientSubNav'
 import { ShellNav } from '../layout/ShellNav'
@@ -26,13 +31,13 @@ export function PatientDashboard({
   onLogout,
   onNavigate,
   bookingSuccess = false,
-  onBookingSuccessAcknowledged,
 }: PatientDashboardViewProps) {
   const [patientData, setPatientData] = useState<PatientData | null>(null)
   const [error, setError] = useState('')
-  const [status, setStatus] = useState('')
   const [isLoading, setLoading] = useState(true)
   const [reloadKey, setReloadKey] = useState(0)
+  const [statusFilter, setStatusFilter] = useState<AppointmentStatusFilter>('ALL')
+  const [sortOrder, setSortOrder] = useState<AppointmentSortOrder>('newest')
   const patientId = session.user.id
 
   const upcomingAppointments = useMemo(() => {
@@ -40,11 +45,9 @@ export function PatientDashboard({
       return []
     }
 
-    const now = Date.now()
-
     return patientData.appointments
       .filter((appointment) => appointment.status !== 'CANCELLED')
-      .filter((appointment) => !isPastDateTime(appointment.dateTime, now))
+      .filter((appointment) => !isPastDateTime(appointment.dateTime))
       .sort(
         (first, second) =>
           new Date(first.dateTime).getTime() -
@@ -57,24 +60,29 @@ export function PatientDashboard({
       return []
     }
 
-    return [...patientData.appointments].sort(
-      (first, second) =>
-        new Date(second.dateTime).getTime() -
-        new Date(first.dateTime).getTime(),
-    )
-  }, [patientData])
+    const filtered =
+      statusFilter === 'ALL'
+        ? patientData.appointments
+        : patientData.appointments.filter(
+            (appointment) => appointment.status === statusFilter,
+          )
+
+    return [...filtered].sort((first, second) => {
+      const ascending =
+        new Date(first.dateTime).getTime() - new Date(second.dateTime).getTime()
+      return sortOrder === 'oldest' ? ascending : -ascending
+    })
+  }, [patientData, sortOrder, statusFilter])
 
   const pastVisits = useMemo(() => {
     if (!patientData) {
       return []
     }
 
-    const now = Date.now()
-
     return patientData.visitHistory.appointments.filter(
       (appointment) =>
         appointment.status === 'COMPLETED' ||
-        isPastDateTime(appointment.dateTime, now),
+        isPastDateTime(appointment.dateTime),
     )
   }, [patientData])
 
@@ -82,22 +90,15 @@ export function PatientDashboard({
     return upcomingAppointments[0] ?? null
   }, [upcomingAppointments])
 
-  useEffect(() => {
-    if (!bookingSuccess || isLoading || !patientData) {
-      return
-    }
-
-    setStatus('Appointment booked successfully.')
-    onBookingSuccessAcknowledged?.()
-  }, [bookingSuccess, isLoading, onBookingSuccessAcknowledged, patientData])
+  const showBookingSuccess = bookingSuccess && !isLoading && Boolean(patientData)
 
   useEffect(() => {
-    if (!status || isLoading || !patientData) {
+    if (!showBookingSuccess) {
       return
     }
 
     document.getElementById('patient-schedule')?.scrollIntoView({ behavior: 'smooth' })
-  }, [isLoading, patientData, status])
+  }, [showBookingSuccess])
 
   useEffect(() => {
     let isActive = true
@@ -186,9 +187,9 @@ export function PatientDashboard({
 
         {isLoading && <StatusPanel title="Loading your dashboard" />}
         {error && <StatusPanel title="We could not load your dashboard" text={error} />}
-        {status && (
+        {showBookingSuccess && (
           <StatusPanel
-            title={status}
+            title="Appointment booked successfully."
             text="Your appointment is now listed in your schedule below."
           />
         )}
@@ -225,6 +226,12 @@ export function PatientDashboard({
                     <h2>My schedule</h2>
                   </div>
                 </div>
+                <AppointmentFilterBar
+                  statusFilter={statusFilter}
+                  sortOrder={sortOrder}
+                  onStatusFilterChange={setStatusFilter}
+                  onSortOrderChange={setSortOrder}
+                />
                 {scheduleAppointments.length ? (
                   <div className="appointment-list">
                     {scheduleAppointments.map((appointment) => (
@@ -237,7 +244,13 @@ export function PatientDashboard({
                     ))}
                   </div>
                 ) : (
-                  <EmptyPanel text="No appointments booked yet." />
+                  <EmptyPanel
+                    text={
+                      statusFilter === 'ALL'
+                        ? 'No appointments booked yet.'
+                        : 'No appointments match this filter.'
+                    }
+                  />
                 )}
               </article>
 
@@ -266,32 +279,6 @@ export function PatientDashboard({
                     <dd>{patientData.profile.phoneNumber ?? 'Not provided'}</dd>
                   </div>
                 </dl>
-              </article>
-
-              <article className="dashboard-panel wide-panel">
-                <div className="panel-header">
-                  <div>
-                    <p className="eyebrow">Visit history</p>
-                    <h2>Clinical timeline</h2>
-                  </div>
-                </div>
-                {patientData.visitHistory.notes?.length ? (
-                  <div className="note-list">
-                    {patientData.visitHistory.notes.map((note) => (
-                      <div className="note-item" key={note.id}>
-                        <strong>{formatAppointmentDate(note.createdAt)}</strong>
-                        <p>{note.content}</p>
-                        {note.diagnosis && (
-                          <span>
-                            {note.diagnosis.code} · {note.diagnosis.description}
-                          </span>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <EmptyPanel text="No visit notes available yet." />
-                )}
               </article>
             </section>
           </>

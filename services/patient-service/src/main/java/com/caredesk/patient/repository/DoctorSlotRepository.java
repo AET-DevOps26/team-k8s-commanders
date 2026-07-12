@@ -46,6 +46,15 @@ public interface DoctorSlotRepository extends JpaRepository<DoctorSlot, UUID> {
                                                   @Param("startAt") OffsetDateTime startAt,
                                                   @Param("endAt") OffsetDateTime endAt);
 
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("""
+            select slot from DoctorSlot slot
+            where slot.id = :slotId
+              and slot.doctorId = :doctorId
+            """)
+    Optional<DoctorSlot> findAndLockByIdAndDoctorId(@Param("slotId") UUID slotId,
+                                                    @Param("doctorId") UUID doctorId);
+
     @Query("""
             select slot from DoctorSlot slot
             where slot.doctorId = :doctorId

@@ -62,25 +62,17 @@ export const pastAppointment: Appointment = {
 export const visitHistory: VisitHistory = {
   patientId: patientUser.id,
   appointments: [pastAppointment],
-  notes: [
-    {
-      id: '55555555-5555-4555-8555-555555555555',
-      appointmentId: pastAppointment.id,
-      doctorId: doctorUser.id,
-      content: 'Patient recovered well from seasonal flu.',
-      diagnosis: { code: 'J11', description: 'Influenza' },
-      createdAt: isoDaysFromNow(-29),
-    },
-  ],
 }
 
 export const availableSlots: ScheduleSlot[] = [
   {
+    id: '77777777-7777-4777-8777-777777777777',
     startAt: isoDaysFromNow(3, 9),
     endAt: isoDaysFromNow(3, 10),
     available: true,
   },
   {
+    id: '88888888-8888-4888-8888-888888888888',
     startAt: isoDaysFromNow(4, 14),
     endAt: isoDaysFromNow(4, 15),
     available: true,

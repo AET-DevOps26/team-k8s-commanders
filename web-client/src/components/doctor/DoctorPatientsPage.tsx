@@ -88,16 +88,13 @@ export function DoctorPatientsPage({
     [patientSummaries],
   )
 
-  const selectedDirectoryProfile = useMemo(
-    () => userMap.get(selectedPatientId ?? '') ?? null,
-    [selectedPatientId, userMap],
-  )
+  const activePatientId =
+    selectedPatientId ?? patientQueue[0]?.summary.profile.id ?? null
 
-  useEffect(() => {
-    if (!selectedPatientId && patientQueue.length) {
-      setSelectedPatientId(patientQueue[0].summary.profile.id)
-    }
-  }, [patientQueue, selectedPatientId])
+  const selectedDirectoryProfile = useMemo(
+    () => userMap.get(activePatientId ?? '') ?? null,
+    [activePatientId, userMap],
+  )
 
   useLayoutEffect(() => {
     if (preservedScrollY.current === null) {
@@ -112,7 +109,7 @@ export function DoctorPatientsPage({
   }, [isWorkspaceLoading, selectedPatientId])
 
   function handleSelectPatient(nextPatientId: string) {
-    if (nextPatientId === selectedPatientId) {
+    if (nextPatientId === activePatientId) {
       return
     }
 
@@ -140,6 +137,7 @@ export function DoctorPatientsPage({
     <main className="landing-page app-page">
       <ShellNav session={session} onNavigate={onNavigate} onLogout={onLogout} />
       <section className="dashboard-shell doctor-dashboard-shell">
+        <DoctorSubNav active="patients" onNavigate={onNavigate} />
         <header className="patient-hero doctor-hero">
           <div>
             <p className="eyebrow">Doctor patients</p>
@@ -147,8 +145,6 @@ export function DoctorPatientsPage({
             <p>Individual clinical views with notes, timeline, and persistent AI chat.</p>
           </div>
         </header>
-
-        <DoctorSubNav active="patients" onNavigate={onNavigate} />
 
         {isLoading && <StatusPanel title="Loading patient records" />}
         {error && <StatusPanel title="Patient API unavailable" text={error} />}
@@ -158,15 +154,15 @@ export function DoctorPatientsPage({
             <PatientDirectory
               queue={patientQueue}
               summaries={patientSummaries}
-              selectedPatientId={selectedPatientId}
+              selectedPatientId={activePatientId}
               onSelectPatient={handleSelectPatient}
             />
             <PatientWorkspace
               directoryProfile={selectedDirectoryProfile}
-              key={selectedPatientId ?? 'no-patient'}
+              key={activePatientId ?? 'no-patient'}
               onAiContextChange={setAiContext}
               onLoadingChange={setWorkspaceLoading}
-              patientId={selectedPatientId}
+              patientId={activePatientId}
               token={token}
             />
           </section>

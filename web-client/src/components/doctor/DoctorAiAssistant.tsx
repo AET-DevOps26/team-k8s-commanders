@@ -1,4 +1,11 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  useSyncExternalStore,
+  type FormEvent,
+} from 'react'
 import ReactMarkdown, { type Components } from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import type { AIMessage, AISession, AISessionSummary } from '../../clientApi'
@@ -60,6 +67,36 @@ function AiMessageBody({ content }: { content: string }) {
         {content}
       </ReactMarkdown>
     </div>
+  )
+}
+
+function CopyMessageButton({ content }: { content: string }) {
+  const [copied, setCopied] = useState(false)
+
+  useEffect(() => {
+    if (!copied) {
+      return
+    }
+    const timer = window.setTimeout(() => setCopied(false), 1500)
+    return () => window.clearTimeout(timer)
+  }, [copied])
+
+  return (
+    <button
+      aria-label={copied ? 'Message copied' : 'Copy message'}
+      className="ai-copy-button"
+      onClick={async () => {
+        try {
+          await navigator.clipboard.writeText(content)
+          setCopied(true)
+        } catch {
+          setCopied(false)
+        }
+      }}
+      type="button"
+    >
+      {copied ? 'Copied' : 'Copy'}
+    </button>
   )
 }
 
@@ -134,7 +171,19 @@ export function DoctorAiAssistant({
     (patientId
       ? `patient:${patientId}:appointment:${appointmentId ?? 'none'}`
       : 'doctor:general')
-  const [state, setState] = useState(() => getDoctorAiState(resolvedContextKey))
+  const subscribeState = useCallback(
+    (listener: () => void) => subscribeDoctorAiState(resolvedContextKey, listener),
+    [resolvedContextKey],
+  )
+  const getStateSnapshot = useCallback(
+    () => getDoctorAiState(resolvedContextKey),
+    [resolvedContextKey],
+  )
+  const state = useSyncExternalStore(
+    subscribeState,
+    getStateSnapshot,
+    getStateSnapshot,
+  )
   const [loadAttempt, setLoadAttempt] = useState(0)
   const {
     activeSession,
@@ -146,18 +195,6 @@ export function DoctorAiAssistant({
     sessions,
     streamingReply,
   } = state
-
-  useEffect(
-    () =>
-      subscribeDoctorAiState(resolvedContextKey, () => {
-        setState(getDoctorAiState(resolvedContextKey))
-      }),
-    [resolvedContextKey],
-  )
-
-  useEffect(() => {
-    setState(getDoctorAiState(resolvedContextKey))
-  }, [resolvedContextKey])
 
   useEffect(() => {
     const loadKey = `${token}:${patientId ?? ''}:${appointmentId ?? ''}`
@@ -351,6 +388,7 @@ export function DoctorAiAssistant({
       ...current,
       error: '',
       isStreaming: true,
+      query: '',
       streamingReply: {
         id: retryReplyId ?? `streaming-${Date.now()}`,
         question: trimmed,
@@ -530,13 +568,23 @@ export function DoctorAiAssistant({
 
           <div className="ai-thread" aria-live="polite">
             {renderedMessages.length ? (
-              renderedMessages.map((message) => (
+              renderedMessages.map((message) => {
+                const showCopyButton =
+                  message.role === 'assistant' &&
+                  Boolean(message.content) &&
+                  !message.failed &&
+                  !(isStreaming && message.id.endsWith('-assistant'))
+
+                return (
                 <article
                   className={`ai-message ai-message-${message.role}${
                     message.failed ? ' ai-message-failed' : ''
-                  }`}
+                  }${showCopyButton ? ' has-copy-button' : ''}`}
                   key={message.id}
                 >
+                  {showCopyButton ? (
+                    <CopyMessageButton content={message.content} />
+                  ) : null}
                   <AiMessageBody
                     content={message.content || (isStreaming ? 'Thinking...' : '')}
                   />
@@ -561,7 +609,8 @@ export function DoctorAiAssistant({
                     <span className="ai-cursor" aria-hidden="true" />
                   )}
                 </article>
-              ))
+                )
+              })
             ) : (
               <div className="ai-empty">
                 No messages in this chat.
@@ -579,6 +628,16 @@ export function DoctorAiAssistant({
                     query: event.target.value,
                   }))
                 }
+                onKeyDown={(event) => {
+                  if (
+                    event.key === 'Enter' &&
+                    !event.shiftKey &&
+                    !event.nativeEvent.isComposing
+                  ) {
+                    event.preventDefault()
+                    event.currentTarget.form?.requestSubmit()
+                  }
+                }}
                 placeholder={placeholder}
                 required
                 rows={4}
@@ -586,7 +645,7 @@ export function DoctorAiAssistant({
               />
             </label>
             <button className="primary-button" disabled={isStreaming} type="submit">
-              {isStreaming ? 'Streaming answer' : 'Ask AI'}
+              Ask AI
             </button>
           </form>
         </div>

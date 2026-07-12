@@ -40,9 +40,6 @@ describe('login workflow', () => {
     ).toBeInTheDocument()
     expect(await screen.findByText('Annual check-up')).toBeInTheDocument()
     expect(screen.getByText(patientUser.email)).toBeInTheDocument()
-    expect(
-      screen.getByText('Patient recovered well from seasonal flu.'),
-    ).toBeInTheDocument()
 
     // Session is persisted for the next visit
     expect(window.localStorage.getItem(SESSION_KEY)).toContain(

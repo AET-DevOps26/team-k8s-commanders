@@ -5,14 +5,22 @@ import com.caredesk.patient.repository.DoctorSlotRepository;
 import org.junit.jupiter.api.Test;
 import org.openapitools.model.PageMeta;
 import org.openapitools.model.PaginatedUserProfileResponse;
+import org.openapitools.model.RecurringScheduleCreate;
+import org.openapitools.model.RecurringScheduleResult;
 import org.openapitools.model.Schedule;
 import org.openapitools.model.ScheduleSlot;
 import org.openapitools.model.ScheduleSlotCreate;
 import org.openapitools.model.UserProfile;
 import org.openapitools.model.UserRole;
+import org.openapitools.model.Weekday;
 
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -187,6 +195,199 @@ class DoctorServiceTest {
                 .isInstanceOf(AppointmentStateConflictException.class)
                 .hasMessageContaining("Past schedule slots");
         verify(doctorSlotRepository, never()).save(any());
+    }
+
+    @Test
+    void createRecurringScheduleSlots_expandsSelectedWeekdays() {
+        UUID doctorId = UUID.randomUUID();
+        // 2035-01-01 is a Monday; Mon+Wed over two weeks -> Jan 1, 3, 8, 10.
+        RecurringScheduleCreate request = recurring(
+                Set.of(Weekday.MONDAY, Weekday.WEDNESDAY), "09:00", "12:00",
+                RecurringScheduleCreate.SlotDurationMinutesEnum.NUMBER_30,
+                LocalDate.of(2035, 1, 1), LocalDate.of(2035, 1, 14));
+        stubSaveAll();
+
+        RecurringScheduleResult result = service.createRecurringScheduleSlots(doctorId, request);
+
+        assertThat(result.getCreated()).hasSize(24);
+        assertThat(result.getSkipped()).isEmpty();
+        ZoneId berlin = ZoneId.of("Europe/Berlin");
+        ScheduleSlot first = result.getCreated().get(0);
+        assertThat(first.getStartAt().atZoneSameInstant(berlin).toLocalDateTime())
+                .isEqualTo(LocalDate.of(2035, 1, 1).atTime(9, 0));
+        ScheduleSlot last = result.getCreated().get(23);
+        assertThat(last.getEndAt().atZoneSameInstant(berlin).toLocalDateTime())
+                .isEqualTo(LocalDate.of(2035, 1, 10).atTime(12, 0));
+        verify(doctorSlotRepository).lockForSlotWrite(doctorId);
+    }
+
+    @Test
+    void createRecurringScheduleSlots_keepsWallClockAcrossDstSpringForward() {
+        UUID doctorId = UUID.randomUUID();
+        // Europe/Berlin switches to DST on Sunday 2035-03-25.
+        RecurringScheduleCreate request = recurring(
+                Set.of(Weekday.SUNDAY), "09:00", "10:00",
+                RecurringScheduleCreate.SlotDurationMinutesEnum.NUMBER_60,
+                LocalDate.of(2035, 3, 18), LocalDate.of(2035, 3, 25));
+        stubSaveAll();
+
+        RecurringScheduleResult result = service.createRecurringScheduleSlots(doctorId, request);
+
+        assertThat(result.getCreated()).hasSize(2);
+        assertThat(result.getCreated().get(0).getStartAt().getOffset()).isEqualTo(ZoneOffset.ofHours(1));
+        assertThat(result.getCreated().get(1).getStartAt().getOffset()).isEqualTo(ZoneOffset.ofHours(2));
+        assertThat(result.getCreated().get(0).getStartAt().toLocalTime()).isEqualTo(java.time.LocalTime.of(9, 0));
+        assertThat(result.getCreated().get(1).getStartAt().toLocalTime()).isEqualTo(java.time.LocalTime.of(9, 0));
+    }
+
+    @Test
+    void createRecurringScheduleSlots_skipsOverlaps_andReportsThem() {
+        UUID doctorId = UUID.randomUUID();
+        RecurringScheduleCreate request = recurring(
+                Set.of(Weekday.MONDAY), "09:00", "10:00",
+                RecurringScheduleCreate.SlotDurationMinutesEnum.NUMBER_30,
+                LocalDate.of(2035, 1, 1), LocalDate.of(2035, 1, 1));
+        OffsetDateTime clashStart = LocalDate.of(2035, 1, 1).atTime(9, 0)
+                .atZone(ZoneId.of("Europe/Berlin")).toOffsetDateTime();
+        when(doctorSlotRepository.existsOverlappingSlot(eq(doctorId), eq(clashStart), any()))
+                .thenReturn(true);
+        stubSaveAll();
+
+        RecurringScheduleResult result = service.createRecurringScheduleSlots(doctorId, request);
+
+        assertThat(result.getCreated()).hasSize(1);
+        assertThat(result.getCreated().get(0).getStartAt()).isEqualTo(clashStart.plusMinutes(30));
+        assertThat(result.getSkipped()).hasSize(1);
+        assertThat(result.getSkipped().get(0).getStartAt()).isEqualTo(clashStart);
+    }
+
+    @Test
+    void createRecurringScheduleSlots_dropsPartialRemainder() {
+        UUID doctorId = UUID.randomUUID();
+        RecurringScheduleCreate request = recurring(
+                Set.of(Weekday.MONDAY), "09:00", "10:10",
+                RecurringScheduleCreate.SlotDurationMinutesEnum.NUMBER_30,
+                LocalDate.of(2035, 1, 1), LocalDate.of(2035, 1, 1));
+        stubSaveAll();
+
+        RecurringScheduleResult result = service.createRecurringScheduleSlots(doctorId, request);
+
+        assertThat(result.getCreated()).hasSize(2);
+    }
+
+    @Test
+    void createRecurringScheduleSlots_dropsPastOccurrencesSilently() {
+        UUID doctorId = UUID.randomUUID();
+        LocalDate yesterday = LocalDate.now(ZoneId.of("Europe/Berlin")).minusDays(1);
+        RecurringScheduleCreate request = recurring(
+                Set.of(Weekday.fromValue(yesterday.getDayOfWeek().name())), "09:00", "10:00",
+                RecurringScheduleCreate.SlotDurationMinutesEnum.NUMBER_30,
+                yesterday, yesterday);
+        stubSaveAll();
+
+        RecurringScheduleResult result = service.createRecurringScheduleSlots(doctorId, request);
+
+        assertThat(result.getCreated()).isEmpty();
+        assertThat(result.getSkipped()).isEmpty();
+    }
+
+    @Test
+    void createRecurringScheduleSlots_terminatesNearMidnight() {
+        UUID doctorId = UUID.randomUUID();
+        RecurringScheduleCreate request = recurring(
+                Set.of(Weekday.MONDAY), "23:00", "23:59",
+                RecurringScheduleCreate.SlotDurationMinutesEnum.NUMBER_30,
+                LocalDate.of(2035, 1, 1), LocalDate.of(2035, 1, 1));
+        stubSaveAll();
+
+        RecurringScheduleResult result = service.createRecurringScheduleSlots(doctorId, request);
+
+        assertThat(result.getCreated()).hasSize(1);
+    }
+
+    @Test
+    void createRecurringScheduleSlots_rejectsInvalidRequests() {
+        UUID doctorId = UUID.randomUUID();
+        LocalDate start = LocalDate.of(2035, 1, 1);
+        RecurringScheduleCreate.SlotDurationMinutesEnum thirty =
+                RecurringScheduleCreate.SlotDurationMinutesEnum.NUMBER_30;
+
+        assertThatThrownBy(() -> service.createRecurringScheduleSlots(doctorId,
+                recurring(Set.of(), "09:00", "12:00", thirty, start, start)))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("weekday");
+        assertThatThrownBy(() -> service.createRecurringScheduleSlots(doctorId,
+                recurring(Set.of(Weekday.MONDAY), "12:00", "09:00", thirty, start, start)))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("endTime");
+        assertThatThrownBy(() -> service.createRecurringScheduleSlots(doctorId,
+                recurring(Set.of(Weekday.MONDAY), "09:00", "09:15", thirty, start, start)))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("shorter than one slot");
+        assertThatThrownBy(() -> service.createRecurringScheduleSlots(doctorId,
+                recurring(Set.of(Weekday.MONDAY), "23:00", "23:59",
+                        RecurringScheduleCreate.SlotDurationMinutesEnum.NUMBER_60, start, start)))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("shorter than one slot");
+        assertThatThrownBy(() -> service.createRecurringScheduleSlots(doctorId,
+                recurring(Set.of(Weekday.MONDAY), "09:00", "12:00", thirty, start, start.plusDays(85))))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("12 weeks");
+        assertThatThrownBy(() -> service.createRecurringScheduleSlots(doctorId,
+                recurring(Set.of(Weekday.MONDAY), "09:00", "12:00", thirty, start, start.minusDays(1))))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("endDate");
+        assertThatThrownBy(() -> service.createRecurringScheduleSlots(doctorId,
+                new RecurringScheduleCreate(Set.of(Weekday.MONDAY), "09:00", "12:00", thirty,
+                        start, start, "Mars/Olympus")))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("timezone");
+        assertThatThrownBy(() -> service.createRecurringScheduleSlots(doctorId,
+                recurring(Set.of(Weekday.MONDAY), "9 o'clock", "12:00", thirty, start, start)))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("startTime");
+        verify(doctorSlotRepository, never()).saveAll(any());
+    }
+
+    @Test
+    void deleteScheduleSlot_deletesAvailableSlot() {
+        UUID doctorId = UUID.randomUUID();
+        UUID slotId = UUID.randomUUID();
+        DoctorSlot slot = slot(doctorId, OffsetDateTime.parse("2035-06-08T09:00:00Z"), true);
+        when(doctorSlotRepository.findAndLockByIdAndDoctorId(slotId, doctorId)).thenReturn(Optional.of(slot));
+
+        service.deleteScheduleSlot(doctorId, slotId);
+
+        verify(doctorSlotRepository).delete(slot);
+    }
+
+    @Test
+    void deleteScheduleSlot_rejectsBookedSlot() {
+        UUID doctorId = UUID.randomUUID();
+        UUID slotId = UUID.randomUUID();
+        DoctorSlot slot = slot(doctorId, OffsetDateTime.parse("2035-06-08T09:00:00Z"), false);
+        when(doctorSlotRepository.findAndLockByIdAndDoctorId(slotId, doctorId)).thenReturn(Optional.of(slot));
+
+        assertThatThrownBy(() -> service.deleteScheduleSlot(doctorId, slotId))
+                .isInstanceOf(AppointmentStateConflictException.class)
+                .hasMessageContaining("Booked");
+        verify(doctorSlotRepository, never()).delete(any(DoctorSlot.class));
+    }
+
+    @Test
+    void deleteScheduleSlot_throwsNotFound_whenMissingOrForeign() {
+        UUID doctorId = UUID.randomUUID();
+        UUID slotId = UUID.randomUUID();
+        when(doctorSlotRepository.findAndLockByIdAndDoctorId(slotId, doctorId)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.deleteScheduleSlot(doctorId, slotId))
+                .isInstanceOf(SlotNotFoundException.class);
+    }
+
+    private void stubSaveAll() {
+        when(doctorSlotRepository.saveAll(any())).thenAnswer(invocation -> invocation.getArgument(0));
+    }
+
+    private static RecurringScheduleCreate recurring(Set<Weekday> weekdays,
+                                                     String startTime,
+                                                     String endTime,
+                                                     RecurringScheduleCreate.SlotDurationMinutesEnum duration,
+                                                     LocalDate startDate,
+                                                     LocalDate endDate) {
+        return new RecurringScheduleCreate(weekdays, startTime, endTime, duration,
+                startDate, endDate, "Europe/Berlin");
     }
 
     private static UserProfile doctor(UUID id, String name) {

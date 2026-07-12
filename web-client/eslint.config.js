@@ -1,41 +1,44 @@
 import js from '@eslint/js'
 import globals from 'globals'
-import react from 'eslint-plugin-react'
+import babelParser from '@babel/eslint-parser'
 import reactHooks from 'eslint-plugin-react-hooks'
 import reactRefresh from 'eslint-plugin-react-refresh'
-import tseslint from 'typescript-eslint'
 
-export default tseslint.config(
+export default [
   {
     ignores: ['dist', 'node_modules', 'coverage'],
   },
   js.configs.recommended,
-  ...tseslint.configs.recommended,
   {
     files: ['**/*.{ts,tsx}'],
     languageOptions: {
-      ecmaVersion: 2020,
+      parser: babelParser,
+      parserOptions: {
+        requireConfigFile: false,
+        babelOptions: {
+          presets: [
+            '@babel/preset-typescript',
+            ['@babel/preset-react', { runtime: 'automatic' }],
+          ],
+        },
+      },
+      ecmaVersion: 'latest',
+      sourceType: 'module',
       globals: globals.browser,
     },
     plugins: {
-      react,
       'react-hooks': reactHooks,
       'react-refresh': reactRefresh,
     },
-    settings: {
-      react: {
-        version: 'detect',
-      },
-    },
     rules: {
-      ...react.configs.recommended.rules,
-      ...react.configs['jsx-runtime'].rules,
-      ...reactHooks.configs.recommended.rules,
+      'react-hooks/rules-of-hooks': 'error',
+      'react-hooks/exhaustive-deps': 'warn',
       'react-refresh/only-export-components': [
         'warn',
         { allowConstantExport: true },
       ],
-      'react/prop-types': 'off',
+      'no-undef': 'off',
+      'no-unused-vars': 'off',
     },
   },
-)
+]

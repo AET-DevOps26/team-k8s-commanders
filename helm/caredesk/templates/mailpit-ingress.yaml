@@ -1,0 +1,50 @@
+{{- if and .Values.mailpit.enabled .Values.mailpit.ingress.enabled .Values.ingress.enabled -}}
+{{- /*
+Dedicated Ingress for the Mailpit UI on its own host. The nginx basic-auth
+annotations gate this host only — they apply per-Ingress, so keeping Mailpit off
+the main ingress avoids locking the app behind the same credentials.
+
+Because this is a distinct hostname it gets its own TLS cert/secret and can carry
+its own cert-manager cluster-issuer annotation without conflicting with the main
+ingress (which owns a different host/secret).
+*/ -}}
+{{- $fullName := include "caredesk.fullname" . -}}
+{{- $host := include "caredesk.mailIngressHost" . -}}
+{{- $tls := .Values.mailpit.ingress.tls -}}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ $fullName }}-mailpit
+  labels:
+    {{- include "caredesk.labels" . | nindent 4 }}
+    app.kubernetes.io/component: mailpit
+  annotations:
+    nginx.ingress.kubernetes.io/auth-type: basic
+    nginx.ingress.kubernetes.io/auth-secret: {{ $fullName }}-mailpit-basic-auth
+    nginx.ingress.kubernetes.io/auth-realm: "Mailpit"
+    {{- if and $tls.enabled $tls.clusterIssuer }}
+    cert-manager.io/cluster-issuer: {{ $tls.clusterIssuer | quote }}
+    {{- end }}
+    {{- with .Values.ingress.annotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  ingressClassName: {{ .Values.ingress.className }}
+  {{- if $tls.enabled }}
+  tls:
+    - hosts:
+        - {{ $host | quote }}
+      secretName: {{ $tls.secretName }}
+  {{- end }}
+  rules:
+    - host: {{ $host | quote }}
+      http:
+        paths:
+          - path: {{ .Values.mailpit.ingress.path }}
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ $fullName }}-mailpit
+                port:
+                  number: {{ .Values.mailpit.webPort }}
+{{- end }}

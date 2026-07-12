@@ -180,6 +180,19 @@ ai-assistant and one PostgreSQL per service — deploys with **a single command 
 no pre-created env files or secrets**. The chart ships working dev defaults and
 the GHCR images are public.
 
+### Production instances
+
+Live deployments on the AET cluster:
+
+| Instance | URL |
+| --- | --- |
+| App (web-client) | https://caredesk-team-k8s-commanders.student.k8s.aet.cit.tum.de/ |
+| Grafana (monitoring) | https://caredesk-monitoring-team-k8s-commanders.student.k8s.aet.cit.tum.de/ |
+| Mailpit (mail catcher) | https://caredesk-mail-team-k8s-commanders.student.k8s.aet.cit.tum.de/ |
+
+Grafana uses its own admin login; Mailpit is behind HTTP basic auth. Credentials
+for both come from the team's GitHub Actions variables/secrets.
+
 ### One command (no env file)
 
 ```bash

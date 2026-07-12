@@ -54,6 +54,15 @@ app.kubernetes.io/component: {{ .component }}
 {{- end -}}
 {{- end -}}
 
+{{/* Mailpit ingress host — own domain; user value if set, else default suffix */}}
+{{- define "caredesk.mailIngressHost" -}}
+{{- if .Values.mailpit.ingress.host -}}
+{{- .Values.mailpit.ingress.host -}}
+{{- else -}}
+{{- print "caredesk-mail-team-k8s-commanders.student.k8s.aet.cit.tum.de" -}}
+{{- end -}}
+{{- end -}}
+
 {{/* Public API URL (derived from ingress host; protocol depends on TLS) */}}
 {{- define "caredesk.publicApiUrl" -}}
 {{- if .Values.web.env.publicApiUrl -}}

@@ -10,11 +10,11 @@ services:
       # endpoint (https://acme-v02.api.letsencrypt.org/directory) for a
       # browser-trusted certificate.
       ACME_CA: ${ACME_CA:-https://acme-staging-v02.api.letsencrypt.org/directory}
-      # HTTP basic auth for the public /mailpit UI. Defaults to the dev
-      # credentials (mailpit / mailpit) — OVERRIDE in production by setting
-      # MAILPIT_BASIC_AUTH_USER and MAILPIT_BASIC_AUTH_HASH (a bcrypt hash).
-      MAILPIT_BASIC_AUTH_USER: ${MAILPIT_BASIC_AUTH_USER:-mailpit}
-      MAILPIT_BASIC_AUTH_HASH: ${MAILPIT_BASIC_AUTH_HASH:-$$2y$$05$$EKc8Qn8M119jQbj.A2W1JuOfZl3O7QJ7LYyrPikreFIG/BgfgQpPu}
+      # HTTP basic auth for the public /mailpit UI. Required (no fallback) so the
+      # endpoint is never exposed with known credentials — set MAILPIT_BASIC_AUTH_USER
+      # and MAILPIT_BASIC_AUTH_HASH (a bcrypt hash, e.g. `caddy hash-password`).
+      MAILPIT_BASIC_AUTH_USER: ${MAILPIT_BASIC_AUTH_USER:?MAILPIT_BASIC_AUTH_USER must be set}
+      MAILPIT_BASIC_AUTH_HASH: ${MAILPIT_BASIC_AUTH_HASH:?MAILPIT_BASIC_AUTH_HASH must be set}
     volumes:
       - ./infra/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
       # Persists issued certificates across deploys — essential to avoid

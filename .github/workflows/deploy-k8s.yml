@@ -97,6 +97,11 @@ jobs:
           # supplied here (see helm/caredesk secret templates, which `required` them).
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
           POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          # HTTP basic auth for the public Mailpit UI ingress. The chart ships no
+          # defaults (its secret template `required`s them), so the endpoint is
+          # never exposed with known credentials — supply them here.
+          MAILPIT_BASIC_AUTH_USER: ${{ vars.MAILPIT_BASIC_AUTH_USER }}
+          MAILPIT_BASIC_AUTH_HASH: ${{ secrets.MAILPIT_BASIC_AUTH_HASH }}
         run: |
           NS="team-k8s-commanders"
 
@@ -107,6 +112,11 @@ jobs:
 
           if [[ -z "${JWT_SECRET//[[:space:]]/}" ]] || [[ -z "${POSTGRES_PASSWORD//[[:space:]]/}" ]]; then
             echo "::error::JWT_SECRET and POSTGRES_PASSWORD secrets must be configured — the chart no longer ships built-in defaults"
+            exit 1
+          fi
+
+          if [[ -z "${MAILPIT_BASIC_AUTH_USER//[[:space:]]/}" ]] || [[ -z "${MAILPIT_BASIC_AUTH_HASH//[[:space:]]/}" ]]; then
+            echo "::error::MAILPIT_BASIC_AUTH_USER (variable) and MAILPIT_BASIC_AUTH_HASH (secret) must be configured — the Mailpit ingress is basic-auth protected with no chart defaults"
             exit 1
           fi
 
@@ -124,7 +134,10 @@ jobs:
           # mangled by --set list parsing.
           printf '%s' "${JWT_SECRET}" > "${ADMIN_CONFIG_DIR}/jwt-secret"
           printf '%s' "${POSTGRES_PASSWORD}" > "${ADMIN_CONFIG_DIR}/postgres-password"
-          chmod 600 "${ADMIN_CONFIG_DIR}/jwt-secret" "${ADMIN_CONFIG_DIR}/postgres-password"
+          # bcrypt hash contains '$' — pass via file so the shell can't expand it
+          # and helm --set list parsing can't mangle it.
+          printf '%s' "${MAILPIT_BASIC_AUTH_HASH}" > "${ADMIN_CONFIG_DIR}/mailpit-hash"
+          chmod 600 "${ADMIN_CONFIG_DIR}/jwt-secret" "${ADMIN_CONFIG_DIR}/postgres-password" "${ADMIN_CONFIG_DIR}/mailpit-hash"
 
           SET_FLAGS=(
             --set "images.tag=${{ steps.tag.outputs.tag }}"
@@ -138,6 +151,8 @@ jobs:
             --set "seedDemoData=${SEED_DEMO:-false}"
             --set-file "backend.jwtSecret=${ADMIN_CONFIG_DIR}/jwt-secret"
             --set-file "postgres.password=${ADMIN_CONFIG_DIR}/postgres-password"
+            --set "mailpit.ingress.basicAuth.user=${MAILPIT_BASIC_AUTH_USER}"
+            --set-file "mailpit.ingress.basicAuth.hash=${ADMIN_CONFIG_DIR}/mailpit-hash"
           )
 
           if [ -n "${OPENWEBUI_BASE_URL}" ]; then

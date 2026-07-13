@@ -178,7 +178,7 @@ The service also delivers those messages by email. We don't run a real mail serv
 - **Booking confirmations** — after a patient books, reschedules or cancels, patient-service makes a best-effort call to notification-service, which records the notification and emails the patient. The contact email is captured from the booking request, and a failing or unreachable mail server never blocks the booking.
 - **Reminders** — a scheduled job in notification-service polls patient-service for appointments due within the next 24 hours and emails a one-off reminder for each, recorded so the same appointment is never reminded twice (even across restarts).
 
-Both patient-service and notification-service expose internal, gateway-unreachable `/internal/**` endpoints for this service-to-service traffic, restricted to in-cluster callers by NetworkPolicy. On Kubernetes, reach the Mailpit UI with `kubectl port-forward svc/caredesk-mailpit 8025:8025 -n <namespace>` (the Helm chart keeps it ClusterIP-only). In the Docker deployments it is fronted by Caddy at `/mailpit`; override `MAILPIT_BASIC_AUTH_USER` / `MAILPIT_BASIC_AUTH_HASH` for any non-local deployment.
+Both patient-service and notification-service expose internal, gateway-unreachable `/internal/**` endpoints for this service-to-service traffic, restricted to in-cluster callers by NetworkPolicy. On Kubernetes the Helm chart keeps Mailpit ClusterIP-only by default — reach the UI with `kubectl port-forward svc/caredesk-mailpit 8025:8025 -n <namespace>`. To expose it on its own basic-auth ingress instead (as the team's CI deploy does, see the URL above), set `mailpit.ingress.enabled=true` and supply `mailpit.ingress.basicAuth.user` / `.hash`. In the Docker deployments it is fronted by Caddy at `/mailpit`; override `MAILPIT_BASIC_AUTH_USER` / `MAILPIT_BASIC_AUTH_HASH` for any non-local deployment.
 
 See [web-client/README.md](web-client/README.md) for standalone client image builds.
 
@@ -204,6 +204,19 @@ The whole stack — web-client, api-gateway, auth/patient/notes services,
 ai-assistant and one PostgreSQL per service — deploys with **a single command and
 no pre-created env files or secrets**. The chart ships working dev defaults and
 the GHCR images are public.
+
+### Production instances
+
+Live deployments on the AET cluster:
+
+| Instance | URL |
+| --- | --- |
+| App (web-client) | https://caredesk-team-k8s-commanders.student.k8s.aet.cit.tum.de/ |
+| Grafana (monitoring) | https://caredesk-monitoring-team-k8s-commanders.student.k8s.aet.cit.tum.de/ |
+| Mailpit (mail catcher) | https://caredesk-mail-team-k8s-commanders.student.k8s.aet.cit.tum.de/ |
+
+Grafana uses its own admin login; Mailpit is behind HTTP basic auth. Credentials
+for both come from the team's GitHub Actions variables/secrets.
 
 ### One command (no env file)
 

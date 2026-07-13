@@ -5,24 +5,29 @@ import {
   getDoctorSchedule,
   rescheduleAppointment,
 } from '../../clientApi'
-import {
-  formatAppointmentDate,
-  formatTimeRange,
-  isPastDateTime,
-  slotDuration,
-} from '../../lib/dates'
+import { formatAppointmentDate, isPastDateTime, slotDuration } from '../../lib/dates'
+import { SlotPicker } from '../booking/SlotPicker'
 import { EmptyPanel } from '../ui/EmptyPanel'
 
 type AppointmentRowProps = {
   appointment: Appointment
   onChanged: () => void
   token: string
+  isMoving: boolean
+  onMoveOpen: () => void
+  onMoveClose: () => void
 }
 
-export function AppointmentRow({ appointment, onChanged, token }: AppointmentRowProps) {
+export function AppointmentRow({
+  appointment,
+  onChanged,
+  token,
+  isMoving,
+  onMoveOpen,
+  onMoveClose,
+}: AppointmentRowProps) {
   const [availableSlots, setAvailableSlots] = useState<ScheduleSlot[]>([])
   const [selectedSlot, setSelectedSlot] = useState<ScheduleSlot | null>(null)
-  const [isMoving, setMoving] = useState(false)
   const [message, setMessage] = useState('')
   const [isBusy, setBusy] = useState(false)
   const isPast = isPastDateTime(appointment.dateTime)
@@ -30,6 +35,7 @@ export function AppointmentRow({ appointment, onChanged, token }: AppointmentRow
     appointment.status !== 'CANCELLED' &&
     appointment.status !== 'COMPLETED' &&
     !isPast
+  const isLoadingSlots = isBusy && !availableSlots.length
 
   async function handleCancel() {
     if (!canChange) {
@@ -55,7 +61,7 @@ export function AppointmentRow({ appointment, onChanged, token }: AppointmentRow
       return
     }
 
-    setMoving((current) => !current)
+    onMoveOpen()
     setMessage('')
 
     if (availableSlots.length) {
@@ -72,6 +78,12 @@ export function AppointmentRow({ appointment, onChanged, token }: AppointmentRow
     } finally {
       setBusy(false)
     }
+  }
+
+  function closeMove() {
+    setSelectedSlot(null)
+    setMessage('')
+    onMoveClose()
   }
 
   async function handleReschedule() {
@@ -93,7 +105,6 @@ export function AppointmentRow({ appointment, onChanged, token }: AppointmentRow
         duration: slotDuration(selectedSlot),
       })
       setMessage('Appointment moved')
-      setMoving(false)
       setSelectedSlot(null)
       onChanged()
     } catch {
@@ -108,12 +119,13 @@ export function AppointmentRow({ appointment, onChanged, token }: AppointmentRow
       <div>
         <strong>{formatAppointmentDate(appointment.dateTime)}</strong>
         <p>{appointment.reason ?? 'No reason provided'}</p>
+        {isMoving && <small>Pick a new time for this appointment.</small>}
         {message && <small>{message}</small>}
       </div>
       <div className="appointment-actions">
         {isPast && <span className="appointment-status-past">PAST</span>}
         <span>{appointment.status}</span>
-        {canChange && (
+        {canChange && !isMoving && (
           <>
             <button disabled={isBusy} onClick={openMoveOptions} type="button">
               Move
@@ -126,33 +138,38 @@ export function AppointmentRow({ appointment, onChanged, token }: AppointmentRow
       </div>
       {isMoving && (
         <div className="move-panel">
-          {availableSlots.length ? (
-            <>
-              <div className="move-slot-grid">
-                {availableSlots.map((slot) => (
-                  <button
-                    className={selectedSlot?.startAt === slot.startAt ? 'active' : ''}
-                    key={`${appointment.id}-${slot.startAt}`}
-                    onClick={() => setSelectedSlot(slot)}
-                    type="button"
-                  >
-                    <strong>{formatAppointmentDate(slot.startAt)}</strong>
-                    <span>{formatTimeRange(slot)}</span>
-                  </button>
-                ))}
-              </div>
+          <div className="move-panel-scroll">
+            {isLoadingSlots ? (
+              <EmptyPanel text="Loading available times…" />
+            ) : (
+              <SlotPicker
+                slots={availableSlots}
+                selectedSlot={selectedSlot}
+                onSelectSlot={setSelectedSlot}
+                emptyText="No other times available right now."
+              />
+            )}
+          </div>
+          <div className="move-panel-actions">
+            <button
+              className="secondary-button"
+              disabled={isBusy}
+              onClick={closeMove}
+              type="button"
+            >
+              Cancel reschedule
+            </button>
+            {availableSlots.length > 0 && (
               <button
                 className="primary-button"
-                disabled={isBusy}
+                disabled={isBusy || !selectedSlot}
                 onClick={handleReschedule}
                 type="button"
               >
                 Confirm new time
               </button>
-            </>
-          ) : (
-            <EmptyPanel text="No other times available right now." />
-          )}
+            )}
+          </div>
         </div>
       )}
     </div>

@@ -136,29 +136,33 @@
   border-top: 1px solid rgba(19, 35, 34, 0.1);
 }
 
-.move-slot-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
-  gap: 0.55rem;
+/* Only the available times scroll; the action row below stays put. */
+.move-panel-scroll {
+  max-height: 24rem;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-right: 0.15rem;
 }
 
-.move-slot-grid button {
-  display: grid;
-  gap: 0.2rem;
-  min-height: 4rem;
-  padding: 0.65rem;
-  text-align: left;
+.move-panel-actions {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.6rem;
+  margin-top: 0.25rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid rgba(19, 35, 34, 0.08);
+  background: #e4f1ec;
 }
 
-.move-slot-grid button.active {
-  color: #f8fbf8;
-  border-color: #14615b;
-  background: #14615b;
-}
-
-.move-slot-grid button.active strong,
-.move-slot-grid button.active span {
-  color: #f8fbf8;
+/* While rescheduling, the panel is dedicated to the one appointment, so the
+   list drops its own scroll and lets the picker fill the card. */
+#patient-schedule .appointment-list.appointment-list-focused {
+  max-height: none;
+  overflow: visible;
+  padding-right: 0;
 }
 
 .profile-list {
@@ -287,6 +291,10 @@
 }
 
 .slot-day-button span {
+  /* Reset the chip styling that .appointment-item span applies in the
+     reschedule view, so the picker matches the booking page (plain text). */
+  padding: 0;
+  background: none;
   color: #19726c;
   font-size: 0.8rem;
   font-weight: 900;
@@ -342,6 +350,10 @@
 }
 
 .slot-button span {
+  /* Reset the chip styling that .appointment-item span applies in the
+     reschedule view, so the picker matches the booking page (plain text). */
+  padding: 0;
+  background: none;
   color: #19726c;
   font-size: 0.78rem;
   font-weight: 900;
@@ -350,4 +362,12 @@
 
 .slot-button.active span {
   color: #dff0ea;
+}
+
+/* Keep both the date and the time light on the selected (dark) button; the
+   time <strong> would otherwise stay dark via the .appointment-item strong
+   rule in the reschedule view. */
+.slot-day-button.active strong,
+.slot-button.active strong {
+  color: #f8fbf8;
 }

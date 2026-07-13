@@ -23,8 +23,9 @@ Each database accepts connections only from its owning backend service.
      notification reaches patient (reminder scheduler reads the upcoming feed);
      patient reaches notification (booking-confirmation triggers) and auth
      (cross-service profile lookup). mailpit is intentionally left unrestricted
-     (no policy) so its web UI is reachable via port-forward and
-     notification-service can deliver SMTP to it. */ -}}
+     (no policy) so its web UI is reachable via ingress/port-forward,
+     notification-service can deliver SMTP to it, and Grafana (in the monitoring
+     namespace) can deliver alert emails to it cross-namespace. */ -}}
 {{- $backends := dict
   "auth"         (list "gateway" "patient")
   "patient"      (list "gateway" "ai" "notification")

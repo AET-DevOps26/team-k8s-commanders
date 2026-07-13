@@ -23,6 +23,16 @@ spec:
           # Docker Hub image — not the project GHCR registry, so referenced directly.
           image: {{ printf "%s:%s" .Values.mailpit.image.repository .Values.mailpit.image.tag | quote }}
           imagePullPolicy: {{ .Values.images.pullPolicy }}
+          {{- $webroot := trimAll "/" .Values.mailpit.webroot }}
+          {{- $prefix := ternary (printf "/%s" $webroot) "" (ne $webroot "") }}
+          {{- if $webroot }}
+          env:
+            # Serve the UI (and all routes, including the probes below) under this
+            # sub-path so it can be exposed via the shared ingress host — matches
+            # the Azure/Caddy deploy's MP_WEBROOT.
+            - name: MP_WEBROOT
+              value: {{ $webroot | quote }}
+          {{- end }}
           ports:
             - name: smtp
               containerPort: {{ .Values.mailpit.smtpPort }}
@@ -30,13 +40,13 @@ spec:
               containerPort: {{ .Values.mailpit.webPort }}
           readinessProbe:
             httpGet:
-              path: /readyz
+              path: {{ $prefix }}/readyz
               port: http
             periodSeconds: 10
             failureThreshold: 6
           livenessProbe:
             httpGet:
-              path: /livez
+              path: {{ $prefix }}/livez
               port: http
             periodSeconds: 15
             failureThreshold: 3

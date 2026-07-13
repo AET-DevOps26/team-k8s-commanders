@@ -1,4 +1,5 @@
-# Grafana alert delivery: Discord contact point + default notification policy.
+# Grafana alert delivery: Discord + Mailpit-email contact points and the
+# notification policy that fans every alert out to both.
 #
 # Single source of truth shared by both deployment paths (same mechanism as
 # alerts.yaml): docker-compose mounts the whole provisioning/ directory into
@@ -22,10 +23,28 @@ contactPoints:
         type: discord
         settings:
           url: ${DISCORD_WEBHOOK_URL}
+  # Second contact point: emails alerts into Mailpit's inbox, so they show up in
+  # the Mailpit UI (handy for demos where Discord isn't wired up). Delivery needs
+  # Grafana's SMTP pointed at Mailpit — configured per environment via GF_SMTP_*
+  # (compose: mailpit:1025; k8s: the caredesk-mailpit service). Mailpit accepts
+  # any recipient, so the address is cosmetic.
+  - orgId: 1
+    name: caredesk-mailpit-email
+    receivers:
+      - uid: caredesk-mailpit-email
+        type: email
+        settings:
+          addresses: alerts@caredesk.local
+          singleEmail: true
 
-# Root notification policy: everything routes to Discord. First notification
-# after 30s of grouping, follow-ups in the same group batched 5m apart, and a
-# reminder every 4h while an alert keeps firing.
+# Root notification policy: every alert is fanned out to BOTH contact points.
+# Grafana stops routing at the first matching child, so a single email child
+# would silently capture the alert and suppress Discord — instead both are
+# explicit sibling routes with `continue: true`, which lets an alert keep
+# matching later siblings so both fire. `continue` on the Discord (first) route
+# is what makes evaluation fall through to the email route; the last one's is
+# a no-op. First notification after 30s of grouping, follow-ups in the same
+# group batched 5m apart, and a reminder every 4h while an alert keeps firing.
 policies:
   - orgId: 1
     receiver: caredesk-discord
@@ -33,3 +52,8 @@ policies:
     group_wait: 30s
     group_interval: 5m
     repeat_interval: 4h
+    routes:
+      - receiver: caredesk-discord
+        continue: true
+      - receiver: caredesk-mailpit-email
+        continue: true

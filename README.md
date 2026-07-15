@@ -54,6 +54,59 @@ to build and run it:
 The web client lives in [`web-client/`](web-client/); the HTTP contract shared by
 all services is [`api/openapi.yaml`](api/openapi.yaml).
 
+## Architecture
+
+CareDesk is a set of independently deployable microservices behind a single
+public entry point. Every request from the browser hits one host — Caddy in the
+Docker deployments, the Kubernetes ingress on the cluster — which serves the web
+client at `/` and forwards `/api/v1/**` to the **API gateway**. Because the
+frontend and the API share an origin, no CORS configuration is involved
+anywhere.
+
+The gateway is the only component that interprets JWTs. It verifies the token,
+strips the `/api/v1` prefix, injects trusted `X-User-Email` / `X-User-Role`
+headers, and routes onward:
+
+| Path | Service |
+|------|---------|
+| `/api/v1/auth/**`, `/api/v1/users/**` | auth-service |
+| `/api/v1/patients/**`, `/api/v1/doctors/**`, `/api/v1/appointments/**`, `/api/v1/clinics/**` | patient-service |
+| `/api/v1/appointments/*/note` | notes-service |
+| `/api/v1/notifications/**`, `/api/v1/appointments/*/notifications` | notification-service |
+| `/api/v1/ai/**` | ai-assistant |
+
+Note that `/appointments/**` is deliberately split: the clinical-note and
+notification sub-paths go to their owning services while the rest of the
+appointment surface stays with patient-service.
+
+### Trusted-header model
+
+Backend services do no JWT parsing of their own — they trust the `X-User-*`
+headers the gateway injects. That trust is only sound if nothing else can reach
+them, so on Kubernetes the chart ships **NetworkPolicies**: each backend accepts
+pod traffic only from the gateway and from the few services allowed to call it
+directly, and each Postgres only from the service that owns it. An arbitrary pod
+in the namespace cannot reach `caredesk-patient:8082` with forged headers.
+Service-to-service calls (patient-service asking notification-service to send a
+confirmation, notification-service polling patient-service for upcoming
+appointments) use separate `/internal/**` endpoints that the gateway never
+exposes and NetworkPolicy restricts to those in-cluster callers. This requires a
+CNI that enforces NetworkPolicy — AET's Calico does; a local kind cluster does
+not, so the policies are no-ops there.
+
+### Data ownership
+
+Each service owns exactly one PostgreSQL database and no other service reads it
+directly. Cross-service relationships are carried as bare UUIDs rather than
+foreign keys — an `appointments` row references `users.id` in a database it
+cannot reach, so consistency across that boundary is the application's
+responsibility, not the database's. See
+[docs/DATABASE_SCHEMA.md](docs/DATABASE_SCHEMA.md) for the per-table breakdown.
+
+The [component diagram](docs/images/Architecture_Component_Diagram.png) shows the
+same decomposition visually; the [analysis object model](docs/images/AOM.png)
+covers the domain objects behind it.
+
 ## Local development setup
 
 This project keeps Git hooks and generator tooling in the repository so that a
@@ -260,6 +313,96 @@ make lint       # helm lint
 make template   # render manifests to stdout
 make dry-run    # helm upgrade --dry-run against the current cluster
 ```
+
+## Monitoring
+
+Every Spring service exposes Prometheus metrics at `/actuator/prometheus`; the
+AI assistant exposes them at `/metrics`. **Prometheus** scrapes all six on a 15s
+interval and **Grafana** renders them — a CareDesk service overview and a JVM
+dashboard, plus alert rules covering target-down, 5xx rates, p95 latency, JVM
+heap pressure and Hikari connection-pool saturation.
+
+Every firing alert fans out to **two** contact points:
+
+- **Discord** — via webhook, interpolated from `DISCORD_WEBHOOK_URL` at Grafana
+  startup so the real URL lives only in the GitHub secret or your local `.env`.
+  Without it, a placeholder keeps Grafana booting and alerts still show in the UI.
+- **Email into Mailpit** — Grafana's SMTP points at the same Mailpit catch-all
+  that receives the application's booking mail (`mailpit:1025` in compose, the
+  `caredesk-mailpit` service on Kubernetes), so alerts land in the Mailpit inbox
+  too. Handy for demos where Discord isn't wired up. Mailpit accepts any
+  recipient, so the `alerts@caredesk.local` address is cosmetic.
+
+Both are sibling routes with `continue: true` on the root notification policy —
+Grafana stops at the first matching child otherwise, and a single email route
+would silently suppress Discord. Grouped alerts wait 30s before the first
+notification, batch follow-ups 5m apart, and re-notify every 4h while firing.
+
+Dashboards, alert rules and contact points live once in
+[`infra/grafana/`](infra/grafana/) and are provisioned from there into both
+deployments — the compose stack mounts the directory and the Helm chart bakes the
+same files into ConfigMaps via symlinks. Edit them in `infra/grafana` and both
+environments pick the change up; ad-hoc edits in the Grafana UI are intentionally
+not persisted (`editable: false`).
+
+| Environment | Grafana | Prometheus |
+|-------------|---------|------------|
+| Docker compose | http://localhost/grafana | not published (internal to the compose network) |
+| Kubernetes (AET) | https://caredesk-monitoring-team-k8s-commanders.student.k8s.aet.cit.tum.de/ | not exposed — `kubectl port-forward` only |
+
+Prometheus is deliberately never exposed publicly: its API has no
+authentication. On Kubernetes the stack runs in **its own namespace**
+(`team-k8s-commanders-monitoring`) with its own chart and deploy workflow, so
+monitoring upgrades never touch the app. Scrape targets, the namespace/quota
+split, alert-webhook setup and troubleshooting are documented in
+[`helm/caredesk-monitoring/README.md`](helm/caredesk-monitoring/README.md).
+
+## CI/CD
+
+GitHub Actions covers the whole path from pull request to deployed cluster.
+
+**Per-service CI** runs on every push and pull request, path-filtered so a change
+to one service only builds that service. The four data services (auth, patient,
+notes, notification) first regenerate the OpenAPI Spring stubs and install them
+into the local Maven repo, since they compile against them; all five Spring
+services then run `mvn verify` — tests plus **SpotBugs** static analysis. The AI
+assistant runs `ruff` and `pytest`; the web client runs lint, tests and a
+production build. Failed Java runs upload their surefire and SpotBugs reports as
+artifacts (7-day retention).
+
+**Build and publish** ([`publish.yml`](.github/workflows/publish.yml)) runs on
+`main`. It first gates on generated-code sync: it re-runs `api/scripts/gen-all.sh`
+and fails if the committed Spring stubs or AI-assistant client differ from what
+the spec produces — the API-first contract cannot drift unnoticed. Only then does
+a build matrix push all seven images to **GHCR**, tagged `latest` and
+`sha-<short>`, with layer caching per service.
+
+**Deployment** is chained to that publish run rather than to the commit:
+
+| Workflow | Target | Trigger |
+|----------|--------|---------|
+| [`deploy-k8s.yml`](.github/workflows/deploy-k8s.yml) | AET cluster (Helm) | successful `publish.yml` run, changes to `helm/caredesk/**`, or manual |
+| [`deploy-k8s-monitoring.yml`](.github/workflows/deploy-k8s-monitoring.yml) | AET monitoring namespace (Helm) | changes to `helm/caredesk-monitoring/**` or `infra/grafana/**`, or manual |
+| [`deploy-azure.yml`](.github/workflows/deploy-azure.yml) | Azure VM (Docker Compose over SSH) | successful `publish.yml` run, changes to compose/infra files, or manual |
+
+The cluster deploy waits for a **successful** publish and then pins the exact
+`sha-<short>` tag that run built, so it can never deploy an image that failed to
+build or race a half-pushed `latest`; manual dispatches fall back to `latest`.
+The monitoring deploy has no such dependency — it runs upstream Prometheus and
+Grafana images, so it never waits on our builds. Both cluster workflows reserve
+their namespace's share of the Rancher project quota before deploying, use a
+concurrency group to serialise overlapping runs, and dump pods, events and quota
+on a failed `helm upgrade`.
+
+Secrets and configuration come from the `AET` and `Azure` GitHub environments.
+Neither Helm chart ships a default JWT secret, Postgres password, Grafana
+password or Mailpit basic-auth credential — the templates `required` them, and
+the workflows fail fast with an explicit error rather than deploying something
+publicly reachable with a known password. Demo seeding on the cluster is gated
+behind the `SEED_DEMO` variable (see [Accounts and seeding](#accounts-and-seeding)).
+
+**Renovate** ([`renovate.json`](renovate.json)) opens dependency-update pull
+requests, which run the same per-service CI before merge.
 
 ## Useful commands
 

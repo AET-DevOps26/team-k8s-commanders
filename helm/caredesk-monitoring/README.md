@@ -70,12 +70,22 @@ pods labeled `app.kubernetes.io/component=prometheus` **from this namespace**
 Scrape jobs are defined in `values.yaml` under `prometheus.targets`; the ports
 mirror `<svc>.service.port` in the caredesk chart — keep them in sync.
 
-## Alert delivery (Discord)
+## Alert delivery (Discord + Mailpit email)
 
 Alert rules and their delivery are provisioned from
 `infra/grafana/provisioning/alerting/` (shared with compose): `alerts.yaml`
-holds the rules, `contact-points.yaml` a Discord contact point plus the default
-notification policy. The webhook URL is interpolated from the
+holds the rules, `contact-points.yaml` two contact points — Discord and email —
+plus the notification policy that fans **every** alert out to both.
+
+The email contact point relays into Mailpit (in the *app* namespace) so alerts
+also land in the Mailpit inbox — useful for demos without Discord. It needs
+Grafana's SMTP pointed at Mailpit, which `grafana.smtp` does by default
+(`caredesk-mailpit.team-k8s-commanders.svc.cluster.local:1025`); if you rename
+the app namespace or release, update `grafana.smtp.host` to match or alert
+emails silently fail to send. Disable with `--set grafana.smtp.enabled=false`,
+which leaves Discord as the only delivery path.
+
+The webhook URL is interpolated from the
 `DISCORD_WEBHOOK_URL` env var at Grafana startup — set the `DISCORD_WEBHOOK_URL`
 GitHub secret (CI passes it as `--set grafana.discordWebhookUrl=...`), or for
 manual deploys pass the flag yourself. Unset, a non-resolving placeholder keeps

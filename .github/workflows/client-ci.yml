@@ -43,7 +43,7 @@ jobs:
         run: npm run lint
 
       - name: Test client
-        run: npm run test:run
+        run: npm run test:coverage
 
       - name: Build client
         run: npm run build

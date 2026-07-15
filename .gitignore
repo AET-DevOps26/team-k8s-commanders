@@ -15,6 +15,7 @@ web-client/src/api.ts
 
 # Vite production build output
 web-client/dist/
+web-client/coverage/
 
 # Editor and OS
 .vscode/

@@ -1,5 +1,5 @@
 import type { UserStats } from '../clientApi'
-import { SummaryCard } from '../components/SummaryCard'
+import { SummaryCard } from '../components/ui/SummaryCard'
 
 type AdminStatsProps = {
   stats: UserStats

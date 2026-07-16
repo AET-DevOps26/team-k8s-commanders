@@ -5,6 +5,7 @@ on:
     paths:
       - "api/openapi.yaml"
       - "services/patient-service/**"
+      - "services/common-web/**"
       - "config/spotbugs/**"
       - "pom.xml"
       - ".github/workflows/patient-service-ci.yml"
@@ -13,6 +14,7 @@ on:
     paths:
       - "api/openapi.yaml"
       - "services/patient-service/**"
+      - "services/common-web/**"
       - "config/spotbugs/**"
       - "pom.xml"
       - ".github/workflows/patient-service-ci.yml"
@@ -56,6 +58,11 @@ jobs:
             -DartifactId=openapi-spring \
             -Dversion=1.0.0 \
             -Dpackaging=jar
+
+      - name: Install shared web library into local Maven repo
+        run: |
+          mvn -B -q install -N -Dspotbugs.skip=true -Djacoco.skip=true
+          mvn -B -q install -DskipTests -Dspotbugs.skip=true -Djacoco.skip=true -f services/common-web/pom.xml
 
       - name: Run tests and SpotBugs static analysis
         run: mvn -B verify

@@ -1,10 +1,10 @@
 package com.caredesk.auth.config;
 
+import com.caredesk.common.web.SecurityProblemHandlers;
 import com.caredesk.auth.filter.JwtAuthFilter;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AccountStatusUserDetailsChecker;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
@@ -19,7 +19,6 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.HandlerExceptionResolver;
 
 @Configuration
@@ -41,16 +40,10 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .exceptionHandling(exceptions -> exceptions
-                        .authenticationEntryPoint((request, response, exception) ->
-                                exceptionResolver.resolveException(request, response, null,
-                                        new ResponseStatusException(
-                                                HttpStatus.UNAUTHORIZED,
-                                                "Authentication is required")))
-                        .accessDeniedHandler((request, response, exception) ->
-                                exceptionResolver.resolveException(request, response, null,
-                                        new ResponseStatusException(
-                                                HttpStatus.FORBIDDEN,
-                                                "Access is denied"))))
+                        .authenticationEntryPoint(
+                                SecurityProblemHandlers.authenticationEntryPoint(exceptionResolver))
+                        .accessDeniedHandler(
+                                SecurityProblemHandlers.accessDeniedHandler(exceptionResolver)))
                 .authorizeHttpRequests(auth -> auth
                         // Gateway owns the /api/v1 prefix — service only sees /auth/**
                         .requestMatchers("/auth/**").permitAll()

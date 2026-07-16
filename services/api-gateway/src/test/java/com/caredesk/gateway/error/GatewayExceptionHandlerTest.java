@@ -9,6 +9,7 @@ import org.springframework.web.server.ResponseStatusException;
 import tools.jackson.databind.ObjectMapper;
 
 import java.net.ConnectException;
+import java.util.concurrent.TimeoutException;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -61,6 +62,21 @@ class GatewayExceptionHandlerTest {
         assertThat(body)
                 .contains("\"detail\":\"Upstream service unavailable\"")
                 .doesNotContain("Connection refused");
+    }
+
+    @Test
+    void mapsNestedTimeoutsToGatewayTimeout() {
+        MockServerWebExchange exchange = exchange();
+
+        handler.handle(exchange, new IllegalStateException(
+                "routing failed",
+                new TimeoutException("Did not observe any item"))).block();
+
+        String body = exchange.getResponse().getBodyAsString().block();
+        assertThat(exchange.getResponse().getStatusCode()).isEqualTo(HttpStatus.GATEWAY_TIMEOUT);
+        assertThat(body)
+                .contains("\"detail\":\"Upstream service timed out\"")
+                .doesNotContain("Did not observe any item");
     }
 
     private static MockServerWebExchange exchange() {

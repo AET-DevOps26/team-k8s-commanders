@@ -58,7 +58,7 @@ def test_validation_exception_contains_field_errors():
     assert response.json()["detail"] == "Request validation failed"
     assert response.json()["errors"] == [
         {
-            "field": "body.value",
+            "field": "value",
             "message": "Input should be a valid integer, unable to parse string as an integer",
         }
     ]

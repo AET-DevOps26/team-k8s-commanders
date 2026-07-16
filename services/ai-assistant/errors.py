@@ -12,6 +12,17 @@ logger = logging.getLogger(__name__)
 
 PROBLEM_JSON = "application/problem+json"
 
+# Pydantic prefixes every error location with its request source; the Java
+# services emit bare field names, so the prefix is stripped for parity.
+_LOCATION_SOURCES = {"body", "query", "path", "header", "cookie"}
+
+
+def _field(loc: tuple[object, ...]) -> str:
+    parts = [str(part) for part in loc]
+    if len(parts) > 1 and parts[0] in _LOCATION_SOURCES:
+        parts = parts[1:]
+    return ".".join(parts)
+
 
 def _title(status_code: int) -> str:
     try:
@@ -66,7 +77,7 @@ async def _validation_exception(
 ) -> JSONResponse:
     errors = [
         {
-            "field": ".".join(str(part) for part in error["loc"]),
+            "field": _field(error["loc"]),
             "message": error["msg"],
         }
         for error in exception.errors()

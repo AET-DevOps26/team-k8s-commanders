@@ -39,9 +39,15 @@ public class GatewayExceptionHandler implements WebExceptionHandler {
 
         HttpStatusCode status;
         String detail;
-        if (isUpstreamConnectionFailure(exception)) {
+        boolean upstreamFailure = false;
+        if (hasCause(exception, TimeoutException.class)) {
+            status = HttpStatus.GATEWAY_TIMEOUT;
+            detail = "Upstream service timed out";
+            upstreamFailure = true;
+        } else if (isUpstreamConnectionFailure(exception)) {
             status = HttpStatus.BAD_GATEWAY;
             detail = "Upstream service unavailable";
+            upstreamFailure = true;
         } else if (exception instanceof ErrorResponseException errorResponse) {
             status = errorResponse.getStatusCode();
             detail = safeDetail(errorResponse, status);
@@ -50,7 +56,10 @@ public class GatewayExceptionHandler implements WebExceptionHandler {
             detail = UNEXPECTED_DETAIL;
         }
 
-        if (status.is5xxServerError()) {
+        if (upstreamFailure) {
+            LOGGER.warn("Upstream request failed with status {}: {}",
+                    status.value(), exception.toString());
+        } else if (status.is5xxServerError()) {
             LOGGER.error("Gateway request failed with status {}", status.value(), exception);
         }
         return problemDetails.write(exchange, status, detail);
@@ -69,8 +78,18 @@ public class GatewayExceptionHandler implements WebExceptionHandler {
         while (current != null) {
             if (current instanceof WebClientRequestException
                     || current instanceof ConnectException
-                    || current instanceof UnknownHostException
-                    || current instanceof TimeoutException) {
+                    || current instanceof UnknownHostException) {
+                return true;
+            }
+            current = current.getCause();
+        }
+        return false;
+    }
+
+    private static boolean hasCause(Throwable exception, Class<? extends Throwable> type) {
+        Throwable current = exception;
+        while (current != null) {
+            if (type.isInstance(current)) {
                 return true;
             }
             current = current.getCause();

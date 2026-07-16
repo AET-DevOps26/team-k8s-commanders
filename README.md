@@ -18,6 +18,9 @@ PostgreSQL database. It runs locally via Docker Compose and on Kubernetes via He
   tables, cross-service references and schema lifecycle.
 - [Architecture component diagram](docs/images/Architecture_Component_Diagram.png)
   shows the deployed subsystem decomposition.
+- [Deployment diagram](docs/images/Deployment_Diagram.png) shows the runtime
+  topology on the AET Kubernetes cluster — pods, databases, and external
+  services.
 - [Use case diagram](docs/images/Use_Case.png) captures the main patient,
   doctor and administrator workflows.
 - [Analysis object model](docs/images/AOM.png) documents the core domain objects

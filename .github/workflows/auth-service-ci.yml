@@ -8,6 +8,7 @@ on:
       - "config/spotbugs/**"
       - "pom.xml"
       - ".github/workflows/auth-service-ci.yml"
+      - ".github/scripts/write-jacoco-summary.sh"
   pull_request:
     paths:
       - "api/openapi.yaml"
@@ -15,6 +16,7 @@ on:
       - "config/spotbugs/**"
       - "pom.xml"
       - ".github/workflows/auth-service-ci.yml"
+      - ".github/scripts/write-jacoco-summary.sh"
 
 jobs:
   tests:
@@ -31,7 +33,7 @@ jobs:
           cache: maven
 
       - name: Set up Node
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version: lts/*
 
@@ -58,6 +60,19 @@ jobs:
       - name: Run tests and SpotBugs static analysis
         run: mvn -B verify
         working-directory: services/auth-service
+
+      - name: Display JaCoCo coverage
+        if: always()
+        run: bash .github/scripts/write-jacoco-summary.sh "Auth Service" "services/auth-service/target/site/jacoco/jacoco.csv"
+
+      - name: Upload JaCoCo coverage report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: auth-service-jacoco-report
+          path: services/auth-service/target/site/jacoco/
+          if-no-files-found: warn
+          retention-days: 14
 
       - name: Upload verification reports on failure
         if: failure()

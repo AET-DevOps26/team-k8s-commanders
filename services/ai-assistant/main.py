@@ -8,6 +8,7 @@ from prometheus_client import Info
 from prometheus_fastapi_instrumentator import Instrumentator
 
 from db.engine import init_models
+from errors import install_exception_handlers
 from routes import sessions, health
 
 load_dotenv()
@@ -28,6 +29,8 @@ app = FastAPI(
     openapi_url=None,
     lifespan=lifespan,
 )
+
+install_exception_handlers(app)
 
 Instrumentator().instrument(app).expose(app, endpoint="/metrics")
 

@@ -1,8 +1,5 @@
-package com.caredesk.patient.controller;
+package com.caredesk.notes.controller;
 
-import com.caredesk.patient.service.AppointmentNotFoundException;
-import com.caredesk.patient.service.AppointmentStateConflictException;
-import com.caredesk.patient.service.DoctorNotFoundException;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.AccessDeniedException;
@@ -11,8 +8,6 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.util.UUID;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -20,26 +15,18 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.setup.MockMvcBuilders.standaloneSetup;
 
-class PatientExceptionHandlerTest {
+class NotesExceptionHandlerTest {
 
-    private final PatientExceptionHandler handler = new PatientExceptionHandler();
+    private final NotesExceptionHandler handler = new NotesExceptionHandler();
 
     @Test
-    void mapsBookingFailuresToProblemDetails() {
-        UUID appointmentId = UUID.randomUUID();
-        UUID doctorId = UUID.randomUUID();
-        assertProblem(handler.notFound(new AppointmentNotFoundException(appointmentId)),
-                HttpStatus.NOT_FOUND, "Appointment not found: " + appointmentId);
-        assertProblem(handler.notFound(new DoctorNotFoundException(doctorId)),
-                HttpStatus.NOT_FOUND, "Doctor not found: " + doctorId);
-        assertProblem(handler.forbidden(new AccessDeniedException("not participant")),
-                HttpStatus.FORBIDDEN, "not participant");
-        assertProblem(handler.conflict(new AppointmentStateConflictException("slot taken")),
-                HttpStatus.CONFLICT, "slot taken");
-        assertProblem(handler.badRequest(new IllegalArgumentException("invalid duration")),
-                HttpStatus.BAD_REQUEST, "invalid duration");
-        assertProblem(handler.unexpected(new IllegalStateException("database secret")),
-                HttpStatus.INTERNAL_SERVER_ERROR, "An unexpected error occurred");
+    void mapsExpectedAndUnexpectedFailures() {
+        assertThat(handler.forbidden(new AccessDeniedException("denied")).getStatus())
+                .isEqualTo(403);
+        assertThat(handler.badRequest(new IllegalArgumentException("invalid")).getStatus())
+                .isEqualTo(400);
+        assertThat(handler.unexpected(new IllegalStateException("secret")).getDetail())
+                .isEqualTo("An unexpected error occurred");
     }
 
     @Test
@@ -60,14 +47,6 @@ class PatientExceptionHandlerTest {
                 .andExpect(jsonPath("$.detail").value("An unexpected error occurred"))
                 .andExpect(content().string(org.hamcrest.Matchers.not(
                         org.hamcrest.Matchers.containsString("database secret"))));
-    }
-
-    private static void assertProblem(
-            org.springframework.http.ProblemDetail problem,
-            HttpStatus status,
-            String detail) {
-        assertThat(problem.getStatus()).isEqualTo(status.value());
-        assertThat(problem.getDetail()).isEqualTo(detail);
     }
 
     @RestController

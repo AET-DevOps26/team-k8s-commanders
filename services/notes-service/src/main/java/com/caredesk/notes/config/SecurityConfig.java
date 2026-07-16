@@ -1,14 +1,18 @@
 package com.caredesk.notes.config;
 
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.web.servlet.HandlerExceptionResolver;
 
 /**
  * Spring Security configuration for the notes service.
@@ -48,10 +52,24 @@ public class SecurityConfig {
      * @throws Exception if security configuration fails
      */
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(
+            HttpSecurity http,
+            @Qualifier("handlerExceptionResolver") HandlerExceptionResolver exceptionResolver)
+            throws Exception {
         return http
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .exceptionHandling(exceptions -> exceptions
+                        .authenticationEntryPoint((request, response, exception) ->
+                                exceptionResolver.resolveException(request, response, null,
+                                        new ResponseStatusException(
+                                                HttpStatus.UNAUTHORIZED,
+                                                "Authentication is required")))
+                        .accessDeniedHandler((request, response, exception) ->
+                                exceptionResolver.resolveException(request, response, null,
+                                        new ResponseStatusException(
+                                                HttpStatus.FORBIDDEN,
+                                                "Access is denied"))))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
                         .requestMatchers("/actuator/prometheus").permitAll()

@@ -42,6 +42,7 @@ jobs:
           --cov=db
           --cov=routes
           --cov=utils
+          --cov=errors
           --cov-branch
           --cov-fail-under=80
           --cov-report=term-missing

@@ -1,17 +1,20 @@
 package com.caredesk.gateway.filter;
 
 import com.caredesk.gateway.config.JwtUtil;
+import com.caredesk.gateway.error.GatewayProblemDetails;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import org.junit.jupiter.api.Test;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
 import org.springframework.http.HttpStatus;
 import org.springframework.mock.http.server.reactive.MockServerHttpRequest;
 import org.springframework.mock.web.server.MockServerWebExchange;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
+import tools.jackson.databind.ObjectMapper;
 
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -20,7 +23,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 class JwtAuthenticationFilterTest {
 
     private final FakeJwtUtil jwtUtil = new FakeJwtUtil();
-    private final JwtAuthenticationFilter filter = new JwtAuthenticationFilter(jwtUtil);
+    private final JwtAuthenticationFilter filter = new JwtAuthenticationFilter(
+            jwtUtil,
+            new GatewayProblemDetails(new ObjectMapper()));
 
     @Test
     void publicRouteRemovesSpoofedIdentityHeaders() {
@@ -59,6 +64,12 @@ class JwtAuthenticationFilterTest {
         filter.filter(exchange, capturingChain(forwarded)).block();
 
         assertThat(exchange.getResponse().getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+        assertThat(exchange.getResponse().getHeaders().getContentType())
+                .isEqualTo(MediaType.APPLICATION_PROBLEM_JSON);
+        assertThat(exchange.getResponse().getBodyAsString().block())
+                .contains("\"title\":\"Unauthorized\"")
+                .contains("\"status\":401")
+                .contains("\"detail\":\"Authentication is required\"");
         assertThat(forwarded.get()).isNull();
     }
 

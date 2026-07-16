@@ -3,4 +3,8 @@ set -euo pipefail
 
 repo_root="$(git rev-parse --show-toplevel)"
 
-exec npx --yes @redocly/cli lint "$repo_root/api/openapi.yaml"
+# Routes through direnv when present, so IDE git panels (which skip the shell's
+# direnv hook) still find npx on a Nix setup; falls back to a plain npx otherwise.
+lint=(npx --yes @redocly/cli lint "$repo_root/api/openapi.yaml")
+command -v direnv >/dev/null 2>&1 && exec direnv exec "$repo_root" "${lint[@]}"
+exec "${lint[@]}"

@@ -29,6 +29,9 @@ services/ai-assistant/.coverage
 # misc
 CLAUDE.md
 
+# nix-direnv local cache/gcroots
+.direnv/
+
 # Prod secrets — create on the VM, never commit
 .env
 

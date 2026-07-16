@@ -119,6 +119,22 @@ single setup step is enough to get a working development environment.
 - Java JDK (required by OpenAPI Generator)
 - Optional: Python 3.10+ for running generated FastAPI models locally
 
+### Nix flake (optional)
+
+If you use [Nix](https://nixos.org/), `flake.nix` provides a dev shell with
+every prerequisite above (JDK, Maven, Node.js, Python, `docker`) plus the
+tooling needed for Kubernetes/infra work (`kubectl`, `helm`, `kind`,
+`terraform`, `ansible`):
+
+```bash
+nix develop
+```
+
+With [direnv](https://direnv.net/) installed, `.envrc` loads this
+automatically on `cd` into the repo (run `direnv allow` once). This is purely
+an alternative way to get the prerequisites — everything below works the same
+whether or not you use it.
+
 ### Quick setup
 
 Run the consolidated setup script from the repository root. It will:

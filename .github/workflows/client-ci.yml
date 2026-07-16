@@ -6,11 +6,13 @@ on:
       - 'web-client/**'
       - 'api/openapi.yaml'
       - '.github/workflows/client-ci.yml'
+      - '.github/scripts/write-vitest-coverage-summary.mjs'
   pull_request:
     paths:
       - 'web-client/**'
       - 'api/openapi.yaml'
       - '.github/workflows/client-ci.yml'
+      - '.github/scripts/write-vitest-coverage-summary.mjs'
 
 jobs:
   lint-test-build:
@@ -44,6 +46,19 @@ jobs:
 
       - name: Test client
         run: npm run test:coverage
+
+      - name: Display client coverage
+        if: always()
+        run: node ../.github/scripts/write-vitest-coverage-summary.mjs coverage/coverage-summary.json "Web client"
+
+      - name: Upload client coverage report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: web-client-coverage-report
+          path: web-client/coverage/
+          if-no-files-found: warn
+          retention-days: 14
 
       - name: Build client
         run: npm run build

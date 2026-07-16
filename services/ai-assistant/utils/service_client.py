@@ -34,7 +34,12 @@ from caredesk_client.models.visit_history import VisitHistory
 # Identity headers set by the gateway after it validates the JWT. We forward
 # whichever of these are present on the incoming request so the downstream
 # service sees the same caller.
-_FORWARDED_HEADERS = ("x-user-email", "x-user-role", "x-user-id")
+_FORWARDED_HEADERS = (
+    "x-user-email",
+    "x-user-role",
+    "x-user-id",
+    "x-correlation-id",
+)
 
 _TIMEOUT = 10.0
 

@@ -7,15 +7,19 @@ import com.caredesk.notification.model.NotificationType;
 import com.caredesk.notification.repository.NotificationRepository;
 import com.caredesk.notification.service.NotificationsService;
 import org.junit.jupiter.api.Test;
+import org.slf4j.MDC;
 
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicReference;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -119,5 +123,19 @@ class ReminderSchedulerTest {
         scheduler.sendDueReminders();
 
         verify(notificationsService, never()).recordAndSendReminder(any(), any(), any(), any(), any());
+    }
+
+    @Test
+    void scopesOneCorrelationIdToEachScheduledScan() {
+        AtomicReference<String> observedId = new AtomicReference<>();
+        doAnswer(invocation -> {
+            observedId.set(MDC.get("correlationId"));
+            return List.of();
+        }).when(patientClient).fetchUpcoming(24);
+
+        scheduler.sendDueReminders();
+
+        assertThat(UUID.fromString(observedId.get())).isNotNull();
+        assertThat(MDC.get("correlationId")).isNull();
     }
 }

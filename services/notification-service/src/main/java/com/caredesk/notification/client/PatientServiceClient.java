@@ -1,5 +1,6 @@
 package com.caredesk.notification.client;
 
+import com.caredesk.notification.config.CorrelationIdClientInterceptor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -41,7 +42,11 @@ public class PatientServiceClient {
         SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
         requestFactory.setConnectTimeout(Duration.ofSeconds(2));
         requestFactory.setReadTimeout(Duration.ofSeconds(3));
-        this.restClient = RestClient.builder().baseUrl(baseUrl).requestFactory(requestFactory).build();
+        this.restClient = RestClient.builder()
+                .baseUrl(baseUrl)
+                .requestFactory(requestFactory)
+                .requestInterceptor(new CorrelationIdClientInterceptor())
+                .build();
     }
 
     /**

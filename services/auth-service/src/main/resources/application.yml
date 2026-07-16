@@ -67,3 +67,9 @@ caredesk:
       name: ${CAREDESK_ADMIN_NAME:}
       email: ${CAREDESK_ADMIN_EMAIL:}
       password: ${CAREDESK_ADMIN_PASSWORD:}
+
+logging:
+  level:
+    root: ${LOG_LEVEL:INFO}
+  pattern:
+    console: "%d{yyyy-MM-dd'T'HH:mm:ss.SSSXXX} level=%-5level service=${spring.application.name} correlationId=%X{correlationId:-none} logger=%logger{36} message=%msg%n%wEx"

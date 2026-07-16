@@ -1,5 +1,8 @@
 package com.caredesk.patient.service;
 
+import com.caredesk.patient.config.CorrelationIdClientInterceptor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.openapitools.model.PaginatedUserProfileResponse;
 import org.openapitools.model.UserProfile;
 import org.springframework.beans.factory.annotation.Value;
@@ -29,6 +32,8 @@ import java.util.UUID;
 @Component
 public class AuthServiceClient {
 
+    private static final Logger log = LoggerFactory.getLogger(AuthServiceClient.class);
+
     private final RestClient restClient;
 
     /**
@@ -41,7 +46,11 @@ public class AuthServiceClient {
         SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
         requestFactory.setConnectTimeout(Duration.ofSeconds(2));
         requestFactory.setReadTimeout(Duration.ofSeconds(3));
-        this.restClient = RestClient.builder().baseUrl(baseUrl).requestFactory(requestFactory).build();
+        this.restClient = RestClient.builder()
+                .baseUrl(baseUrl)
+                .requestFactory(requestFactory)
+                .requestInterceptor(new CorrelationIdClientInterceptor())
+                .build();
     }
 
     /**
@@ -61,6 +70,7 @@ public class AuthServiceClient {
             return null;
         } catch (RuntimeException e) {
             // Network errors, timeouts, etc. Caller falls back to id-only profile.
+            log.error("Failed to fetch user {} from auth-service", userId, e);
             return null;
         }
     }

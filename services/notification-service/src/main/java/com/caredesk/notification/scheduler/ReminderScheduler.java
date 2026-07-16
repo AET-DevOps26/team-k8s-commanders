@@ -2,12 +2,14 @@ package com.caredesk.notification.scheduler;
 
 import com.caredesk.notification.client.PatientServiceClient;
 import com.caredesk.notification.client.UpcomingAppointment;
+import com.caredesk.notification.config.RequestLoggingFilter;
 import com.caredesk.notification.model.Notification;
 import com.caredesk.notification.model.NotificationType;
 import com.caredesk.notification.repository.NotificationRepository;
 import com.caredesk.notification.service.NotificationsService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -17,6 +19,7 @@ import org.springframework.util.StringUtils;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.Optional;
+import java.util.UUID;
 
 /**
  * Periodically sends reminder emails for appointments due soon.
@@ -81,8 +84,16 @@ public class ReminderScheduler {
             fixedDelayString = "${notification.reminder.scan-interval-ms:900000}",
             initialDelayString = "${notification.reminder.initial-delay-ms:60000}")
     public void sendDueReminders() {
+        try (MDC.MDCCloseable ignored = MDC.putCloseable(
+                RequestLoggingFilter.MDC_KEY, UUID.randomUUID().toString())) {
+            scanDueReminders();
+        }
+    }
+
+    private void scanDueReminders() {
         var upcoming = patientServiceClient.fetchUpcoming(windowHours);
         if (upcoming.isEmpty()) {
+            log.info("Reminder scan completed candidates=0 remindersSent=0");
             return;
         }
         int sent = 0;
@@ -113,9 +124,7 @@ public class ReminderScheduler {
                         appt.appointmentId(), e.getMessage());
             }
         }
-        if (sent > 0) {
-            log.info("Reminder scan processed {} reminder(s)", sent);
-        }
+        log.info("Reminder scan completed candidates={} remindersSent={}", upcoming.size(), sent);
     }
 
     private static String reminderBody(UpcomingAppointment appt) {

@@ -41,6 +41,7 @@ jobs:
           --cov=main
           --cov=db
           --cov=routes
+          --cov=observability
           --cov=utils
           --cov-branch
           --cov-fail-under=80

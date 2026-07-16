@@ -26,6 +26,9 @@ services/ai-assistant/.coverage
 # pre-commit cache
 .cache/
 
+# nix-direnv cache
+.direnv/
+
 # misc
 CLAUDE.md
 

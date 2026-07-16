@@ -82,8 +82,13 @@ also land in the Mailpit inbox — useful for demos without Discord. It needs
 Grafana's SMTP pointed at Mailpit, which `grafana.smtp` does by default
 (`caredesk-mailpit.team-k8s-commanders.svc.cluster.local:1025`); if you rename
 the app namespace or release, update `grafana.smtp.host` to match or alert
-emails silently fail to send. Disable with `--set grafana.smtp.enabled=false`,
-which leaves Discord as the only delivery path.
+emails silently fail to send. The `caredesk-mailpit-email` contact point and
+its route in the notification policy are unconditional — `--set
+grafana.smtp.enabled=false` only stops the `GF_SMTP_*` env vars from being set
+on the Grafana deployment, so email deliveries still get attempted and simply
+fail (logged as errors) since SMTP isn't configured. There's no flag that
+actually removes the email route; to do that, edit
+`infra/grafana/provisioning/alerting/contact-points.yaml` directly.
 
 The webhook URL is interpolated from the
 `DISCORD_WEBHOOK_URL` env var at Grafana startup — set the `DISCORD_WEBHOOK_URL`

@@ -23,6 +23,9 @@ web-client/dist/
 # pre-commit cache
 .cache/
 
+# nix-direnv cache
+.direnv/
+
 # misc
 CLAUDE.md
 

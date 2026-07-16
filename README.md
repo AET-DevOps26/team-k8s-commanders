@@ -325,7 +325,8 @@ heap pressure and Hikari connection-pool saturation.
 Every firing alert fans out to **two** contact points:
 
 - **Discord** — via webhook, interpolated from `DISCORD_WEBHOOK_URL` at Grafana
-  startup so the real URL lives only in the GitHub secret or your local `.env`.
+  startup so the real URL lives only in the GitHub secret, your local `.env`, or
+  the Grafana Kubernetes Secret it's rendered into at deploy time — never in git.
   Without it, a placeholder keeps Grafana booting and alerts still show in the UI.
 - **Email into Mailpit** — Grafana's SMTP points at the same Mailpit catch-all
   that receives the application's booking mail (`mailpit:1025` in compose, the

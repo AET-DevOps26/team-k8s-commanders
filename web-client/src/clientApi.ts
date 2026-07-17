@@ -70,6 +70,19 @@ export class RequestError extends Error {
   }
 }
 
+/**
+ * Fires when an authenticated request comes back 401 — the token we sent was
+ * rejected (expired, or invalidated by e.g. a JWT_SECRET rotation on
+ * redeploy), as opposed to a bare login/register attempt with no token, which
+ * also answers 401 for wrong credentials but isn't a session problem.
+ * App.tsx registers this once to drive the actual logout/redirect.
+ */
+let onSessionExpired: (() => void) | null = null
+
+export function setSessionExpiredHandler(handler: (() => void) | null) {
+  onSessionExpired = handler
+}
+
 async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const response = await fetch(`${API_URL}${path}`, {
     method: options.method ?? 'GET',
@@ -84,6 +97,10 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
   })
 
   if (!response.ok) {
+    if (response.status === 401 && options.token) {
+      onSessionExpired?.()
+    }
+
     throw new RequestError(response.status, await getErrorMessage(response))
   }
 
@@ -325,6 +342,10 @@ export async function streamAiMessage(
   })
 
   if (!response.ok) {
+    if (response.status === 401) {
+      onSessionExpired?.()
+    }
+
     throw new RequestError(response.status, await getErrorMessage(response))
   }
 

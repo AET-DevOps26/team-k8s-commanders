@@ -12,7 +12,7 @@
       }
     ]
   },
-  "description": "Cross-service health, HTTP traffic and latency for all CareDesk microservices.",
+  "description": "Cross-service health, HTTP traffic, latency and CareDesk-specific business activity (bookings, AI assistant usage) for all CareDesk microservices.",
   "editable": false,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 1,
@@ -305,6 +305,171 @@
         }
       ],
       "title": "AI Assistant Request Rate",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "description": "How long individual requests actually take: each column is a time bucket, each cell a latency bucket, color is request count. Reveals a slow tail that an average can hide.",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {"scaleDistribution": {"type": "linear"}}
+        },
+        "overrides": []
+      },
+      "gridPos": {"h": 9, "w": 12, "x": 0, "y": 29},
+      "id": 6,
+      "options": {
+        "calculate": false,
+        "cellGap": 1,
+        "color": {
+          "exponent": 0.5,
+          "fill": "dark-orange",
+          "mode": "scheme",
+          "reverse": false,
+          "scale": "exponential",
+          "scheme": "Oranges",
+          "steps": 64
+        },
+        "legend": {"show": true},
+        "tooltip": {"mode": "single", "showColorScale": false, "yHistogram": false},
+        "yAxis": {"axisPlacement": "left", "reverse": false, "unit": "s"}
+      },
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "expr": "sum(rate(http_server_requests_seconds_bucket{job=~\"api-gateway|auth-service|patient-service|notes-service|notification-service\"}[5m])) by (le)",
+          "format": "heatmap",
+          "legendFormat": "{{le}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Spring Services Latency Heatmap",
+      "type": "heatmap"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "description": "How long individual AI assistant requests actually take (buckets from prometheus-fastapi-instrumentator's default histogram).",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {"scaleDistribution": {"type": "linear"}}
+        },
+        "overrides": []
+      },
+      "gridPos": {"h": 9, "w": 12, "x": 12, "y": 29},
+      "id": 7,
+      "options": {
+        "calculate": false,
+        "cellGap": 1,
+        "color": {
+          "exponent": 0.5,
+          "fill": "dark-orange",
+          "mode": "scheme",
+          "reverse": false,
+          "scale": "exponential",
+          "scheme": "Oranges",
+          "steps": 64
+        },
+        "legend": {"show": true},
+        "tooltip": {"mode": "single", "showColorScale": false, "yHistogram": false},
+        "yAxis": {"axisPlacement": "left", "reverse": false, "unit": "s"}
+      },
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "expr": "sum(rate(http_request_duration_seconds_bucket{job=\"ai-assistant\"}[5m])) by (le)",
+          "format": "heatmap",
+          "legendFormat": "{{le}}",
+          "refId": "A"
+        }
+      ],
+      "title": "AI Assistant Latency Heatmap",
+      "type": "heatmap"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 38},
+      "id": 16,
+      "title": "CareDesk Activity",
+      "type": "row"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "description": "How many appointments are being booked vs. cancelled — clinic booking activity, not infrastructure health. Both series are patient-service's http.server.requests for POST /appointments and POST /appointments/{appointmentId}/cancel, counting only successful (2xx) requests.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {
+            "axisPlacement": "auto",
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "showPoints": "never",
+            "spanNulls": false
+          },
+          "unit": "reqps"
+        },
+        "overrides": []
+      },
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 39},
+      "id": 17,
+      "options": {
+        "legend": {"calcs": ["mean", "max"], "displayMode": "table", "placement": "bottom"},
+        "tooltip": {"mode": "multi", "sort": "desc"}
+      },
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "expr": "sum(rate(http_server_requests_seconds_count{job=\"patient-service\", uri=\"/appointments\", method=\"POST\", status=~\"2..\"}[5m]))",
+          "legendFormat": "Booked",
+          "refId": "A"
+        },
+        {
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "expr": "sum(rate(http_server_requests_seconds_count{job=\"patient-service\", uri=\"/appointments/{appointmentId}/cancel\", method=\"POST\", status=~\"2..\"}[5m]))",
+          "legendFormat": "Cancelled",
+          "refId": "B"
+        }
+      ],
+      "title": "Appointment Bookings vs. Cancellations",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "description": "Messages sent to the AI clinical assistant (POST /ai/sessions/{session_id}/messages) — adoption of the AI feature itself, not just its request latency.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {
+            "axisPlacement": "auto",
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "showPoints": "never",
+            "spanNulls": false
+          },
+          "unit": "reqps"
+        },
+        "overrides": []
+      },
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 39},
+      "id": 18,
+      "options": {
+        "legend": {"calcs": ["mean", "max"], "displayMode": "table", "placement": "bottom"},
+        "tooltip": {"mode": "multi", "sort": "desc"}
+      },
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "expr": "sum(rate(http_request_duration_seconds_count{job=\"ai-assistant\", handler=\"/ai/sessions/{session_id}/messages\"}[5m]))",
+          "legendFormat": "Messages sent",
+          "refId": "A"
+        }
+      ],
+      "title": "AI Assistant Messages Sent",
       "type": "timeseries"
     }
   ],

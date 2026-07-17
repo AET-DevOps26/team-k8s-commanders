@@ -1224,35 +1224,6 @@
       }
     },
     {
-      "id": "fc12e83c-5afc-466f-997b-9b4d641ac25e",
-      "source": "27ca44c4-fd2f-451b-9fa0-661f7abe21e4",
-      "target": "914e8d29-a6cd-4a4f-b8c7-104a42a68d2a",
-      "type": "DeploymentAssociation",
-      "sourceHandle": "bottom",
-      "targetHandle": "top",
-      "data": {
-        "points": [
-          {
-            "x": 445,
-            "y": 146
-          },
-          {
-            "x": 445,
-            "y": 590
-          },
-          {
-            "x": 1585,
-            "y": 590
-          },
-          {
-            "x": 1585,
-            "y": 679
-          }
-        ],
-        "label": "HTTP (JWT-verified)"
-      }
-    },
-    {
       "id": "38727908-2afd-445e-b897-bab0f6af8514",
       "source": "69f049eb-1552-4a5e-9d08-24cc04d4e4ea",
       "target": "db5dd82a-a4c4-4d81-ad68-d6f4e6cdfe1e",

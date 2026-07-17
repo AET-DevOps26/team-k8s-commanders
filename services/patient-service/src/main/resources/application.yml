@@ -17,6 +17,10 @@ notification-service:
 spring:
   application:
     name: patient-service
+  # Render framework errors as RFC 9457 application/problem+json.
+  mvc:
+    problemdetails:
+      enabled: true
   jackson:
     # Omit null properties from JSON responses. The OpenAPI contract models
     # optional fields by absence (e.g. UserProfile.clinicId is optional and NOT
@@ -65,3 +69,9 @@ management:
       # Deployed version (image tag), injected as APP_VERSION by Helm/compose.
       # Tags every metric so changes can be correlated with releases in Grafana.
       version: ${APP_VERSION:unknown}
+
+logging:
+  level:
+    root: ${LOG_LEVEL:INFO}
+  pattern:
+    console: "%d{yyyy-MM-dd'T'HH:mm:ss.SSSXXX} level=%-5level service=${spring.application.name} correlationId=%X{correlationId:-none} logger=%logger{36} message=%msg%n%wEx"

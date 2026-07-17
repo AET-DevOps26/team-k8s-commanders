@@ -8,7 +8,9 @@ from prometheus_client import Info
 from prometheus_fastapi_instrumentator import Instrumentator
 
 from db.engine import init_models
+from errors import install_exception_handlers
 from routes import sessions, health
+from observability import configure_observability
 
 load_dotenv()
 
@@ -29,7 +31,10 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+install_exception_handlers(app)
+
 Instrumentator().instrument(app).expose(app, endpoint="/metrics")
+configure_observability(app)
 
 # Version visibility: app_info{version=...} 1 — the deployed image tag, injected
 # as APP_VERSION by Helm/compose. Counterpart of the Micrometer common `version`

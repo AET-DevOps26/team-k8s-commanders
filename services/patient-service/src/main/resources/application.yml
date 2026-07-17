@@ -17,6 +17,10 @@ notification-service:
 spring:
   application:
     name: patient-service
+  # Render framework errors as RFC 9457 application/problem+json.
+  mvc:
+    problemdetails:
+      enabled: true
   jackson:
     # Omit null properties from JSON responses. The OpenAPI contract models
     # optional fields by absence (e.g. UserProfile.clinicId is optional and NOT

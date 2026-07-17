@@ -43,6 +43,7 @@ jobs:
           --cov=routes
           --cov=observability
           --cov=utils
+          --cov=errors
           --cov-branch
           --cov-fail-under=80
           --cov-report=term-missing

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import './App.css'
 import { AdminDashboard } from './admin'
 import type { AuthSession } from './clientApi'
-import { logout } from './clientApi'
+import { logout, setSessionExpiredHandler } from './clientApi'
 import { AuthForm } from './components/auth/AuthForm'
 import { DoctorBookAppointmentPage } from './components/doctor/DoctorBookAppointmentPage'
 import { DoctorDashboard } from './components/doctor/DoctorDashboard'
@@ -25,6 +25,7 @@ export default function App() {
   const [session, setSession] = useState<AuthSession | null>(getStoredSession)
   const [patientBookingSuccess, setPatientBookingSuccess] = useState(false)
   const [doctorBookingSuccess, setDoctorBookingSuccess] = useState(false)
+  const [sessionExpired, setSessionExpired] = useState(false)
 
   useEffect(() => {
     function handlePopState() {
@@ -38,6 +39,21 @@ export default function App() {
     }
   }, [])
 
+  useEffect(() => {
+    // Any authenticated request can 401 at any time — most commonly a
+    // redeploy rotating JWT_SECRET and invalidating every token issued
+    // before it. Without this, the UI stays on a stale dashboard showing a
+    // "logged in" state the backend no longer honors.
+    setSessionExpiredHandler(() => {
+      clearSession()
+      setSession(null)
+      setSessionExpired(true)
+      navigate('/login')
+    })
+
+    return () => setSessionExpiredHandler(null)
+  }, [])
+
   function navigate(path: Route) {
     window.history.pushState({}, '', path)
     setRoute(path)
@@ -46,6 +62,7 @@ export default function App() {
   function handleAuthenticated(nextSession: AuthSession) {
     saveSession(nextSession)
     setSession(nextSession)
+    setSessionExpired(false)
     navigate(
       nextSession.user.role === 'ADMIN'
         ? '/admin'
@@ -75,6 +92,7 @@ export default function App() {
     return (
       <AuthForm
         mode={route === '/register' ? 'register' : 'login'}
+        notice={route === '/login' && sessionExpired ? 'Your session has expired. Please log in again.' : undefined}
         onAuthenticated={handleAuthenticated}
         onNavigate={navigate}
       />

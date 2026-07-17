@@ -337,7 +337,7 @@
       "targets": [
         {
           "datasource": {"type": "prometheus", "uid": "prometheus"},
-          "expr": "sum(rate(http_server_requests_seconds_bucket{job=~\"api-gateway|auth-service|patient-service|notes-service|notification-service\"}[5m])) by (le)",
+          "expr": "sum(rate(http_server_requests_seconds_bucket{job=~\"auth-service|patient-service|notes-service|notification-service\"}[5m])) by (le)",
           "format": "heatmap",
           "legendFormat": "{{le}}",
           "refId": "A"
@@ -464,7 +464,7 @@
       "targets": [
         {
           "datasource": {"type": "prometheus", "uid": "prometheus"},
-          "expr": "sum(rate(http_request_duration_seconds_count{job=\"ai-assistant\", handler=\"/ai/sessions/{session_id}/messages\"}[5m]))",
+          "expr": "sum(rate(http_request_duration_seconds_count{job=\"ai-assistant\", handler=\"/ai/sessions/{session_id}/messages\", method=\"POST\"}[5m]))",
           "legendFormat": "Messages sent",
           "refId": "A"
         }

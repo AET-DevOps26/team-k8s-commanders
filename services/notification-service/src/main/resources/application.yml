@@ -97,6 +97,17 @@ management:
       # Deployed version (image tag), injected as APP_VERSION by Helm/compose.
       # Tags every metric so changes can be correlated with releases in Grafana.
       version: ${APP_VERSION:unknown}
+  tracing:
+    sampling:
+      # Share of requests traced. 1.0 (every request) is fine at this traffic
+      # volume; drop it before this ever sees production-scale load.
+      probability: ${TRACING_SAMPLING_PROBABILITY:1.0}
+  otlp:
+    tracing:
+      # Tempo's OTLP/HTTP receiver, injected by Helm/compose. Unreachable when
+      # Tempo isn't deployed — the exporter just logs failed exports, same
+      # tolerance as a scrape target being down.
+      endpoint: ${OTLP_ENDPOINT:http://localhost:4318/v1/traces}
 
 logging:
   level:

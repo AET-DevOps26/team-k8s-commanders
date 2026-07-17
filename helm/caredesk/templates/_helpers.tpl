@@ -125,6 +125,24 @@ imagePullSecrets:
       key: JWT_SECRET
 {{- end -}}
 
+{{/* OTLP traces endpoint — Tempo's HTTP receiver in the monitoring namespace
+     (helm/caredesk-monitoring). Points at a namespace/release that may not be
+     deployed (monitoring.enabled=false); exporters just fail to reach it
+     quietly, the same tolerance already given to a down Prometheus scrape
+     target. */}}
+{{- define "caredesk.otlpTracesEndpoint" -}}
+{{- printf "http://%s-tempo.%s.svc.cluster.local:4318/v1/traces" .Values.monitoring.release .Values.monitoring.namespace -}}
+{{- end -}}
+
+{{/* Tracing env shared by every Spring service: OTLP endpoint + sampling rate.
+     Call with: include "caredesk.tracingEnv" $ */}}
+{{- define "caredesk.tracingEnv" -}}
+- name: OTLP_ENDPOINT
+  value: {{ include "caredesk.otlpTracesEndpoint" . | quote }}
+- name: TRACING_SAMPLING_PROBABILITY
+  value: {{ .Values.backend.tracingSamplingProbability | quote }}
+{{- end -}}
+
 {{/* Demo-seeding switch (shared by every backend Spring service). When
      .Values.seedDemoData is true, activates the `dev` Spring profile — the
      single switch that turns on auth-service's DemoDataSeeder (4 demo patients +

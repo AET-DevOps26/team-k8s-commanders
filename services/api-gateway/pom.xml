@@ -54,6 +54,18 @@
             <artifactId>micrometer-registry-prometheus</artifactId>
             <scope>runtime</scope>
         </dependency>
+        <!-- Distributed tracing: bridges Micrometer Observation (already driving the
+             Prometheus metrics above) into OpenTelemetry spans, exported via OTLP/HTTP
+             to Tempo. Versions come from Spring Boot's own BOM, not pinned here. -->
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-tracing-bridge-otel</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.opentelemetry</groupId>
+            <artifactId>opentelemetry-exporter-otlp</artifactId>
+            <scope>runtime</scope>
+        </dependency>
 
         <!-- Self-hosted Swagger UI served at /api/v1/docs against the bundled
              OpenAPI spec. webjars-locator-lite lets the resource handler resolve

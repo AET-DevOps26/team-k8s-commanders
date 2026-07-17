@@ -377,6 +377,30 @@ monitoring upgrades never touch the app. Scrape targets, the namespace/quota
 split, alert-webhook setup and troubleshooting are documented in
 [`helm/caredesk-monitoring/README.md`](helm/caredesk-monitoring/README.md).
 
+### Tracing
+
+Every service also exports distributed traces to **Tempo** over OTLP/HTTP: the
+Spring services via Micrometer Tracing (`micrometer-tracing-bridge-otel`), the
+AI assistant via the OpenTelemetry Python SDK (`services/ai-assistant/observability.py`).
+A request that crosses the gateway, a backend service and the AI assistant's
+outgoing httpx calls to patient-service/notes-service shows up as one trace,
+since the W3C `traceparent` header propagates through every hop automatically.
+
+In Grafana, open **Explore**, pick the **Tempo** datasource, and search by
+service name or duration to find a trace; click one for the waterfall view of
+every span. Tempo's config lives in [`infra/tempo/tempo.yaml`](infra/tempo/tempo.yaml)
+(single-binary mode, local disk storage, 48h retention) — shared between
+compose and the Helm chart the same way as the Grafana dashboards/alert rules.
+Sampling is one knob, `backend.tracingSamplingProbability` in
+[`helm/caredesk/values.yaml`](helm/caredesk/values.yaml) (compose hardcodes
+1.0) — every request is traced by default, since traffic at this scale never
+gets close to needing to sample down.
+
+Tempo is **not exposed** through the ingress, same reasoning as Prometheus:
+its query API has no authentication, and the app namespace's NetworkPolicies
+admit only the whole app namespace on its OTLP receiver (4318) and Grafana on
+its query API (3200) — see `helm/caredesk-monitoring/templates/networkpolicy.yaml`.
+
 ## CI/CD
 
 GitHub Actions covers the whole path from pull request to deployed cluster.

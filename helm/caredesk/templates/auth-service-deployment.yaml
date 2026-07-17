@@ -32,6 +32,7 @@ spec:
             - name: SERVER_PORT
               value: {{ .Values.auth.service.port | quote }}
             {{- include "caredesk.appVersionEnv" (dict "root" $ "image" .Values.auth.image) | nindent 12 }}
+            {{- include "caredesk.tracingEnv" $ | nindent 12 }}
             - name: JWT_EXPIRATION_MS
               value: {{ .Values.backend.jwtExpirationMs | quote }}
             - name: CAREDESK_BOOTSTRAP_ADMIN_ENABLED

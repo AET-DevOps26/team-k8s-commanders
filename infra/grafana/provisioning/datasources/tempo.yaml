@@ -1,0 +1,10 @@
+apiVersion: 1
+datasources:
+  - name: Tempo
+    type: tempo
+    uid: tempo
+    url: ${TEMPO_URL}
+    access: proxy
+    editable: false
+    jsonData:
+      httpMethod: GET

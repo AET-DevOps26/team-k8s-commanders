@@ -77,6 +77,12 @@ services:
       # Source-of-truth services the assistant pulls live patient context from.
       PATIENT_SERVICE_URL: http://patient-service:8082
       NOTES_SERVICE_URL: http://notes-service:8083
+      # Traces exported to Tempo over OTLP/HTTP (read directly by the
+      # OpenTelemetry Python SDK — see services/ai-assistant/observability.py).
+      OTEL_SERVICE_NAME: ai-assistant
+      OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: http://tempo:4318/v1/traces
+      OTEL_TRACES_SAMPLER: parentbased_traceidratio
+      OTEL_TRACES_SAMPLER_ARG: "1.0"
       # Persistent conversation sessions.
       DB_HOST: ai-db
       DB_PORT: 5432
@@ -153,6 +159,9 @@ services:
     environment:
       # Surfaces as the `version` tag on all metrics; compose builds from source.
       APP_VERSION: local
+      # Traces exported to Tempo over OTLP/HTTP.
+      OTLP_ENDPOINT: http://tempo:4318/v1/traces
+      TRACING_SAMPLING_PROBABILITY: "1.0"
       DB_HOST: auth-db
       DB_PORT: 5432
       DB_NAME: auth_db
@@ -220,6 +229,9 @@ services:
     environment:
       # Surfaces as the `version` tag on all metrics; compose builds from source.
       APP_VERSION: local
+      # Traces exported to Tempo over OTLP/HTTP.
+      OTLP_ENDPOINT: http://tempo:4318/v1/traces
+      TRACING_SAMPLING_PROBABILITY: "1.0"
       DB_HOST: patient-db
       DB_PORT: 5432
       DB_NAME: patient_db
@@ -279,6 +291,9 @@ services:
     environment:
       # Surfaces as the `version` tag on all metrics; compose builds from source.
       APP_VERSION: local
+      # Traces exported to Tempo over OTLP/HTTP.
+      OTLP_ENDPOINT: http://tempo:4318/v1/traces
+      TRACING_SAMPLING_PROBABILITY: "1.0"
       DB_HOST: notes-db
       DB_PORT: 5432
       DB_NAME: notes_db
@@ -349,6 +364,9 @@ services:
     environment:
       # Surfaces as the `version` tag on all metrics; compose builds from source.
       APP_VERSION: local
+      # Traces exported to Tempo over OTLP/HTTP.
+      OTLP_ENDPOINT: http://tempo:4318/v1/traces
+      TRACING_SAMPLING_PROBABILITY: "1.0"
       DB_HOST: notification-db
       DB_PORT: 5432
       DB_NAME: notification_db
@@ -395,6 +413,9 @@ services:
     environment:
       # Surfaces as the `version` tag on all metrics; compose builds from source.
       APP_VERSION: local
+      # Traces exported to Tempo over OTLP/HTTP.
+      OTLP_ENDPOINT: http://tempo:4318/v1/traces
+      TRACING_SAMPLING_PROBABILITY: "1.0"
       AUTH_SERVICE_URL: http://auth-service:8081
       AI_ASSISTANT_URL: http://ai-assistant:8000
       PATIENT_SERVICE_URL: http://patient-service:8082
@@ -429,6 +450,19 @@ services:
     networks:
       - caredesk
 
+  tempo:
+    image: grafana/tempo:2.10.7
+    volumes:
+      - ./infra/tempo/tempo.yaml:/etc/tempo/tempo.yaml:ro
+      - tempo-data:/var/tempo
+    command:
+      - '-config.file=/etc/tempo/tempo.yaml'
+    ports:
+      - "3200:3200"   # Tempo's own query API — handy for ad-hoc debugging
+    restart: unless-stopped
+    networks:
+      - caredesk
+
   grafana:
     image: grafana/grafana:11.6.16
     # No host port published — reached through Caddy at http://localhost/grafana
@@ -442,6 +476,7 @@ services:
       GF_SERVER_ROOT_URL: http://localhost/grafana
       GF_SERVER_SERVE_FROM_SUB_PATH: "true"
       PROMETHEUS_URL: http://prometheus:9090
+      TEMPO_URL: http://tempo:3200
       # Alert delivery (provisioning/alerting/contact-points.yaml). The
       # placeholder keeps Grafana provisioning valid when no webhook is set —
       # alerts then only show in the UI. Set a real URL in .env to deliver.
@@ -460,6 +495,7 @@ services:
     restart: unless-stopped
     depends_on:
       - prometheus
+      - tempo
     networks:
       - caredesk
 
@@ -475,4 +511,5 @@ volumes:
   ai-db-data:
   ollama_data:
   prometheus-data:
+  tempo-data:
   grafana-data:

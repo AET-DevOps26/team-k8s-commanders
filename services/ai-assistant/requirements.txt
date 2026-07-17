@@ -19,3 +19,13 @@ asyncpg==0.31.0
 
 # == Metrics ==
 prometheus-fastapi-instrumentator==8.0.2
+
+# == Tracing (spans exported to Tempo via OTLP/HTTP) ==
+# The 1.x (core) and 0.Nb0 (instrumentation) version numbers are versioned
+# independently but released in lockstep — they must be bumped together.
+opentelemetry-sdk==1.44.0
+opentelemetry-exporter-otlp-proto-http==1.44.0
+opentelemetry-instrumentation-fastapi==0.65b0
+# Instruments the httpx calls the generated caredesk_client makes to
+# patient-service/notes-service so their spans chain into the same trace.
+opentelemetry-instrumentation-httpx==0.65b0

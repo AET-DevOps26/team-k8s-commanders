@@ -1,0 +1,34 @@
+# Single-binary Tempo: one process runs distributor, ingester, compactor and
+# querier together — plenty for this project's trace volume, and it needs no
+# separate object store (traces land on local disk, like Prometheus's TSDB).
+# Shared verbatim between docker-compose and the caredesk-monitoring Helm chart
+# (see helm/caredesk-monitoring/tempo, a symlink to this directory) — the same
+# pattern already used for Grafana's dashboards/alerting.
+server:
+  http_listen_port: 3200
+
+# Only the HTTP OTLP receiver is enabled: every CareDesk exporter (Micrometer
+# Tracing on the Spring services, the OpenTelemetry Python SDK on ai-assistant)
+# ships spans over OTLP/HTTP, so the gRPC receiver would just be unused attack
+# surface.
+distributor:
+  receivers:
+    otlp:
+      protocols:
+        http:
+          endpoint: 0.0.0.0:4318
+
+ingester:
+  max_block_duration: 5m
+
+compactor:
+  compaction:
+    block_retention: 48h
+
+storage:
+  trace:
+    backend: local
+    local:
+      path: /var/tempo/blocks
+    wal:
+      path: /var/tempo/wal

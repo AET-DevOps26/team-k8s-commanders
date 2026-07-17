@@ -1,9 +1,9 @@
 name: Deploy Monitoring to AET Cluster
 
-# Deploys the Prometheus + Grafana stack (helm/caredesk-monitoring) into its
-# own namespace, separate from the app deploy (deploy-k8s.yml). No workflow_run
-# trigger: the stack uses public upstream images, so it never waits on our
-# image builds.
+# Deploys the Prometheus + Tempo + Grafana stack (helm/caredesk-monitoring)
+# into its own namespace, separate from the app deploy (deploy-k8s.yml). No
+# workflow_run trigger: the stack uses public upstream images, so it never
+# waits on our image builds.
 
 on:
   push:
@@ -11,8 +11,10 @@ on:
     paths:
       - 'helm/caredesk-monitoring/**'
       # Dashboards and alert rules are baked into ConfigMaps from infra/grafana
-      # (via chart symlinks), so editing them must redeploy the chart.
+      # (via chart symlinks), so editing them must redeploy the chart. Same for
+      # Tempo's config from infra/tempo.
       - 'infra/grafana/**'
+      - 'infra/tempo/**'
       - '.github/workflows/deploy-k8s-monitoring.yml'
   workflow_dispatch:
 
@@ -62,11 +64,12 @@ jobs:
         run: |
           NS="team-k8s-commanders-monitoring"
           # Reserve this namespace's share of the project quota (Prometheus
-          # 150m/512Mi + Grafana 200m/256Mi steady state, plus headroom). The
-          # app namespace reserves the remaining 5500m/7168Mi of the project's
-          # 6000m/8192Mi — keep the two splits summing to at most that total.
+          # 150m/512Mi + Tempo 100m/256Mi + Grafana 200m/256Mi steady state =
+          # 450m/1024Mi, zero memory headroom left). The app namespace reserves
+          # the remaining 5500m/7168Mi of the project's 6000m/8192Mi — keep the
+          # two splits summing to at most that total.
           bash scripts/ensure-k8s-namespace.sh "${NS}" 500m 1024Mi
-          bash scripts/check-k8s-quota.sh "${NS}" 350 768
+          bash scripts/check-k8s-quota.sh "${NS}" 450 1024
 
       - name: Deploy with Helm
         run: |

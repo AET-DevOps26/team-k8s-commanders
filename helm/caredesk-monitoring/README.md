@@ -1,15 +1,18 @@
 # CareDesk Monitoring Helm Chart
 
-Deploys the **CareDesk observability stack** — **Prometheus** and **Grafana** —
-into its own namespace (`team-k8s-commanders-monitoring`), separate from the app
-([helm/caredesk](../caredesk/), namespace `team-k8s-commanders`).
+Deploys the **CareDesk observability stack** — **Prometheus**, **Tempo** and
+**Grafana** — into its own namespace (`team-k8s-commanders-monitoring`),
+separate from the app ([helm/caredesk](../caredesk/), namespace
+`team-k8s-commanders`).
 
 Why a dedicated namespace:
 
 - **Isolation** — monitoring upgrades/rollbacks never touch the app, and vice versa.
-- **Quota clarity** — the stack's 350m CPU / 768Mi memory budget is accounted
+- **Quota clarity** — the stack's 450m CPU / 1024Mi memory budget is accounted
   separately from the app namespace's 6000m/8192Mi quota (both namespaces share
-  the Rancher **project** quota).
+  the Rancher **project** quota). That's the full 500m/1024Mi Rancher
+  reservation described below — zero headroom left on memory, so raising any
+  component's limit means raising the reservation (or another's) to match.
 - **Cleaner permissions and troubleshooting** — observability resources are not
   mixed in with the microservices.
 
@@ -47,15 +50,20 @@ CI injects it from the `GRAFANA_ADMIN_PASSWORD` GitHub secret (see
 | Component | Image | Port | Storage |
 |-----------|-------|------|---------|
 | Prometheus | `prom/prometheus` | 9090 | 2Gi PVC (7d retention) |
+| Tempo | `grafana/tempo` | 3200 (query), 4318 (OTLP/HTTP ingest) | 1Gi PVC (48h retention) |
 | Grafana | `grafana/grafana` | 3000 | none — fully provisioned from ConfigMaps |
 
 - **Grafana** is exposed at
   `https://caredesk-monitoring-team-k8s-commanders.student.k8s.aet.cit.tum.de/`
   (own host, root path — no sub-path config). Log in with
   `grafana.adminUser` / `grafana.adminPassword`.
-- **Prometheus is not exposed** through the ingress (its API has no auth). A
-  NetworkPolicy restricts it to Grafana; for ad-hoc access use
-  `kubectl -n team-k8s-commanders-monitoring port-forward svc/caredesk-monitoring-prometheus 9090`.
+- **Prometheus and Tempo are not exposed** through the ingress (neither API has
+  auth). NetworkPolicies restrict each: Prometheus to Grafana only; Tempo to
+  Grafana on 3200 (querying) plus the whole app namespace on 4318 (every
+  service sends spans, not just one caller — see
+  `templates/networkpolicy.yaml`). For ad-hoc access:
+  `kubectl -n team-k8s-commanders-monitoring port-forward svc/caredesk-monitoring-prometheus 9090`
+  (or `svc/caredesk-monitoring-tempo 3200`).
 
 ## Cross-namespace scraping
 
@@ -69,6 +77,20 @@ pods labeled `app.kubernetes.io/component=prometheus` **from this namespace**
 
 Scrape jobs are defined in `values.yaml` under `prometheus.targets`; the ports
 mirror `<svc>.service.port` in the caredesk chart — keep them in sync.
+
+## Cross-namespace tracing
+
+Traffic runs the opposite direction from scraping: every CareDesk service
+pushes spans **to** Tempo over OTLP/HTTP, rather than Tempo pulling from them.
+Each service resolves Tempo's address itself
+(`caredesk.otlpTracesEndpoint` in `helm/caredesk/templates/_helpers.tpl`,
+built from `monitoring.release` + `monitoring.namespace` in the caredesk
+chart's `values.yaml`) — if this chart's release name or namespace ever
+changes, update those values too or every exporter silently fails to reach
+Tempo (harmless — spans are just dropped — but traces stop appearing). Tempo's
+own config (single-binary mode, local-disk storage) lives in
+[`infra/tempo/tempo.yaml`](../../infra/tempo/tempo.yaml), symlinked into this
+chart the same way as the Grafana dashboards/alert rules.
 
 ## Alert delivery (Discord + Mailpit email)
 
@@ -101,16 +123,20 @@ New Webhook → Copy Webhook URL.
 
 ## Single source of truth with docker-compose
 
-Dashboards and alert rules are the same files the compose stack mounts:
+Dashboards, alert rules and Tempo's config are the same files the compose
+stack mounts:
 
 - `dashboards/` → symlink to `infra/grafana/dashboards`
 - `alerting/` → symlink to `infra/grafana/provisioning/alerting`
+- `tempo/` → symlink to `infra/tempo`
 
-Edit them once in `infra/grafana`, and both the compose stack and this chart
-pick them up (CI redeploys the chart on changes to `infra/grafana/**`).
-Everything Grafana needs is provisioned this way, so it needs no persistent
-volume — dashboards/alerts survive restarts by construction, and ad-hoc UI
-edits are intentionally not persisted (`editable: false`).
+Edit them once in `infra/grafana` or `infra/tempo`, and both the compose stack
+and this chart pick them up (CI redeploys the chart on changes to either
+directory, see `.github/workflows/deploy-k8s-monitoring.yml`). Everything
+Grafana needs is provisioned this way, so it needs no persistent volume —
+dashboards/alerts survive restarts by construction, and ad-hoc UI edits are
+intentionally not persisted (`editable: false`). Tempo still needs its own PVC
+(trace data isn't config-as-code).
 
 ## Tear down
 
@@ -118,4 +144,5 @@ edits are intentionally not persisted (`editable: false`).
 helm uninstall caredesk-monitoring -n team-k8s-commanders-monitoring
 ```
 
-Removes everything including the Prometheus PVC (metric history is wiped).
+Removes everything including the Prometheus and Tempo PVCs (metric/trace
+history is wiped).

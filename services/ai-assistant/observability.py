@@ -1,4 +1,4 @@
-"""Consistent request logging and correlation for the AI assistant."""
+"""Consistent request logging, correlation and tracing for the AI assistant."""
 
 import logging
 import os
@@ -7,6 +7,13 @@ import time
 from contextvars import ContextVar
 from uuid import uuid4
 
+from opentelemetry import trace
+from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
+from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
+from opentelemetry.instrumentation.httpx import HTTPXClientInstrumentor
+from opentelemetry.sdk.resources import Resource
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
 from starlette.datastructures import Headers, MutableHeaders
 
 CORRELATION_ID_HEADER = "X-Correlation-ID"
@@ -97,8 +104,35 @@ class RequestLoggingMiddleware:
             _correlation_id.reset(token)
 
 
+def configure_tracing(app) -> None:
+    """Export request spans to Tempo over OTLP/HTTP.
+
+    Sampling is controlled entirely through the standard OTEL_TRACES_SAMPLER /
+    OTEL_TRACES_SAMPLER_ARG env vars (read automatically by TracerProvider when
+    no explicit sampler is passed) so it stays one knob shared with the Spring
+    services' management.tracing.sampling.probability.
+    """
+    resource = Resource.create(
+        {"service.name": os.getenv("OTEL_SERVICE_NAME", "ai-assistant")}
+    )
+    provider = TracerProvider(resource=resource)
+    exporter = OTLPSpanExporter(
+        endpoint=os.getenv(
+            "OTEL_EXPORTER_OTLP_TRACES_ENDPOINT", "http://localhost:4318/v1/traces"
+        )
+    )
+    provider.add_span_processor(BatchSpanProcessor(exporter))
+    trace.set_tracer_provider(provider)
+
+    FastAPIInstrumentor.instrument_app(app)
+    # Propagates the inbound traceparent into the httpx calls service_client.py
+    # makes to patient-service/notes-service, so their spans join this trace.
+    HTTPXClientInstrumentor().instrument()
+
+
 def configure_observability(app) -> None:
     configure_logging()
+    configure_tracing(app)
     app.add_middleware(RequestLoggingMiddleware)
 
 

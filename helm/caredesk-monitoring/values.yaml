@@ -1,4 +1,4 @@
-# CareDesk monitoring stack (Prometheus + Grafana).
+# CareDesk monitoring stack (Prometheus + Tempo + Grafana).
 #
 # Runs in its own namespace (team-k8s-commanders-monitoring) so observability is
 # isolated from the app: separate quota accounting within the Rancher project,
@@ -6,7 +6,10 @@
 # rollouts. Prometheus scrapes the CareDesk services cross-namespace via their
 # fully-qualified Service DNS names; the caredesk chart's NetworkPolicies open
 # ingress for pods labeled app.kubernetes.io/component=prometheus coming from
-# this namespace (see helm/caredesk/templates/networkpolicy.yaml).
+# this namespace (see helm/caredesk/templates/networkpolicy.yaml). Tempo runs
+# the traffic the other way: every app-namespace pod pushes spans to it over
+# OTLP/HTTP, so this chart's own NetworkPolicy (templates/networkpolicy.yaml)
+# admits the whole app namespace rather than one caller.
 
 # ─── Where the CareDesk app lives ─────────────────────────────────────────────
 # Scrape targets resolve to <release>-<service>.<namespace>.svc.cluster.local.
@@ -52,6 +55,17 @@ prometheus:
       service: ai
       port: 8000
       metricsPath: /metrics
+
+# ─── Tempo (distributed tracing: OTLP/HTTP ingest 4318, query API 3200) ───────
+# Single-binary Tempo — receives spans from every CareDesk service and stores
+# them on local disk (see infra/tempo/tempo.yaml). Not exposed through the
+# ingress, same reasoning as Prometheus: its query API has no authentication.
+tempo:
+  image: grafana/tempo:2.10.7
+  storage: 1Gi
+  resources:
+    requests: { cpu: 25m,  memory: 64Mi }
+    limits:   { cpu: 100m, memory: 256Mi }
 
 # ─── Grafana (dashboards + alerting, port 3000) ───────────────────────────────
 # Dashboards, the Prometheus datasource, and alert rules are provisioned from

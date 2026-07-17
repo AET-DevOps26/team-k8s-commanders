@@ -4,8 +4,9 @@
 # (not RollingUpdate) terminates the old pod before starting the new one, so
 # rollouts do not need temporary spare quota for overlapping pods.
 # Budget: 6×400m backends + 5×250m Postgres + 1×200m web = 3850m CPU (2150m
-# spare), 5504Mi memory (2688Mi spare). Prometheus + Grafana live in their own
-# namespace (helm/caredesk-monitoring) and no longer count against this one.
+# spare), 5504Mi memory (2688Mi spare). Prometheus + Tempo + Grafana live in
+# their own namespace (helm/caredesk-monitoring) and no longer count against
+# this one.
 deploymentStrategy:
   type: Recreate
 
@@ -57,6 +58,10 @@ backend:
   # Fresh databases have no schema; `update` lets Hibernate create tables on
   # first boot. Switch to `validate` once real migrations exist.
   ddlAuto: update
+  # Share of requests traced (see caredesk.tracingEnv / OTEL_TRACES_SAMPLER_ARG
+  # on ai-assistant). 1.0 traces every request — fine at this traffic volume;
+  # drop it before this ever sees production-scale load.
+  tracingSamplingProbability: 1.0
 
 # ─── PostgreSQL (one lightweight instance per backend service) ─────────────────
 # Plain postgres:16-alpine (public on Docker Hub) — predictable, fast to pull,
@@ -275,13 +280,16 @@ mailpit:
     limits:   { cpu: 100m, memory: 128Mi }
 
 # ─── Monitoring (deployed separately — helm/caredesk-monitoring) ──────────────
-# Prometheus + Grafana run in their own namespace via the caredesk-monitoring
-# chart (deployed by .github/workflows/deploy-k8s-monitoring.yml). This block
-# only controls the NetworkPolicy openings that let Prometheus scrape the
-# backends' metrics endpoints cross-namespace.
+# Prometheus + Tempo + Grafana run in their own namespace via the
+# caredesk-monitoring chart (deployed by .github/workflows/deploy-k8s-monitoring.yml).
+# This block controls the NetworkPolicy openings that let Prometheus scrape the
+# backends' metrics endpoints cross-namespace, and the OTLP endpoint (see
+# caredesk.otlpTracesEndpoint) every service sends spans to — release must
+# match the `helm install <release> helm/caredesk-monitoring` name.
 monitoring:
   enabled: true
   namespace: team-k8s-commanders-monitoring
+  release: caredesk-monitoring
 
 # ─── ai-assistant (FastAPI, port 8000) ─────────────────────────────────────────
 ai:

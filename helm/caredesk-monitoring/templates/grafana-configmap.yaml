@@ -1,4 +1,5 @@
 {{- $promURL := printf "http://%s-prometheus:9090" (include "caredesk-monitoring.fullname" .) -}}
+{{- $tempoURL := printf "http://%s-tempo:3200" (include "caredesk-monitoring.fullname" .) -}}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -20,6 +21,14 @@ data:
         jsonData:
           httpMethod: POST
           timeInterval: 15s
+      - name: Tempo
+        type: tempo
+        uid: tempo
+        url: {{ $tempoURL }}
+        access: proxy
+        editable: false
+        jsonData:
+          httpMethod: GET
   dashboards.yaml: |
     apiVersion: 1
     providers:

@@ -26,8 +26,14 @@ services/ai-assistant/.coverage
 # pre-commit cache
 .cache/
 
+# nix-direnv cache
+.direnv/
+
 # misc
 CLAUDE.md
+
+# nix-direnv local cache/gcroots
+.direnv/
 
 # Prod secrets — create on the VM, never commit
 .env

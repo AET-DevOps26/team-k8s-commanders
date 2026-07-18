@@ -4,7 +4,7 @@ from db import engine
 def test_database_url_prefers_explicit_url(monkeypatch):
     monkeypatch.setenv("DATABASE_URL", "sqlite+aiosqlite:///explicit.db")
 
-    assert engine._database_url() == "sqlite+aiosqlite:///explicit.db"
+    assert engine.database_url() == "sqlite+aiosqlite:///explicit.db"
 
 
 def test_database_url_encodes_credentials(monkeypatch):
@@ -15,7 +15,7 @@ def test_database_url_encodes_credentials(monkeypatch):
     monkeypatch.setenv("DB_USER", "care@desk")
     monkeypatch.setenv("DB_PASSWORD", "p@ss/word")
 
-    assert engine._database_url() == (
+    assert engine.database_url() == (
         "postgresql+asyncpg://care%40desk:p%40ss%2Fword"
         "@postgres.internal:5433/care desk"
     )

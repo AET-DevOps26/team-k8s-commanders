@@ -33,6 +33,7 @@ from models.paginated_ai_session_response import PaginatedAISessionResponse
 from models.user_role import UserRole
 from utils.auth import require_roles, require_user_id
 from utils.context import build_context
+from utils.guidelines import retrieve_guidelines
 from utils.llm import get_llm
 from utils.prompt_templates import GENERAL_PROMPT, QUERY_PROMPT
 from utils.service_client import forwarded_headers
@@ -50,6 +51,20 @@ _authz = Depends(require_roles(UserRole.DOCTOR, UserRole.ADMIN))
 
 def _format_docs(docs) -> str:
     return "\n".join(doc.page_content for doc in docs)
+
+
+def _format_guidelines(docs) -> str:
+    """Render retrieved guideline chunks as a labelled block for the prompt.
+
+    Returns "" when nothing was retrieved so the ``{guidelines}`` placeholder in
+    the system prompt collapses to nothing.
+    """
+    if not docs:
+        return ""
+    body = "\n\n".join(
+        f"[{doc.metadata['source']}]\n{doc.page_content}" for doc in docs
+    )
+    return "\n\nClinical guideline excerpts (general reference):\n" + body
 
 
 def _sources(docs) -> list[str]:
@@ -78,16 +93,22 @@ def _to_history(messages: list[ConversationMessage]) -> list:
     return history
 
 
-def _build_chain(docs, history):
+def _build_chain(docs, guideline_docs, history):
     """Build the LangChain pipeline and its input for the given context.
 
     Returns ``(chain, payload)``. Calls ``get_llm()`` eagerly so a misconfigured
     LLM raises here — before any streaming response has started — and can still
-    surface as a proper HTTP error.
+    surface as a proper HTTP error. ``guideline_docs`` are the RAG hits; both
+    prompts carry a ``{guidelines}`` slot, so it is always supplied (empty when
+    nothing was retrieved).
     """
     llm = get_llm()
     prompt = QUERY_PROMPT if docs else GENERAL_PROMPT
-    payload = {"history": history, "question": "__question__"}
+    payload = {
+        "history": history,
+        "question": "__question__",
+        "guidelines": _format_guidelines(guideline_docs),
+    }
     if docs:
         payload["context"] = _format_docs(docs)
     return prompt | llm | StrOutputParser(), payload
@@ -244,13 +265,18 @@ async def create_message(
             detail="No patient or appointment data found for the session's bound IDs",
         )
 
-    sources = _sources(docs)
+    # Retrieve relevant clinical guidelines (RAG). Best-effort: a knowledge base
+    # that is absent or unreachable yields no docs and never blocks the reply.
+    guideline_docs = await retrieve_guidelines(request.query)
+
+    # Guideline labels are surfaced alongside patient/appointment/note sources.
+    sources = _sources(docs + guideline_docs)
     history = _to_history(session.messages)
 
     # Build the chain up front so an LLM configuration error becomes a 500 here,
     # before we persist anything or commit to a 200 streaming response.
     try:
-        chain, payload = _build_chain(docs, history)
+        chain, payload = _build_chain(docs, guideline_docs, history)
     except ValueError as e:
         logger.error("LLM configuration error: %s", e)
         raise HTTPException(

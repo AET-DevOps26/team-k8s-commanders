@@ -24,7 +24,7 @@ _engine: AsyncEngine | None = None
 _sessionmaker: async_sessionmaker[AsyncSession] | None = None
 
 
-def _database_url() -> str:
+def database_url() -> str:
     url = os.getenv("DATABASE_URL")
     if url:
         return url
@@ -42,7 +42,7 @@ def _database_url() -> str:
 def get_engine() -> AsyncEngine:
     global _engine, _sessionmaker
     if _engine is None:
-        url = _database_url()
+        url = database_url()
         # In-memory SQLite (tests) lives in a single connection, so pin the pool
         # to one shared connection; otherwise each session would see an empty DB.
         if url.startswith("sqlite") and ":memory:" in url:

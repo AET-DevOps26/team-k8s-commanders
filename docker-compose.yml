@@ -39,7 +39,9 @@ services:
       - caredesk
 
   ai-db:
-    image: postgres:16-alpine
+    # pgvector image = stock postgres:16 + the `vector` extension, used by the
+    # clinical-guidelines RAG collection. Drop-in for the session store too.
+    image: pgvector/pgvector:pg16
     restart: unless-stopped
     environment:
       POSTGRES_DB: ai_db
@@ -74,6 +76,10 @@ services:
       LLM_MODEL: llama3.2
       LLM_API_KEY: ollama
       OPENWEBUI_BASE_URL: http://ollama:11434/v1
+      # Embeddings for the clinical-guidelines RAG path (same Ollama backend).
+      # nomic-embed-text produces 768-dim vectors; keep EMBEDDING_DIM in sync.
+      EMBEDDING_MODEL: nomic-embed-text
+      EMBEDDING_DIM: "768"
       # Source-of-truth services the assistant pulls live patient context from.
       PATIENT_SERVICE_URL: http://patient-service:8082
       NOTES_SERVICE_URL: http://notes-service:8083
@@ -97,20 +103,48 @@ services:
     networks:
       - caredesk
 
+  ai-ingest:
+    build:
+      context: ./services/ai-assistant
+      dockerfile: Dockerfile
+    restart: "no"
+    command: python scripts/ingest_guidelines.py
+    environment:
+      LLM_PROVIDER: openwebui
+      LLM_API_KEY: ollama
+      OPENWEBUI_BASE_URL: http://ollama:11434/v1
+      EMBEDDING_MODEL: nomic-embed-text
+      EMBEDDING_DIM: "768"
+      DB_HOST: ai-db
+      DB_PORT: 5432
+      DB_NAME: ai_db
+      DB_USER: caredesk
+      DB_PASSWORD: caredesk
+    depends_on:
+      ai-db:
+        condition: service_healthy
+      ollama:
+        condition: service_healthy
+    networks:
+      - caredesk
+
   ollama:
     image: ollama/ollama
     environment:
       OLLAMA_MODEL: llama3.2
+      # Embedding model for the RAG path; pulled alongside the chat model.
+      OLLAMA_EMBED_MODEL: nomic-embed-text
     entrypoint: >
       sh -c "ollama serve &
              until ollama list > /dev/null 2>&1; do sleep 1; done &&
              ollama pull $$OLLAMA_MODEL &&
+             ollama pull $$OLLAMA_EMBED_MODEL &&
              wait"
     volumes:
       - ollama_data:/root/.ollama
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "ollama list | grep -q $$OLLAMA_MODEL"]
+      test: ["CMD-SHELL", "ollama list | grep -q $$OLLAMA_MODEL && ollama list | grep -q $$OLLAMA_EMBED_MODEL"]
       interval: 15s
       timeout: 5s
       retries: 120

@@ -34,6 +34,10 @@ NOTE_DOC = Document(
     page_content="Clinical note: Patient stable.\nDiagnosis: Hypertension (Code: I10)",
     metadata={"source": "Clinical note"},
 )
+GUIDELINE_DOC = Document(
+    page_content="Step 1 antihypertensive: ACE inhibitor or ARB.",
+    metadata={"source": "Clinical guideline: Hypertension"},
+)
 
 
 def _fake_llm(response: str) -> FakeListChatModel:
@@ -331,6 +335,68 @@ def test_admin_allowed():
     with _client() as client:
         response = client.post("/ai/sessions", headers=ADMIN_HEADERS, json={})
     assert response.status_code == 201
+
+
+# ── Clinical-guidelines RAG ──────────────────────────────────────────────────
+
+
+@patch("routes.sessions.retrieve_guidelines", new_callable=AsyncMock)
+@patch("routes.sessions.get_llm")
+@patch("routes.sessions.build_context", new_callable=AsyncMock)
+def test_guideline_sources_merged_and_text_reaches_prompt(
+    mock_build_context, mock_get_llm, mock_retrieve
+):
+    """Retrieved guidelines surface in sources and their text is in the prompt."""
+    mock_build_context.return_value = [PATIENT_DOC]
+    mock_retrieve.return_value = [GUIDELINE_DOC]
+
+    captured = {}
+
+    def _capture(messages):
+        captured["contents"] = [m.content for m in messages.to_messages()]
+        return "Per guideline, start an ACE inhibitor."
+
+    mock_get_llm.return_value = RunnableLambda(_capture)
+
+    with _client() as client:
+        sid = client.post(
+            "/ai/sessions", headers=DOCTOR_HEADERS, json={"patientId": PATIENT_ID}
+        ).json()["id"]
+        reply = client.post(
+            f"/ai/sessions/{sid}/messages",
+            headers=DOCTOR_HEADERS,
+            json={"query": "How should I treat the hypertension?"},
+        )
+
+    assert reply.status_code == 200
+    # Guideline label is merged in alongside the patient source.
+    assert reply.json()["sources"] == ["Patient record", "Clinical guideline: Hypertension"]
+    # The guideline excerpt was injected into the system prompt.
+    system_message = captured["contents"][0]
+    assert "ACE inhibitor or ARB" in system_message
+
+
+@patch("routes.sessions.retrieve_guidelines", new_callable=AsyncMock)
+@patch("routes.sessions.get_llm")
+@patch("routes.sessions.build_context", new_callable=AsyncMock)
+def test_guidelines_enrich_unbound_session(
+    mock_build_context, mock_get_llm, mock_retrieve
+):
+    """A session with no patient binding still gets guideline grounding."""
+    mock_build_context.return_value = []
+    mock_retrieve.return_value = [GUIDELINE_DOC]
+    mock_get_llm.return_value = _fake_llm("General hypertension guidance.")
+
+    with _client() as client:
+        sid = client.post("/ai/sessions", headers=DOCTOR_HEADERS, json={}).json()["id"]
+        reply = client.post(
+            f"/ai/sessions/{sid}/messages",
+            headers=DOCTOR_HEADERS,
+            json={"query": "First-line antihypertensive?"},
+        )
+
+    assert reply.status_code == 200
+    assert reply.json()["sources"] == ["Clinical guideline: Hypertension"]
 
 
 # ── Streaming (Server-Sent Events) ───────────────────────────────────────────

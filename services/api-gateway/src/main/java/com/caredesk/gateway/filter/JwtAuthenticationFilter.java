@@ -1,6 +1,7 @@
 package com.caredesk.gateway.filter;
 
 import com.caredesk.gateway.config.JwtUtil;
+import com.caredesk.gateway.error.GatewayProblemDetails;
 import io.jsonwebtoken.Claims;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
@@ -39,10 +40,12 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
     );
 
     private final JwtUtil jwtUtil;
+    private final GatewayProblemDetails problemDetails;
     private final AntPathMatcher pathMatcher = new AntPathMatcher();
 
-    public JwtAuthenticationFilter(JwtUtil jwtUtil) {
+    public JwtAuthenticationFilter(JwtUtil jwtUtil, GatewayProblemDetails problemDetails) {
         this.jwtUtil = jwtUtil;
+        this.problemDetails = problemDetails;
     }
 
     @Override
@@ -111,8 +114,10 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
     }
 
     private Mono<Void> unauthorized(ServerWebExchange exchange) {
-        exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
-        return exchange.getResponse().setComplete();
+        return problemDetails.write(
+                exchange,
+                HttpStatus.UNAUTHORIZED,
+                "Authentication is required");
     }
 
     @Override

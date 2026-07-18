@@ -4,7 +4,7 @@ import { userMessage } from '../../lib/messages'
 import type { AuthFormProps } from '../../types/route'
 import { ShellNav } from '../layout/ShellNav'
 
-export function AuthForm({ mode, onAuthenticated, onNavigate }: AuthFormProps) {
+export function AuthForm({ mode, notice, onAuthenticated, onNavigate }: AuthFormProps) {
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -51,6 +51,7 @@ export function AuthForm({ mode, onAuthenticated, onNavigate }: AuthFormProps) {
 
         <form className="auth-card" onSubmit={handleSubmit}>
           <h2>{isRegister ? 'Sign up' : 'Login'}</h2>
+          {notice && <p className="form-notice">{notice}</p>}
           {isRegister && (
             <>
               <label>

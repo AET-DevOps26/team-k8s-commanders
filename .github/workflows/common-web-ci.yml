@@ -1,0 +1,43 @@
+name: Common Web Library CI
+
+on:
+  push:
+    paths:
+      - "services/common-web/**"
+      - "config/spotbugs/**"
+      - "pom.xml"
+      - ".github/workflows/common-web-ci.yml"
+  pull_request:
+    paths:
+      - "services/common-web/**"
+      - "config/spotbugs/**"
+      - "pom.xml"
+      - ".github/workflows/common-web-ci.yml"
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Java
+        uses: actions/setup-java@v5
+        with:
+          java-version: "25"
+          distribution: temurin
+          cache: maven
+
+      - name: Run tests and SpotBugs static analysis
+        run: mvn -B verify
+        working-directory: services/common-web
+
+      - name: Upload verification reports on failure
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: common-web-verification-reports
+          path: |
+            services/common-web/target/surefire-reports/
+            services/common-web/target/spotbugsXml.xml
+          retention-days: 7

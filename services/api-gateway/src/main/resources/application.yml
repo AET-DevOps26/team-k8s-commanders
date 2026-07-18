@@ -19,6 +19,7 @@ spring:
                 allowedOriginPatterns: "${CORS_ALLOWED_ORIGINS:*}"
                 allowedMethods: [GET, POST, PUT, PATCH, DELETE, OPTIONS]
                 allowedHeaders: "*"
+                exposedHeaders: [X-Correlation-ID]
                 allowCredentials: false
                 maxAge: 3600
           # The /api/v1 prefix is owned by the gateway (per the OpenAPI spec's server base path).
@@ -89,3 +90,11 @@ management:
 # Must match auth-service's JWT_SECRET.
 jwt:
   secret: ${JWT_SECRET}
+
+# Shared backend log format. Correlation is included explicitly in gateway request logs;
+# servlet services and the AI assistant use the same field through request context.
+logging:
+  level:
+    root: ${LOG_LEVEL:INFO}
+  pattern:
+    console: "%d{yyyy-MM-dd'T'HH:mm:ss.SSSXXX} level=%-5level service=${spring.application.name} correlationId=%X{correlationId:-none} logger=%logger{36} message=%msg%n%wEx"

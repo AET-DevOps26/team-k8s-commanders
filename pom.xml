@@ -20,12 +20,50 @@
 
     <properties>
         <java.version>25</java.version>
-        <spotbugs-maven-plugin.version>4.10.2.0</spotbugs-maven-plugin.version>
-        <spotbugs.version>4.10.2</spotbugs.version>
+        <spotbugs-maven-plugin.version>4.10.3.0</spotbugs-maven-plugin.version>
+        <spotbugs.version>4.10.3</spotbugs.version>
         <findsecbugs-plugin.version>1.14.0</findsecbugs-plugin.version>
+        <jacoco.version>0.8.15</jacoco.version>
     </properties>
 
     <build>
+        <plugins>
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <version>${jacoco.version}</version>
+                <executions>
+                    <execution>
+                        <id>jacoco-prepare-agent</id>
+                        <goals>
+                            <goal>prepare-agent</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>jacoco-report-and-check</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>report</goal>
+                            <goal>check</goal>
+                        </goals>
+                        <configuration>
+                            <rules>
+                                <rule>
+                                    <element>BUNDLE</element>
+                                    <limits>
+                                        <limit>
+                                            <counter>LINE</counter>
+                                            <value>COVEREDRATIO</value>
+                                            <minimum>0.80</minimum>
+                                        </limit>
+                                    </limits>
+                                </rule>
+                            </rules>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
         <pluginManagement>
             <plugins>
                 <!-- SpotBugs static analysis. Runs at `mvn verify` and fails the

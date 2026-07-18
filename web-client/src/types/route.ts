@@ -37,6 +37,7 @@ export function dashboardLabel(role: string): string {
 
 export type AuthFormProps = {
   mode: 'login' | 'register'
+  notice?: string
   onAuthenticated: (session: AuthSession) => void
   onNavigate: NavigateHandler
 }

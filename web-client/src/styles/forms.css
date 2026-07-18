@@ -110,6 +110,15 @@
   line-height: 1.5;
 }
 
+.form-notice {
+  margin: 0;
+  padding: 0.8rem;
+  border-radius: 0.5rem;
+  color: #1f3d5c;
+  background: #dde8f6;
+  line-height: 1.5;
+}
+
 .settings-grid,
 .booking-grid {
   display: grid;

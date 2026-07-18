@@ -7,11 +7,12 @@ from utils import context
 from utils.service_client import forwarded_headers
 
 
-def test_forwarded_headers_selects_only_identity_headers():
+def test_forwarded_headers_selects_only_trusted_context_headers():
     incoming = {
         "X-User-Email": "doc@clinic.com",
         "X-User-Role": "DOCTOR",
         "X-User-Id": "abc-123",
+        "X-Correlation-ID": "request-123",
         "Authorization": "Bearer secret",
         "Content-Type": "application/json",
     }
@@ -20,6 +21,7 @@ def test_forwarded_headers_selects_only_identity_headers():
         "x-user-email": "doc@clinic.com",
         "x-user-role": "DOCTOR",
         "x-user-id": "abc-123",
+        "x-correlation-id": "request-123",
     }
 
 

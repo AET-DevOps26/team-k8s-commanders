@@ -1,5 +1,7 @@
 package com.caredesk.patient.config;
 
+import com.caredesk.common.web.SecurityProblemHandlers;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -8,6 +10,7 @@ import org.springframework.security.config.annotation.web.configurers.AbstractHt
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.servlet.HandlerExceptionResolver;
 
 /**
  * Spring Security configuration for the patient service.
@@ -47,10 +50,18 @@ public class SecurityConfig {
      * @throws Exception if security configuration fails
      */
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(
+            HttpSecurity http,
+            @Qualifier("handlerExceptionResolver") HandlerExceptionResolver exceptionResolver)
+            throws Exception {
         return http
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .exceptionHandling(exceptions -> exceptions
+                        .authenticationEntryPoint(
+                                SecurityProblemHandlers.authenticationEntryPoint(exceptionResolver))
+                        .accessDeniedHandler(
+                                SecurityProblemHandlers.accessDeniedHandler(exceptionResolver)))
                 .authorizeHttpRequests(auth -> auth
                         // Health and Prometheus endpoints must be reachable without auth.
                         // Both forms needed: Spring Security 6 `/**` does not match the

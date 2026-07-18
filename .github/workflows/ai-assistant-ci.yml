@@ -5,10 +5,12 @@ on:
     paths:
       - "services/ai-assistant/**"
       - ".github/workflows/ai-assistant-ci.yml"
+      - ".github/scripts/write-pytest-coverage-summary.py"
   pull_request:
     paths:
       - "services/ai-assistant/**"
       - ".github/workflows/ai-assistant-ci.yml"
+      - ".github/scripts/write-pytest-coverage-summary.py"
 
 jobs:
   tests:
@@ -33,5 +35,31 @@ jobs:
       - name: Lint
         run: ruff check .
 
-      - name: Run tests
-        run: pytest tests
+      - name: Run tests with coverage
+        run: >-
+          pytest tests
+          --cov=main
+          --cov=db
+          --cov=routes
+          --cov=observability
+          --cov=utils
+          --cov=errors
+          --cov-branch
+          --cov-fail-under=80
+          --cov-report=term-missing
+          --cov-report=html:coverage/html
+          --cov-report=xml:coverage/coverage.xml
+          --cov-report=json:coverage/coverage.json
+
+      - name: Display AI assistant coverage
+        if: always()
+        run: python ../../.github/scripts/write-pytest-coverage-summary.py coverage/coverage.json "AI assistant"
+
+      - name: Upload AI assistant coverage report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: ai-assistant-coverage-report
+          path: services/ai-assistant/coverage/
+          if-no-files-found: warn
+          retention-days: 14

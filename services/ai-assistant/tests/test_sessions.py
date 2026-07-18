@@ -290,6 +290,14 @@ def test_message_llm_error_500_and_nothing_persisted(mock_build_context, mock_ge
         session = client.get(f"/ai/sessions/{sid}", headers=DOCTOR_HEADERS).json()
 
     assert response.status_code == 500
+    assert response.headers["content-type"].startswith("application/problem+json")
+    assert response.json() == {
+        "type": "about:blank",
+        "title": "Internal Server Error",
+        "status": 500,
+        "detail": "Error processing query",
+        "instance": f"/ai/sessions/{sid}/messages",
+    }
     # A failed non-streaming turn persists neither message.
     assert session["messages"] == []
 

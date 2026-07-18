@@ -35,6 +35,15 @@ RUN cd target/classes && jar cf /tmp/openapi-spring-1.0.0.jar . \
         -q
 
 # ---------------------------------------------------------------------------
+# Stage 1b — install the shared web library (caredesk-common-web)
+# ---------------------------------------------------------------------------
+COPY pom.xml /pom.xml
+COPY services/common-web /common-web
+RUN mvn -B -q install -N -f /pom.xml -Dspotbugs.skip=true -Djacoco.skip=true \
+    && cd /common-web \
+    && mvn -B -q install -DskipTests -Dspotbugs.skip=true -Djacoco.skip=true
+
+# ---------------------------------------------------------------------------
 # Stage 2 — build the auth-service JAR
 # ---------------------------------------------------------------------------
 FROM maven:3.9-eclipse-temurin-25 AS app-builder

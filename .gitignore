@@ -15,6 +15,9 @@ web-client/src/api.ts
 
 # Vite production build output
 web-client/dist/
+web-client/coverage/
+services/ai-assistant/coverage/
+services/ai-assistant/.coverage
 
 # Editor and OS
 .vscode/
@@ -23,8 +26,14 @@ web-client/dist/
 # pre-commit cache
 .cache/
 
+# nix-direnv cache
+.direnv/
+
 # misc
 CLAUDE.md
+
+# nix-direnv local cache/gcroots
+.direnv/
 
 # Prod secrets — create on the VM, never commit
 .env

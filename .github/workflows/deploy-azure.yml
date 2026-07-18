@@ -99,6 +99,16 @@ jobs:
           # compose ${VAR:?} guards. Rejects values containing a newline: printf
           # is line-oriented, so a stray newline in a secret would spill extra
           # lines into .env.prod and corrupt the file.
+          #
+          # Every value is written with each `$` doubled to `$$`. docker compose
+          # runs interpolation over --env-file values, so a literal `$` would be
+          # read as a `${VAR}` reference and silently mangle the value — e.g. a
+          # bcrypt hash like `$2b$10$AaCj...` becomes `$2b$10./z5vwq24Lcq` (the
+          # salt+digest is eaten as an undefined variable), breaking the Mailpit
+          # basic-auth login. `$$` is compose's escape for a literal `$`, so it
+          # round-trips back to the original value; values without `$` are
+          # unaffected. This protects every secret (DB passwords, JWT_SECRET,
+          # LLM_API_KEY, ADMIN_PASSWORD, the Mailpit hash), not just the hash.
           write_var() {
             local name=$1 value=$2 required=$3
             if [ "$required" = required ] && [ -z "$value" ]; then
@@ -111,7 +121,7 @@ jobs:
                 exit 1
                 ;;
             esac
-            printf '%s=%s\n' "$name" "$value" >> .env.prod
+            printf '%s=%s\n' "$name" "${value//\$/\$\$}" >> .env.prod
           }
 
           write_var LLM_API_KEY "$LLM_API_KEY" required

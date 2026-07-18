@@ -36,6 +36,7 @@ export function PatientDashboard({
   const [error, setError] = useState('')
   const [isLoading, setLoading] = useState(true)
   const [reloadKey, setReloadKey] = useState(0)
+  const [movingId, setMovingId] = useState<string | null>(null)
   const [statusFilter, setStatusFilter] = useState<AppointmentStatusFilter>('ALL')
   const [sortOrder, setSortOrder] = useState<AppointmentSortOrder>('newest')
   const patientId = session.user.id
@@ -226,22 +227,38 @@ export function PatientDashboard({
                     <h2>My schedule</h2>
                   </div>
                 </div>
-                <AppointmentFilterBar
-                  statusFilter={statusFilter}
-                  sortOrder={sortOrder}
-                  onStatusFilterChange={setStatusFilter}
-                  onSortOrderChange={setSortOrder}
-                />
+                {!movingId && (
+                  <AppointmentFilterBar
+                    statusFilter={statusFilter}
+                    sortOrder={sortOrder}
+                    onStatusFilterChange={setStatusFilter}
+                    onSortOrderChange={setSortOrder}
+                  />
+                )}
                 {scheduleAppointments.length ? (
-                  <div className="appointment-list">
-                    {scheduleAppointments.map((appointment) => (
-                      <AppointmentRow
-                        appointment={appointment}
-                        key={appointment.id}
-                        onChanged={() => setReloadKey((current) => current + 1)}
-                        token={session.accessToken}
-                      />
-                    ))}
+                  <div
+                    className={
+                      movingId
+                        ? 'appointment-list appointment-list-focused'
+                        : 'appointment-list'
+                    }
+                  >
+                    {scheduleAppointments
+                      .filter((appointment) => !movingId || appointment.id === movingId)
+                      .map((appointment) => (
+                        <AppointmentRow
+                          appointment={appointment}
+                          key={appointment.id}
+                          isMoving={movingId === appointment.id}
+                          onMoveOpen={() => setMovingId(appointment.id)}
+                          onMoveClose={() => setMovingId(null)}
+                          onChanged={() => {
+                            setMovingId(null)
+                            setReloadKey((current) => current + 1)
+                          }}
+                          token={session.accessToken}
+                        />
+                      ))}
                   </div>
                 ) : (
                   <EmptyPanel

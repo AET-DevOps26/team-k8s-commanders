@@ -9,6 +9,14 @@ openapi:
 spring:
   application:
     name: auth-service
+  jackson:
+    # Omit null properties from JSON responses. The OpenAPI contract models
+    # optional fields by absence (not nullability), so a UserProfile with no
+    # clinicId must serialize as an omitted key, not "clinicId": null. Emitting
+    # an explicit null breaks strict generated clients — the ai-assistant's
+    # Python client calls UUID(clinicId) on any present key and raises on
+    # UUID(None), which surfaced as a 502 on patient-scoped AI queries.
+    default-property-inclusion: non_null
   # Render errors as RFC 9457 application/problem+json, matching the API contract.
   mvc:
     problemdetails:
@@ -59,3 +67,9 @@ caredesk:
       name: ${CAREDESK_ADMIN_NAME:}
       email: ${CAREDESK_ADMIN_EMAIL:}
       password: ${CAREDESK_ADMIN_PASSWORD:}
+
+logging:
+  level:
+    root: ${LOG_LEVEL:INFO}
+  pattern:
+    console: "%d{yyyy-MM-dd'T'HH:mm:ss.SSSXXX} level=%-5level service=${spring.application.name} correlationId=%X{correlationId:-none} logger=%logger{36} message=%msg%n%wEx"

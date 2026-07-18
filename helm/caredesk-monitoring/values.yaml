@@ -72,6 +72,16 @@ grafana:
   # Empty → a non-resolving placeholder is used: Grafana boots, alerts evaluate
   # and show in the UI, but nothing is delivered.
   discordWebhookUrl: ""
+  # SMTP relay for the caredesk-mailpit-email alert contact point. Points at the
+  # Mailpit SMTP service in the app namespace so alert emails land in Mailpit's
+  # inbox. Host/from are plain config (not secrets); override host if the app
+  # release name or namespace differ. Mailpit speaks plaintext SMTP, so
+  # skipVerify avoids Grafana's STARTTLS cert check aborting delivery.
+  smtp:
+    enabled: true
+    host: caredesk-mailpit.team-k8s-commanders.svc.cluster.local:1025
+    fromAddress: grafana-alerts@caredesk.local
+    skipVerify: true
   resources:
     requests: { cpu: 50m,  memory: 64Mi }
     limits:   { cpu: 200m, memory: 256Mi }

@@ -43,7 +43,7 @@ jobs:
 
       # gen-all.sh also generates the AI assistant's HTTP client with
       # openapi-python-client (pinned in api/scripts/gen-requirements.txt).
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.14"
 

@@ -25,7 +25,7 @@
         <!-- Swagger UI assets bundled into the gateway to serve the API docs at
              /api/v1/docs. webjars-locator-lite resolves the version at request
              time, so this is the only place the version is pinned. -->
-        <swagger-ui.version>5.32.8</swagger-ui.version>
+        <swagger-ui.version>5.32.14</swagger-ui.version>
     </properties>
 
     <dependencyManagement>

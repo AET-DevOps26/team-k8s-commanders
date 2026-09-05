@@ -4,4 +4,4 @@
 # ruff is pinned too: openapi-python-client shells out to it to format and prune
 # imports, so its version affects the vendored output.
 openapi-python-client==0.29.0
-ruff==0.15.21
+ruff==0.16.6

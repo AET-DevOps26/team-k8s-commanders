@@ -3,5 +3,5 @@
 # reproducible, the way openapitools.json pins the Java/TS generator.
 # ruff is pinned too: openapi-python-client shells out to it to format and prune
 # imports, so its version affects the vendored output.
-openapi-python-client==0.29.0
+openapi-python-client==0.29.1
 ruff==0.15.21
